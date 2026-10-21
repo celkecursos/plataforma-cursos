@@ -2,3 +2,8 @@
 spring:
   main:
     web-application-type: none
+    # Sem servidor HTTP e com threads virtuais, nada segura a JVM: mantém o processo vivo
+    keep-alive: true
+  # As migrations são aplicadas pela API
+  flyway:
+    enabled: false

@@ -1030,6 +1030,11 @@ springdoc:
 spring:
   main:
     web-application-type: none
+    # Sem servidor HTTP e com threads virtuais, nada segura a JVM: mantém o processo vivo
+    keep-alive: true
+  # As migrations são aplicadas pela API
+  flyway:
+    enabled: false
 `````
 
 #### 2.4. Segurança padrão
@@ -1039,6 +1044,7 @@ spring:
 `````java
 package br.com.celke.cursos.shared.security;
 
+import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -1052,9 +1058,11 @@ import org.springframework.security.web.authentication.HttpStatusEntryPoint;
 
 /**
  * Segurança da API: tudo exige autenticação, exceto as rotas públicas declaradas aqui com o
- * método HTTP. A API é stateless (token no cabeçalho), sem sessão, formulário ou HTTP Basic.
+ * método HTTP. A API é stateless (token no cabeçalho), sem sessão, formulário ou HTTP Basic. Só
+ * existe na aplicação web: o worker não atende HTTP.
  */
 @Configuration
+@ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
 @EnableMethodSecurity
 public class SecurityConfig {
 
@@ -1219,9 +1227,12 @@ COPY src/ src/
 RUN --mount=type=cache,target=/root/.m2 ./mvnw -B -q package -DskipTests -Dspotless.check.skip=true \
     && java -Djarmode=tools -jar target/plataforma-cursos-*.jar extract --layers --launcher --destination target/extracted
 
-# ---- Base de execução (sem root) ----
+# ---- Base de execução (sem root; curl para o healthcheck) ----
 FROM eclipse-temurin:25-jre-noble AS runtime
-RUN groupadd --system app && useradd --system --gid app --no-create-home app
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends curl \
+    && rm -rf /var/lib/apt/lists/* \
+    && groupadd --system app && useradd --system --gid app --no-create-home app
 WORKDIR /app
 
 # ---- API ----

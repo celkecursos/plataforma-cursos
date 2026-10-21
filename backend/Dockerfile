@@ -10,9 +10,12 @@ COPY src/ src/
 RUN --mount=type=cache,target=/root/.m2 ./mvnw -B -q package -DskipTests -Dspotless.check.skip=true \
     && java -Djarmode=tools -jar target/plataforma-cursos-*.jar extract --layers --launcher --destination target/extracted
 
-# ---- Base de execução (sem root) ----
+# ---- Base de execução (sem root; curl para o healthcheck) ----
 FROM eclipse-temurin:25-jre-noble AS runtime
-RUN groupadd --system app && useradd --system --gid app --no-create-home app
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends curl \
+    && rm -rf /var/lib/apt/lists/* \
+    && groupadd --system app && useradd --system --gid app --no-create-home app
 WORKDIR /app
 
 # ---- API ----

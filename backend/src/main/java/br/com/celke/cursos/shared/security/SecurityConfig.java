@@ -1,5 +1,6 @@
 package br.com.celke.cursos.shared.security;
 
+import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -13,9 +14,11 @@ import org.springframework.security.web.authentication.HttpStatusEntryPoint;
 
 /**
  * Segurança da API: tudo exige autenticação, exceto as rotas públicas declaradas aqui com o
- * método HTTP. A API é stateless (token no cabeçalho), sem sessão, formulário ou HTTP Basic.
+ * método HTTP. A API é stateless (token no cabeçalho), sem sessão, formulário ou HTTP Basic. Só
+ * existe na aplicação web: o worker não atende HTTP.
  */
 @Configuration
+@ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
 @EnableMethodSecurity
 public class SecurityConfig {
 

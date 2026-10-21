@@ -76,17 +76,17 @@ capítulo.
 
 ### Cap. 4 — Ambiente local com Docker
 
-**Fase:** 1.2
+**Fase:** 1.2 · **Prompt:** [f01-02](prompts/f01-02-ambiente-local.md)
 
 - **Objetivo:** subir toda a stack local com um comando.
 - **Conteúdo:**
   - `infra/compose.yml` com PostgreSQL 18, Garage, API, worker e Mailpit, todos com versão fixa.
-  - Garage em modo `--single-node`: `garage.toml` com `replication_factor = 1` e `db_engine = "sqlite"`, volumes de metadados e dados.
-  - `garage-init.sh`: buckets `uploads` e `videos` privados, chave da aplicação com acesso só a eles, CORS e lifecycle que expira uploads abandonados.
-  - Healthchecks e `depends_on: condition: service_healthy`.
-  - `.env` + `.env.example`; variáveis obrigatórias com `${VARIAVEL:?mensagem}`.
-- **Segurança:** portas publicadas só em `127.0.0.1`; nenhum segredo no yaml.
-- **Entrega:** `docker compose up` sobe tudo saudável, e a API responde em `/actuator/health`.
+  - Garage em modo `--single-node --default-bucket`: na primeira subida ele cria o bucket privado `midia` (prefixos `uploads/` e `videos/`) e a chave da aplicação; `garage.toml` com `replication_factor = 1` e `db_engine = "sqlite"`, sem segredos.
+  - `.env` + `.env.example`; `gerar-env.sh` cria o `.env` com segredos aleatórios; variáveis obrigatórias com `${VARIAVEL:?mensagem}`.
+  - Healthchecks e `depends_on: condition: service_healthy`; o worker sobe depois da API, que aplica as migrations.
+  - Portas do host configuráveis no `.env`, para quando a porta padrão já estiver em uso.
+- **Segurança:** portas publicadas só em `127.0.0.1`; nenhum segredo no yaml nem no `garage.toml`; `.env` com permissão 600.
+- **Entrega:** `docker compose up --wait` sobe tudo saudável, a API responde em `/actuator/health`, o Swagger abre e o painel do Mailpit fica acessível.
 
 ### Cap. 5 — Padrões compartilhados
 
@@ -97,6 +97,7 @@ capítulo.
   - Erros no formato `ProblemDetail` (RFC 9457) com handler global; validação com a lista `erros` (`campo`, `mensagem`); 401/403 da segurança no mesmo formato.
   - DTOs como `record`, paginação padrão, logs em JSON com id de correlação.
   - `StorageService` com AWS SDK v2 (path-style): URLs pré-assinadas de GET/PUT, multipart, exclusão.
+  - Configuração do bucket aplicada pela API ao subir: CORS para os hosts do front e expiração de `uploads/` abandonados.
   - Fila no PostgreSQL: tabela `jobs` e `FilaService` com `SELECT ... FOR UPDATE SKIP LOCKED`, tentativas com backoff.
   - `EmailService` com templates Thymeleaf, envio assíncrono pela fila, SMTP da Iagente.
 - **Segurança:** nenhuma resposta com stack trace ou mensagem interna.
@@ -290,11 +291,11 @@ capítulo.
 
 - **Objetivo:** enviar vídeos grandes sem passar pela API.
 - **Conteúdo:**
-  - O ADM pede URLs pré-assinadas de upload multipart, e o navegador envia direto para `media.celke.uno` (bucket `uploads`).
+  - O ADM pede URLs pré-assinadas de upload multipart, e o navegador envia direto para `media.celke.uno` (prefixo `uploads/` do bucket `midia`).
   - A API valida tipo e tamanho antes de assinar.
 - **Segurança:** depois do upload, a API confere o tamanho e o tipo real do arquivo antes de enfileirar.
 - **Testes:** upload multipart contra o Garage do Testcontainers; arquivo com extensão falsa rejeitado.
-- **Entrega:** vídeo no bucket `uploads` e job criado na fila.
+- **Entrega:** vídeo em `uploads/` e job criado na fila.
 
 ### Cap. 20 — Transcodificação com ffmpeg
 
@@ -303,7 +304,7 @@ capítulo.
 - **Objetivo:** reduzir o tamanho do vídeo e prepará-lo para streaming.
 - **Conteúdo:**
   - Worker consome a fila: `ffprobe` para analisar, ffmpeg para gerar HLS em 720p + 1080p (sem aumentar a resolução de origem), H.264 CRF 23–26, `maxrate`, AAC 128k, segmentos de 6 s.
-  - Thumbnail e duração; resultado no bucket `videos`; o original é apagado depois que a transcodificação dá certo.
+  - Thumbnail e duração; resultado em `videos/`; o original é apagado depois que a transcodificação dá certo.
   - Status `pendente → processando → pronto/erro`, reprocessar pelo ADM.
   - Job volta para a fila se o worker parar no meio (`stop_grace_period` + lease com expiração).
   - Comparativo de tamanho antes e depois.

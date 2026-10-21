@@ -43,7 +43,8 @@ Referências analisadas:
 ### Garage: o que o projeto usa e o que ele não tem
 
 - ✅ URLs pré-assinadas, upload multipart, CORS por bucket, lifecycle com `Expiration` e `AbortIncompleteMultipartUpload` (limpa uploads abandonados)
-- ❌ Versionamento, ACLs e bucket policies. Não fazem falta: os buckets são privados e o acesso é por chave com permissão por bucket.
+- ❌ Versionamento, ACLs e bucket policies. Não fazem falta: o bucket é privado e o acesso é por chave com permissão por bucket.
+- Um bucket privado `midia`, com os prefixos `uploads/` (originais enviados) e `videos/` (HLS e thumbnails). O próprio Garage cria o bucket e a chave da aplicação na primeira subida (`--default-bucket`); a expiração de uploads abandonados é feita por prefixo.
 
 ### Domínios (somente subdomínios de `celke.uno`)
 
@@ -144,7 +145,7 @@ plataforma-cursos/
 │   ├── caddy/
 │   │   ├── Dockerfile           Caddy (+ build dos fronts a partir da Fase 11)
 │   │   └── Caddyfile
-│   └── scripts/                 deploy.sh, backup-db.sh, backup-s3.sh, restore.sh, garage-init.sh
+│   └── scripts/                 gerar-env.sh, deploy.sh, backup-db.sh, backup-s3.sh, restore.sh
 ├── docs/
 │   ├── plano-implementacao.md
 │   └── prompts/                 prompts para recriar o projeto em sequência
@@ -195,32 +196,35 @@ deploy automático. Depois desta fase, toda funcionalidade nova segue o fluxo no
 - [x] `CLAUDE.md` da raiz (regras gerais) e `backend/CLAUDE.md` (código e testes do projeto Java)
 - [x] Skills `criar-teste-unitario`, `criar-teste-integracao` e `criar-teste-e2e` em `backend/.claude/skills/`, cada uma com o padrão do nível (`padrao.md`)
 - [x] Projeto gerado no Spring Initializr: Spring Boot 4.1.1, Java 25, `br.com.celke.cursos`; dependências: webmvc, security, data-jpa, validation, flyway, actuator, postgresql, springdoc, testcontainers. As demais (AWS SDK, mail, Thymeleaf) entram na etapa que as usa
-- [x] `application.yaml` com credenciais do banco sem valor padrão, `open-in-view` desligado, `ddl-auto: validate`, threads virtuais, shutdown gracioso, cabeçalhos do proxy, sem stack trace nas respostas; `application-worker.yaml` sem servidor HTTP
+- [x] `application.yaml` com credenciais do banco sem valor padrão, `open-in-view` desligado, `ddl-auto: validate`, threads virtuais, shutdown gracioso, cabeçalhos do proxy, sem stack trace nas respostas; `application-worker.yaml` sem servidor HTTP, sem Flyway (as migrations são da API) e com `spring.main.keep-alive`
 - [x] Sem usuário embutido do Spring Security (`UserDetailsServiceAutoConfiguration` excluída)
-- [x] `SecurityConfig`: stateless, sem CSRF/sessão/formulário/HTTP Basic, 401 para não autenticado; públicos só `GET` de health/probes e da documentação
+- [x] `SecurityConfig` (só na aplicação web, com `@ConditionalOnWebApplication`): stateless, sem CSRF/sessão/formulário/HTTP Basic, 401 para não autenticado; públicos só `GET` de health/probes e da documentação
 - [x] Actuator: só `health`, com probes de liveness/readiness e sem detalhes
 - [x] Swagger ligado por `DOCS_ENABLED=true` (dev e homologação), desligado por padrão
 - [x] Surefire para `*Test` (com `-Dskip.unit=true` para pular), Failsafe para `*IT`, JaCoCo somando os dois com mínimo de 80% de linhas, Spotless (palantir-java-format) verificado no `verify`
 - [x] `support/Containers` (PostgreSQL 18 como bean com `@ServiceConnection`) e `support/IntegrationTest` (`MockMvcTester`, `stamp()`)
 - [x] `SegurancaPadraoIT`: health e probes públicos com `UP` e sem detalhes; demais rotas e métodos exigem autenticação; documentação desligada
-- [x] Dockerfile multi-stage: build com JDK 25, jar em camadas, execução com JRE 25 e usuário sem root; targets `api` e `worker` (com ffmpeg)
+- [x] Dockerfile multi-stage: build com JDK 25, jar em camadas, execução com JRE 25, `curl` para healthcheck e usuário sem root; targets `api` e `worker` (com ffmpeg)
 
 **1.2 Ambiente local** — capítulo 4
 
-- [ ] `infra/compose.yml`: PostgreSQL 18, Garage, API, worker, Mailpit; versões fixas
-- [ ] Variáveis obrigatórias com `${VARIAVEL:?mensagem}` no compose (mensagem clara quando faltar)
-- [ ] `garage.toml` com `replication_factor = 1`, `db_engine = "sqlite"`, volumes para `metadata_dir` e `data_dir`, segredos (`rpc_secret`, `admin_token`) vindos do `.env`
-- [ ] `garage-init.sh`: buckets `uploads` e `videos`, chave da aplicação com leitura/escrita só nesses buckets, CORS e lifecycle (expira `uploads/` abandonados)
-- [ ] Healthchecks + `depends_on: condition: service_healthy`
-- [ ] `.env.example` completo; `.env` no `.gitignore`
-- [ ] Portas ligadas apenas em `127.0.0.1`
+- [x] `infra/compose.yml` (projeto `plataforma-cursos`): PostgreSQL 18.6, Garage v2.4.1, Mailpit v1.31.6, API e worker, com versões fixas
+- [x] Variáveis obrigatórias com `${VARIAVEL:?mensagem}`; conexão do banco num bloco compartilhado (`x-banco`) pela API e pelo worker
+- [x] `infra/.env.example` e `infra/scripts/gerar-env.sh`, que cria o `infra/.env` com segredos aleatórios (permissão 600) e não sobrescreve um existente
+- [x] Garage em `--single-node --default-bucket`: `garage.toml` sem segredos (vêm de `GARAGE_RPC_SECRET` e `GARAGE_ADMIN_TOKEN`), volume de metadados e dados; bucket `midia` e chave da aplicação criados na primeira subida
+- [x] PostgreSQL com o volume em `/var/lib/postgresql` (layout da versão 18)
+- [x] Healthchecks (`pg_isready`, `garage status`, `mailpit readyz`, readiness da API com `curl`) e `depends_on: condition: service_healthy`
+- [x] Worker sobe depois da API, que aplica as migrations
+- [x] Portas ligadas apenas em `127.0.0.1` e configuráveis no `.env` (`API_PORTA`, `POSTGRES_PORTA`, `S3_PORTA`, `MAILPIT_PORTA`)
+- [x] Swagger ligado no dev (`DOCS_ENABLED=true`)
 
 **1.3 Padrões compartilhados** — capítulo 5
 
 - [ ] `ProblemDetail` (RFC 9457) com handler global, sem stack trace na resposta; 401/403 da segurança também em `ProblemDetail`
 - [ ] DTOs como `record`, paginação padrão
 - [ ] Logs JSON com id de correlação
-- [ ] `StorageService` (AWS SDK v2, path-style): presign GET/PUT, multipart, delete
+- [ ] `StorageService` (AWS SDK v2, path-style): presign GET/PUT, multipart, delete; variáveis `S3_*` na API e no worker
+- [ ] Configuração do bucket aplicada pela API ao subir, de forma idempotente: CORS para os hosts do front e lifecycle que expira `uploads/` abandonados e uploads multipart incompletos
 - [ ] Fila: tabela `jobs` + `FilaService` (enfileirar, reservar com `SKIP LOCKED`, concluir, falhar com backoff)
 - [ ] `EmailService` com templates (Thymeleaf), envio assíncrono pela fila, SMTP da Iagente
 - [ ] `support/Containers` com Garage e Mailpit; `support/Mailpit`
