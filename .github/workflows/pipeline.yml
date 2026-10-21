@@ -1,6 +1,7 @@
 # Testes, build das imagens e e2e em todo PR para homolog e main. Depois do merge (push), refaz tudo
 # com o código exato do commit, publica no GHCR as imagens que passaram no e2e (tag = SHA) e implanta:
-# push na homolog → homologação; push na main → produção.
+# push na homolog → homologação; push na main → produção. Os deploys só rodam com a variável do
+# repositório DEPLOY_ATIVO=true (criada quando a VPS estiver pronta); sem ela, são pulados.
 name: Pipeline
 
 on:
@@ -142,7 +143,7 @@ jobs:
   deploy-homolog:
     name: Homologação
     needs: e2e
-    if: github.event_name == 'push' && github.ref == 'refs/heads/homolog'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/homolog' && vars.DEPLOY_ATIVO == 'true'
     uses: ./.github/workflows/deploy.yml
     with:
       ambiente: homolog
@@ -151,7 +152,7 @@ jobs:
   deploy-producao:
     name: Produção
     needs: e2e
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && vars.DEPLOY_ATIVO == 'true'
     uses: ./.github/workflows/deploy.yml
     with:
       ambiente: producao

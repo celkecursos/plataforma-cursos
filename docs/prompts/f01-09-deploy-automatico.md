@@ -25,8 +25,10 @@ O que esta etapa entrega:
   `command="/usr/local/bin/plataforma-cursos-deploy",no-port-forwarding,no-X11-forwarding,no-agent-forwarding,no-pty`.
 - **Workflow reutilizável `deploy.yml`**: environment `homolog` ou `production`, um deploy por ambiente e
   nunca cancelado; manda os arquivos por `tar | ssh` com a impressão digital da VPS fixada. No pipeline,
-  push em `homolog` → homologação, push em `main` → produção; só PRs cancelam execuções antigas.
-- **Roteiro**: secrets do repositório (`VPS_HOST`, `VPS_SSH_KEY`, `VPS_KNOWN_HOSTS`), primeira subida pelo
+  push em `homolog` → homologação, push em `main` → produção, só com a variável do repositório
+  `DEPLOY_ATIVO=true` (sem ela, os deploys são pulados); só PRs cancelam execuções antigas.
+- **Roteiro**: secrets do repositório (`VPS_HOST`, `VPS_SSH_KEY`, `VPS_KNOWN_HOSTS`), variável
+  `DEPLOY_ATIVO`, primeira subida pelo
   pipeline e operação (histórico, voltar versão, atualizar o Caddy e o script).
 
 Crie ou substitua os arquivos abaixo com **exatamente** o conteúdo indicado e deixe o script
@@ -39,7 +41,8 @@ executável (`chmod +x infra/scripts/deploy.sh`).
 `````yaml
 # Testes, build das imagens e e2e em todo PR para homolog e main. Depois do merge (push), refaz tudo
 # com o código exato do commit, publica no GHCR as imagens que passaram no e2e (tag = SHA) e implanta:
-# push na homolog → homologação; push na main → produção.
+# push na homolog → homologação; push na main → produção. Os deploys só rodam com a variável do
+# repositório DEPLOY_ATIVO=true (criada quando a VPS estiver pronta); sem ela, são pulados.
 name: Pipeline
 
 on:
@@ -181,7 +184,7 @@ jobs:
   deploy-homolog:
     name: Homologação
     needs: e2e
-    if: github.event_name == 'push' && github.ref == 'refs/heads/homolog'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/homolog' && vars.DEPLOY_ATIVO == 'true'
     uses: ./.github/workflows/deploy.yml
     with:
       ambiente: homolog
@@ -190,7 +193,7 @@ jobs:
   deploy-producao:
     name: Produção
     needs: e2e
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && vars.DEPLOY_ATIVO == 'true'
     uses: ./.github/workflows/deploy.yml
     with:
       ambiente: producao
@@ -485,6 +488,9 @@ chave são as mesmas):
 | `VPS_HOST` | IP da VPS |
 | `VPS_SSH_KEY` | conteúdo de `~/.ssh/plataforma-cursos-deploy` (a chave **privada** do deploy) |
 | `VPS_KNOWN_HOSTS` | saída de `ssh-keyscan -t ed25519 <ip-da-vps>` (conferida com o painel da Hostinger) |
+
+Na aba **Variables** da mesma página, crie a variável `DEPLOY_ATIVO` com o valor `true`. Sem ela, o
+pipeline pula os deploys (testes, e2e e publicação das imagens continuam rodando).
 
 Os jobs de deploy usam os environments `homolog` e `production`, criados automaticamente na primeira
 execução. Se o plano da conta permitir environments em repositório privado, ative em **Settings →

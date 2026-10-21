@@ -160,6 +160,9 @@ chave são as mesmas):
 | `VPS_SSH_KEY` | conteúdo de `~/.ssh/plataforma-cursos-deploy` (a chave **privada** do deploy) |
 | `VPS_KNOWN_HOSTS` | saída de `ssh-keyscan -t ed25519 <ip-da-vps>` (conferida com o painel da Hostinger) |
 
+Na aba **Variables** da mesma página, crie a variável `DEPLOY_ATIVO` com o valor `true`. Sem ela, o
+pipeline pula os deploys (testes, e2e e publicação das imagens continuam rodando).
+
 Os jobs de deploy usam os environments `homolog` e `production`, criados automaticamente na primeira
 execução. Se o plano da conta permitir environments em repositório privado, ative em **Settings →
 Environments → production** a opção **Required reviewers**: o deploy da produção passa a esperar a sua
