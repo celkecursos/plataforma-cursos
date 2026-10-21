@@ -19,3 +19,4 @@ Ao final de cada prompt, confira a seção **Verificação** dele antes de segui
 | 9 | [Preparar a VPS: produção e homologação](f01-08-vps.md) | 1.8 | `feature/base-projeto` |
 | 10 | [Deploy automático com rollback](f01-09-deploy-automatico.md) | 1.9 | `feature/base-projeto` |
 | 11 | [Cursos, turmas, módulos, aulas e catálogo](f02-01-cursos-e-catalogo.md) | 2 | `feature/cursos` |
+| 12 | [Matrícula e política única de acesso](f03-01-matricula-e-acesso.md) | 3 | `feature/matricula-acesso` |

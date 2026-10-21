@@ -1,8 +1,6 @@
 package br.com.celke.cursos.curso.application;
 
-import static br.com.celke.cursos.support.fixtures.CursoFixture.aula;
 import static br.com.celke.cursos.support.fixtures.CursoFixture.curso;
-import static br.com.celke.cursos.support.fixtures.CursoFixture.modulo;
 import static br.com.celke.cursos.support.fixtures.CursoFixture.publicado;
 import static br.com.celke.cursos.support.fixtures.CursoFixture.turma;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -10,14 +8,11 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import br.com.celke.cursos.curso.application.ConteudoTurmaService.ModuloConteudo;
 import br.com.celke.cursos.curso.domain.Curso;
-import br.com.celke.cursos.curso.domain.StatusConteudo;
 import br.com.celke.cursos.curso.domain.StatusCurso;
 import br.com.celke.cursos.curso.domain.StatusTurma;
-import br.com.celke.cursos.curso.domain.Turma;
-import br.com.celke.cursos.curso.infra.AulaRepository;
 import br.com.celke.cursos.curso.infra.CursoRepository;
-import br.com.celke.cursos.curso.infra.ModuloRepository;
 import br.com.celke.cursos.curso.infra.TurmaRepository;
 import br.com.celke.cursos.shared.erro.NaoEncontradoException;
 import java.util.List;
@@ -42,17 +37,14 @@ class CatalogoServiceTest {
     private TurmaRepository turmas;
 
     @Mock
-    private ModuloRepository modulos;
-
-    @Mock
-    private AulaRepository aulas;
+    private ConteudoTurmaService conteudoTurmaService;
 
     private CatalogoService service;
     private final Curso curso = publicado(curso(1, "java"));
 
     @BeforeEach
     void setUp() {
-        service = new CatalogoService(cursos, turmas, modulos, aulas);
+        service = new CatalogoService(cursos, turmas, conteudoTurmaService);
     }
 
     @Test
@@ -87,24 +79,17 @@ class CatalogoServiceTest {
     }
 
     @Test
-    @DisplayName("agrupa as aulas ativas por módulo, na ordem; módulo sem aulas vem com lista vazia")
-    void agrupaAulas() {
-        Turma turma = turma(5, curso);
-        var primeiro = modulo(10, turma, 1);
-        var segundo = modulo(20, turma, 2);
+    @DisplayName("mostra o conteúdo ativo da turma ativa mais recente")
+    void conteudoDaTurmaAtiva() {
+        List<ModuloConteudo> conteudo = List.of(new ModuloConteudo(10L, "Introdução", List.of()));
         when(cursos.findBySlugAndStatus("java", StatusCurso.PUBLICADO)).thenReturn(Optional.of(curso));
         when(turmas.findFirstByCursoIdAndStatusOrderByIdDesc(1L, StatusTurma.ATIVA))
-                .thenReturn(Optional.of(turma));
-        when(modulos.findByTurmaIdAndStatusOrderByOrdem(5L, StatusConteudo.ATIVO))
-                .thenReturn(List.of(primeiro, segundo));
-        when(aulas.findByModuloIdInAndStatusOrderByOrdem(List.of(10L, 20L), StatusConteudo.ATIVO))
-                .thenReturn(List.of(aula(100, primeiro, 1), aula(101, primeiro, 2)));
+                .thenReturn(Optional.of(turma(5, curso)));
+        when(conteudoTurmaService.conteudoAtivo(5L)).thenReturn(conteudo);
 
         var detalhe = service.detalhar("java");
 
         assertThat(detalhe.curso()).isSameAs(curso);
-        assertThat(detalhe.modulos()).hasSize(2);
-        assertThat(detalhe.modulos().get(0).aulas()).extracting(a -> a.getId()).containsExactly(100L, 101L);
-        assertThat(detalhe.modulos().get(1).aulas()).isEmpty();
+        assertThat(detalhe.modulos()).isEqualTo(conteudo);
     }
 }

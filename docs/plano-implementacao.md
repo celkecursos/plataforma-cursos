@@ -347,12 +347,17 @@ público com o conteúdo da turma ativa.
 
 Objetivo: matrícula e uma política única de acesso. Capítulos 17 e 18.
 
-- [ ] Migration `matriculas` (início, fim, status enum, forma de pagamento, transação)
-- [ ] Endpoints do ADM: matricular, alterar período, cancelar
-- [ ] `AcessoAulaPolicy`: status ativo + dentro do período, ou aula gratuita; usada por aula, vídeo, arquivo, fórum, progresso e certificado
-- [ ] Endpoints do aluno: meus cursos (ativos, arquivados, expirados), turma com módulos e aulas, arquivar/desarquivar
-- [ ] Testes: todas as combinações status × datas; IDOR (aluno A em dados do aluno B)
-- [ ] e2e de API: aluno matriculado vê a turma; sem matrícula ou com matrícula vencida recebe 403
+- [x] Migration `V7` `matriculas`: usuário e turma (FK `RESTRICT`), início, fim opcional (sem prazo), status `ATIVA`/`CANCELADA`, forma de pagamento (`MANUAL`, `CORTESIA`, `PIX`, `CARTAO`, `BOLETO`), transação, arquivamento; índice único parcial de uma matrícula ativa por aluno e turma e de transação por forma de pagamento (pronto para o webhook)
+- [x] "Vencida" e "aguardando início" não são status gravados: `Matricula.situacao(agora)` calcula pelo `Clock` (fim inclusivo), sem job para marcar matrículas
+- [x] Fronteira entre módulos: a matrícula guarda só os ids; o conteúdo vem do `ConteudoTurmaService` (exportado pelo módulo `curso`, também usado pelo catálogo) e os usuários do `UsuarioService`
+- [x] Endpoints do ADM: listar as matrículas da turma, matricular por e-mail (início padrão agora; turma encerrada, usuário inexistente, matrícula ativa repetida e transação repetida recusados), alterar período, cancelar; turma com matrículas não pode ser excluída (409 pela FK)
+- [x] `AcessoAulaPolicy` (classe pura com `Clock`): aula liberada com matrícula vigente na turma ou aula aberta (gratuita, turma ativa, curso publicado); turma inteira só com matrícula vigente. `AcessoAulaService.exigirAcesso` é a porta de entrada para vídeo, arquivo, fórum, progresso e certificado
+- [x] Endpoints do aluno (`/api/aluno`, escopo do token): meus cursos por aba (`ATIVOS` com as futuras, `ARQUIVADOS`, `EXPIRADOS`; cancelada em nenhuma), turma com módulos e aulas ativos, aula, arquivar/desarquivar (matrícula de outro aluno responde 404)
+- [x] Testes: situação e política em tabela (instante antes, exato e depois de cada limite), matriz de papéis, matriz de acesso ao conteúdo (vigente, sem, vencida, cancelada, futura, gratuita, curso em rascunho, conteúdo inativo, outra turma), IDOR
+- [x] e2e `MatriculaE2E`: conta nova vê só a aula gratuita; matriculada vê a turma e a aula paga; com o período vencido, 403 e o curso nos expirados
+
+**Pronto quando:** o ADM matricula um aluno e o acesso dele às aulas segue o período da matrícula,
+decidido num ponto só.
 
 ---
 

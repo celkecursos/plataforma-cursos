@@ -9,6 +9,7 @@ import br.com.celke.cursos.shared.erro.ConflitoException;
 import br.com.celke.cursos.shared.erro.NaoEncontradoException;
 import java.time.Clock;
 import java.util.List;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -56,14 +57,20 @@ public class TurmaAdmService {
         return turma;
     }
 
-    /** Exclui uma turma sem módulos; turma com conteúdo é encerrada. */
+    /** Exclui uma turma sem módulos e sem matrículas; as outras são encerradas. */
     @Transactional
     public void excluir(Long id) {
         Turma turma = buscar(id);
         if (modulos.existsByTurmaId(id)) {
             throw new ConflitoException("A turma tem módulos. Exclua os módulos ou encerre a turma.");
         }
-        turmas.delete(turma);
+        try {
+            turmas.delete(turma);
+            turmas.flush();
+        } catch (DataIntegrityViolationException e) {
+            // A chave estrangeira das matrículas impede a exclusão
+            throw new ConflitoException("A turma tem matrículas. Encerre a turma.");
+        }
     }
 
     private Turma buscar(Long id) {

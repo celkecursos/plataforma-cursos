@@ -289,27 +289,34 @@ capítulo.
 
 ### Cap. 17 — Matrícula
 
-**Fase:** 3
+**Fase:** 3 · **Prompt:** [f03-01](prompts/f03-01-matricula-e-acesso.md)
 
 - **Objetivo:** ligar alunos às turmas.
 - **Conteúdo:**
-  - `matriculas` com início, fim, status (enum), forma de pagamento e transação.
-  - Matrícula manual pelo admin: matricular, alterar período, cancelar.
+  - `matriculas` com início, fim opcional (acesso sem prazo), status (enum), forma de pagamento e transação.
+  - Status gravado só `ATIVA` ou `CANCELADA`; vigente, vencida ou aguardando início são calculados com o `Clock`, sem job que marque matrículas.
+  - Índices únicos parciais: uma matrícula ativa por aluno e turma, e cada transação gera uma matrícula só (base para o webhook de pagamento).
+  - Matrícula manual pelo admin: matricular por e-mail, alterar período, cancelar (o histórico fica).
   - Endpoints do aluno: meus cursos (ativos, arquivados, expirados), arquivar e desarquivar.
-  - O modelo já fica preparado para receber webhook de pagamento no futuro.
+  - Fronteira entre módulos: a matrícula guarda ids e consulta o conteúdo por um serviço exportado pelo módulo de cursos.
+- **Segurança:** tudo da área do aluno usa o id do token, nunca um id enviado pelo cliente; matrícula de outro aluno responde 404.
+- **Testes:** situação da matrícula em tabela; matrícula repetida, turma encerrada, transação repetida; abas de meus cursos; turma com matrículas não pode ser excluída.
 - **Entrega:** aluno matriculado vê seus cursos.
 
 ### Cap. 18 — Política única de acesso
 
-**Fase:** 3
+**Fase:** 3 · **Prompt:** [f03-01](prompts/f03-01-matricula-e-acesso.md)
 
 - **Objetivo:** um ponto só decide o que o aluno pode ver.
 - **Conteúdo:**
-  - `AcessoAulaPolicy`: decide o acesso a aula, vídeo, arquivo, fórum, progresso e certificado.
-  - Regras: matrícula ativa e dentro do período, ou aula gratuita.
+  - `AcessoAulaPolicy`: decide o acesso a aula, vídeo, arquivo, fórum, progresso e certificado; `AcessoAulaService.exigirAcesso` é a porta de entrada dos outros módulos.
+  - Regras: matrícula ativa e dentro do período (fim inclusivo), ou aula gratuita de turma ativa e curso publicado.
+  - A turma inteira (lista de módulos e aulas) só com matrícula vigente: a aula gratuita não abre a turma.
   - Data e hora por `Clock` injetado.
-- **Segurança:** recurso de outro aluno responde 404, para não revelar que existe.
-- **Testes:** unitários com todas as combinações de status × datas (instante antes, exato e depois de cada limite); matriz de acesso ao conteúdo; IDOR (aluno A tentando ver dados do aluno B).
+- **Segurança:**
+  - Recurso de outro aluno responde 404, para não revelar que existe.
+  - Aula gratuita de curso que voltou para rascunho não vaza; aula ou módulo inativo responde 404.
+- **Testes:** unitários com todas as combinações de status × datas (instante antes, exato e depois de cada limite); matriz de acesso ao conteúdo; IDOR (aluno A tentando ver dados do aluno B); e2e com a matrícula vencendo.
 - **Entrega:** aluno sem matrícula ou com matrícula vencida recebe 403.
 
 ---

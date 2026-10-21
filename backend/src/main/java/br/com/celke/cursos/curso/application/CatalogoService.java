@@ -1,19 +1,13 @@
 package br.com.celke.cursos.curso.application;
 
-import br.com.celke.cursos.curso.domain.Aula;
+import br.com.celke.cursos.curso.application.ConteudoTurmaService.ModuloConteudo;
 import br.com.celke.cursos.curso.domain.Curso;
-import br.com.celke.cursos.curso.domain.Modulo;
-import br.com.celke.cursos.curso.domain.StatusConteudo;
 import br.com.celke.cursos.curso.domain.StatusCurso;
 import br.com.celke.cursos.curso.domain.StatusTurma;
-import br.com.celke.cursos.curso.infra.AulaRepository;
 import br.com.celke.cursos.curso.infra.CursoRepository;
-import br.com.celke.cursos.curso.infra.ModuloRepository;
 import br.com.celke.cursos.curso.infra.TurmaRepository;
 import br.com.celke.cursos.shared.erro.NaoEncontradoException;
 import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -30,15 +24,12 @@ public class CatalogoService {
 
     private final CursoRepository cursos;
     private final TurmaRepository turmas;
-    private final ModuloRepository modulos;
-    private final AulaRepository aulas;
+    private final ConteudoTurmaService conteudoTurmaService;
 
-    public CatalogoService(
-            CursoRepository cursos, TurmaRepository turmas, ModuloRepository modulos, AulaRepository aulas) {
+    public CatalogoService(CursoRepository cursos, TurmaRepository turmas, ConteudoTurmaService conteudoTurmaService) {
         this.cursos = cursos;
         this.turmas = turmas;
-        this.modulos = modulos;
-        this.aulas = aulas;
+        this.conteudoTurmaService = conteudoTurmaService;
     }
 
     @Transactional(readOnly = true)
@@ -56,24 +47,12 @@ public class CatalogoService {
     @Transactional(readOnly = true)
     public CursoDetalhe detalhar(String slug) {
         Curso curso = buscar(slug);
-        List<ModuloDetalhe> conteudo = turmas.findFirstByCursoIdAndStatusOrderByIdDesc(curso.getId(), StatusTurma.ATIVA)
-                .map(turma -> conteudo(modulos.findByTurmaIdAndStatusOrderByOrdem(turma.getId(), StatusConteudo.ATIVO)))
+        List<ModuloConteudo> conteudo = turmas.findFirstByCursoIdAndStatusOrderByIdDesc(
+                        curso.getId(), StatusTurma.ATIVA)
+                .map(turma -> conteudoTurmaService.conteudoAtivo(turma.getId()))
                 .orElse(List.of());
         return new CursoDetalhe(curso, conteudo);
     }
 
-    private List<ModuloDetalhe> conteudo(List<Modulo> ativos) {
-        Map<Long, List<Aula>> aulasPorModulo = aulas
-                .findByModuloIdInAndStatusOrderByOrdem(
-                        ativos.stream().map(Modulo::getId).toList(), StatusConteudo.ATIVO)
-                .stream()
-                .collect(Collectors.groupingBy(aula -> aula.getModulo().getId()));
-        return ativos.stream()
-                .map(modulo -> new ModuloDetalhe(modulo, aulasPorModulo.getOrDefault(modulo.getId(), List.of())))
-                .toList();
-    }
-
-    public record CursoDetalhe(Curso curso, List<ModuloDetalhe> modulos) {}
-
-    public record ModuloDetalhe(Modulo modulo, List<Aula> aulas) {}
+    public record CursoDetalhe(Curso curso, List<ModuloConteudo> modulos) {}
 }

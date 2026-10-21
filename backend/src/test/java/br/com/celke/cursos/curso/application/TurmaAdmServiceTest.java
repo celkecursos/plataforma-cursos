@@ -5,6 +5,7 @@ import static br.com.celke.cursos.support.fixtures.CursoFixture.turma;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -26,6 +27,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.dao.DataIntegrityViolationException;
 
 @ExtendWith(MockitoExtension.class)
 class TurmaAdmServiceTest {
@@ -108,6 +110,20 @@ class TurmaAdmServiceTest {
                 .isInstanceOf(ConflitoException.class)
                 .hasMessage("A turma tem módulos. Exclua os módulos ou encerre a turma.");
         verify(turmas, never()).delete(any());
+    }
+
+    @Test
+    @DisplayName("turma com matrículas não é excluída (chave estrangeira no banco)")
+    void naoExcluiComMatriculas() {
+        when(turmas.findById(5L)).thenReturn(Optional.of(turma(5, curso(1, "java"))));
+        when(modulos.existsByTurmaId(5L)).thenReturn(false);
+        doThrow(new DataIntegrityViolationException("fk_matriculas"))
+                .when(turmas)
+                .flush();
+
+        assertThatThrownBy(() -> service.excluir(5L))
+                .isInstanceOf(ConflitoException.class)
+                .hasMessage("A turma tem matrículas. Encerre a turma.");
     }
 
     @Test
