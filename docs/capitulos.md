@@ -253,26 +253,39 @@ capítulo.
 
 ### Cap. 15 — Curso, turma, módulo e aula
 
-**Fase:** 2
+**Fase:** 2 · **Prompt:** [f02-01](prompts/f02-01-cursos-e-catalogo.md)
 
 - **Objetivo:** modelar o conteúdo dos cursos.
 - **Conteúdo:**
-  - Entidades e migrations com status como enum (nada de `[3,4,13,14]`).
-  - Ordenação de módulos e aulas; aula gratuita; slug para o site.
-- **Testes:** ordenação e status.
-- **Entrega:** tabelas criadas pelo Flyway e entidades validadas.
+  - Curso → turmas → módulos → aulas. A turma é a oferta do curso: tem os próprios módulos e aulas e, no próximo capítulo, as matrículas.
+  - Status como enum e `CHECK` no banco (nada de `[3,4,13,14]`): curso em rascunho, publicado ou arquivado; turma em preparação, ativa ou encerrada; módulo e aula ativos ou inativos.
+  - Slug para o site, gerado do título quando não informado (sem acento, minúsculas e hífens) e único no banco.
+  - Ordem de módulos e aulas sempre 1, 2, 3...: item novo entra no fim, a exclusão refaz a sequência e a reordenação recebe a lista completa.
+  - Restrição única adiável (`DEFERRABLE INITIALLY DEFERRED`): o PostgreSQL só confere a ordem no commit, e a troca de posições acontece numa transação.
+  - Trava do pai (`SELECT ... FOR UPDATE`) para duas criações simultâneas não pegarem a mesma posição.
+  - Exclusão só de item vazio (`ON DELETE RESTRICT`); o que tem conteúdo é arquivado pelo status.
+- **Testes:** slug e ordenação em tabela (lista incompleta, repetida, de outro pai, vazia); reordenação real no PostgreSQL; oito módulos criados ao mesmo tempo recebem 1 a 8.
+- **Entrega:** tabelas criadas pelo Flyway e regras de ordem garantidas pelo banco.
 
 ### Cap. 16 — CRUD administrativo e catálogo público
 
-**Fase:** 2
+**Fase:** 2 · **Prompt:** [f02-01](prompts/f02-01-cursos-e-catalogo.md)
 
 - **Objetivo:** o admin gerencia os cursos e o site lista os publicados.
 - **Conteúdo:**
-  - Endpoints `/api/adm/**` com validação; reordenação de módulos e aulas.
-  - Capa do curso por upload pré-assinado, redimensionada e sem EXIF.
-  - Endpoints públicos de catálogo: cursos publicados e curso por slug.
-- **Testes:** validações, ordenação e matriz de papéis; e2e do admin criando curso → turma → módulo → aula.
-- **Entrega:** curso completo cadastrado pelo Swagger e visível no catálogo.
+  - Endpoints `/api/adm/**` com validação, `Location` na criação e `PATCH .../status`; reordenação de módulos e aulas.
+  - Capa do curso em duas etapas: o navegador envia a imagem direto ao Garage por URL pré-assinada e a API confirma, reduz para até 1280 × 720 e regrava em JPEG.
+  - Catálogo público: cursos publicados e curso por slug, com o conteúdo ativo da turma ativa mais recente.
+  - Capa no catálogo por um endereço estável da API, que redireciona para uma URL assinada nova: a URL assinada vence em uma hora e quebraria o HTML pré-renderizado do site.
+- **Segurança:**
+  - `/api/adm/**` exige ADMIN no `SecurityConfig` e de novo com `@PreAuthorize`: o aluno recebe 403 antes de o corpo ser lido, e um controller novo sem a anotação continua protegido.
+  - A imagem é conferida pelo conteúdo, não pela extensão nem pelo `Content-Type`: HTML enviado como `image/png` é recusado.
+  - A re-codificação descarta o EXIF (GPS e dados da câmera) e qualquer conteúdo escondido no arquivo.
+  - Dimensões lidas do cabeçalho antes de decodificar (proteção contra "bomba de descompressão"); 5 MB conferidos de novo no arquivo enviado, porque a URL pré-assinada não limita o tamanho.
+  - A confirmação só aceita a chave gerada para o mesmo curso; o arquivo enviado é apagado em qualquer resultado.
+  - Catálogo sem dados internos (ids de curso, status, chaves do bucket); rascunho e arquivado respondem 404.
+- **Testes:** matriz de papéis de todas as rotas com ids reais; CRUD com `ProblemDetail`; capa com o Garage real (redução, EXIF removido, troca, remoção, envios recusados); catálogo com turmas, módulos e aulas inativos; e2e do admin criando o curso com capa e o visitante vendo no catálogo.
+- **Entrega:** curso completo cadastrado pelo Swagger, com capa, visível no catálogo.
 
 ### Cap. 17 — Matrícula
 

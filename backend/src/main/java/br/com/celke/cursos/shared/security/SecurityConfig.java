@@ -60,6 +60,12 @@ public class SecurityConfig {
                                 "/api/auth/recuperar-senha",
                                 "/api/auth/redefinir-senha")
                         .permitAll()
+                        // Catálogo: cursos publicados, detalhe e capa
+                        .requestMatchers(HttpMethod.GET, "/api/cursos", "/api/cursos/*", "/api/cursos/*/capa")
+                        .permitAll()
+                        // Área do ADM: o papel é exigido aqui e repetido com @PreAuthorize nos controllers
+                        .requestMatchers("/api/adm/**")
+                        .hasRole("ADMIN")
                         .anyRequest()
                         .authenticated());
         return http.build();

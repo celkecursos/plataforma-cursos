@@ -6,6 +6,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.stereotype.Service;
+import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.CompletedPart;
 import software.amazon.awssdk.services.s3.model.HeadObjectResponse;
@@ -91,6 +92,16 @@ public class StorageService {
             }
             throw e;
         }
+    }
+
+    /** Conteúdo de um arquivo pequeno (imagem a processar); use {@link #info} antes para conferir o tamanho. */
+    public byte[] baixar(String chave) {
+        return s3.getObjectAsBytes(r -> r.bucket(bucket).key(chave)).asByteArray();
+    }
+
+    /** Grava um arquivo gerado pela própria aplicação (ex.: imagem processada). */
+    public void gravar(String chave, byte[] conteudo, String contentType) {
+        s3.putObject(r -> r.bucket(bucket).key(chave).contentType(contentType), RequestBody.fromBytes(conteudo));
     }
 
     public void excluir(String chave) {
