@@ -9,6 +9,7 @@ import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneOffset;
+import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -23,7 +24,8 @@ class TokenAcessoServiceTest {
             "plataforma-cursos",
             Duration.ofMinutes(10),
             Duration.ofDays(14),
-            true);
+            true,
+            List.of());
 
     private final JwtConfig config = new JwtConfig();
     private final TokenAcessoService service =

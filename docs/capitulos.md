@@ -141,28 +141,29 @@ capítulo.
 
 ### Cap. 8 — Autorização
 
-**Fase:** 1.5
+**Fase:** 1.5 · **Prompt:** [f01-05](prompts/f01-05-protecoes.md)
 
 - **Objetivo:** cada rota acessível só por quem deve.
 - **Conteúdo:**
   - Papéis vindos do token, com `@PreAuthorize`.
   - `SecurityFilterChain` em modo "nega tudo por padrão", com cada rota pública declarada junto do método HTTP — o erro do projeto de referência, que liberava `/api/usuarios` para qualquer método, não se repete.
-- **Testes:** matriz parametrizada rota × papel (anônimo / ALUNO / ADMIN) com o status esperado.
-- **Entrega:** aluno recebe 403 em `/api/adm/**`.
+- **Testes:** matriz parametrizada rota × papel (anônimo / ALUNO / ADMIN) com o status esperado; método não declarado numa rota pública exige token.
+- **Entrega:** aluno recebe 403 em rota de admin.
 
 ### Cap. 9 — Proteções extras
 
-**Fase:** 1.5
+**Fase:** 1.5 · **Prompt:** [f01-05](prompts/f01-05-protecoes.md)
 
-- **Objetivo:** dificultar força bruta e abuso.
+- **Objetivo:** dificultar força bruta, abuso e CSRF.
 - **Conteúdo:**
-  - Rate limit com Bucket4j por IP e por e-mail no login, cadastro e recuperação de senha.
-  - Bloqueio temporário após falhas seguidas.
-  - Proteção CSRF no endpoint de refresh: `SameSite=Strict` + verificação do `Origin`.
-  - Auditoria de login: sucesso, falha, IP e user-agent.
+  - Limite por IP com Bucket4j em login e refresh, num filtro que roda antes da segurança e conta até as requisições inválidas; 429 com `Retry-After`.
+  - Bloqueio temporário após falhas seguidas: 5 por e-mail + IP (o dono ainda entra de outro lugar) e 20 por e-mail vindas de qualquer IP; verificado antes de calcular o hash.
+  - Proteção CSRF no refresh e no logout: `Origin` e `Sec-Fetch-Site` conferidos, porque outras aplicações em `*.celke.uno` são o mesmo site para o navegador e o `SameSite=Strict` não as barra.
+  - Auditoria de login: resultado, IP e user-agent de toda tentativa, gravada mesmo quando o login falha.
+  - IP real do cliente atrás do proxy: `X-Forwarded-For` aceito só de proxy interno (`forward-headers-strategy: native`).
   - Sem CORS na API: o Caddy serve front e API na mesma origem.
-- **Testes:** o rate limit devolve 429 (com e-mail próprio do teste); refresh com `Origin` estranho é recusado.
-- **Entrega:** tentativas seguidas de login bloqueadas e registradas.
+- **Testes:** bloqueio com relógio ajustável (bordas de 15 min e da janela de 1 h); filtro de limite por IP direto, com limite pequeno; 429 e auditoria pela API; refresh e logout de outra origem recusados sem tocar na sessão.
+- **Entrega:** tentativas seguidas de login bloqueadas e registradas na auditoria.
 
 ### Cap. 10 — Cadastro, confirmação de e-mail e recuperação de senha
 

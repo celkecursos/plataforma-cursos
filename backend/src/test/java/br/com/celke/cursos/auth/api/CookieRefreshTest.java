@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import br.com.celke.cursos.auth.application.AuthProperties;
 import java.time.Duration;
+import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -11,7 +12,7 @@ class CookieRefreshTest {
 
     private static CookieRefresh cookie(boolean seguro) {
         return new CookieRefresh(new AuthProperties(
-                "segredo", "plataforma-cursos", Duration.ofMinutes(10), Duration.ofDays(14), seguro));
+                "segredo", "plataforma-cursos", Duration.ofMinutes(10), Duration.ofDays(14), seguro, List.of()));
     }
 
     @Test

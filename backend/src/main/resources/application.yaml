@@ -42,8 +42,9 @@ spring:
 
 server:
   shutdown: graceful
-  # A API roda atrás do Caddy, que informa o host e o protocolo originais
-  forward-headers-strategy: framework
+  # A API roda atrás do Caddy. Com "native", o Tomcat só aceita X-Forwarded-* vindo de proxy interno
+  # (rede privada) e lê o X-Forwarded-For da direita para a esquerda: IP forjado pelo cliente é ignorado
+  forward-headers-strategy: native
   error:
     include-stacktrace: never
     include-message: never
@@ -78,6 +79,17 @@ app:
     validade-acesso: PT10M
     validade-refresh: P14D
     cookie-seguro: true
+    # Origens do front que podem renovar e encerrar a sessão (separadas por vírgula)
+    origens-permitidas: ${AUTH_ORIGENS:}
+  limites:
+    # Login e refresh: requisições por IP a cada minuto
+    requisicoes-por-ip-por-minuto: 30
+    # Falhas de login seguidas que bloqueiam o par e-mail + IP, e o e-mail vindo de qualquer IP
+    falhas-por-email-e-ip: 5
+    falhas-por-email: 20
+    # Contadores de falha zeram depois de uma hora sem novas falhas
+    janela-falhas: PT1H
+    bloqueio: PT15M
   armazenamento:
     # Endereço usado pela aplicação (rede interna)
     endpoint: ${S3_ENDPOINT:}

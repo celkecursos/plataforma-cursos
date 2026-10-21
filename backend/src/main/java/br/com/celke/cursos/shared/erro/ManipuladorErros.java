@@ -48,7 +48,11 @@ public class ManipuladorErros extends ResponseEntityExceptionHandler {
     @ExceptionHandler(RegraNegocioException.class)
     ResponseEntity<Object> regraNegocio(RegraNegocioException ex, WebRequest request) {
         ProblemDetail problema = ProblemDetail.forStatusAndDetail(ex.getStatus(), ex.getMessage());
-        return handleExceptionInternal(ex, problema, new HttpHeaders(), ex.getStatus(), request);
+        HttpHeaders headers = new HttpHeaders();
+        if (ex instanceof MuitasTentativasException limite) {
+            headers.set(HttpHeaders.RETRY_AFTER, String.valueOf(limite.segundosDeEspera()));
+        }
+        return handleExceptionInternal(ex, problema, headers, ex.getStatus(), request);
     }
 
     /**

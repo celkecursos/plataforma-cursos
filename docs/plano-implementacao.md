@@ -246,26 +246,28 @@ deploy automático. Depois desta fase, toda funcionalidade nova segue o fluxo no
 
 **1.5 Autorização e proteções** — capítulos 8 e 9
 
-- [ ] `SecurityFilterChain` nega tudo por padrão; rotas públicas declaradas com método HTTP
-- [ ] Papéis do token + `@PreAuthorize`
-- [ ] Rate limit (Bucket4j) por IP e por e-mail em login, cadastro e recuperação; bloqueio temporário após falhas seguidas
-- [ ] Endpoint de refresh: verificação de `Origin` (CSRF)
-- [ ] Auditoria de login (sucesso/falha, IP, user-agent)
+- [x] `SecurityFilterChain` nega tudo por padrão; rotas públicas declaradas com método HTTP; papéis do token + `@PreAuthorize` (matriz de papéis testada)
+- [x] Limite por IP com Bucket4j nas rotas de autenticação (`LimitePorIpFilter`): conta toda requisição, roda antes da segurança, 429 em ProblemDetail com `Retry-After`
+- [x] Bloqueio temporário por falhas seguidas: 5 por e-mail + IP e 20 por e-mail (qualquer IP), 15 min, contadores zerados por login correto ou após 1 h sem falhas; verificado antes de calcular o hash
+- [x] Refresh e logout: verificação de `Origin` e `Sec-Fetch-Site` (CSRF), porque outras aplicações em `*.celke.uno` contam como o mesmo site; origens em `AUTH_ORIGENS`
+- [x] Auditoria de login (`auditoria_login`): resultado, IP e user-agent de toda tentativa, em transação própria
+- [x] `server.forward-headers-strategy: native`: `X-Forwarded-For` aceito só de proxy interno e lido da direita para a esquerda
+- [x] Erros que nascem em filtros escritos por `ProblemDetailJson` (mesmo formato do handler global)
 
 **1.6 Cadastro e recuperação de senha** — capítulo 10
 
 - [ ] Migration `tokens_uso_unico` (confirmação de e-mail e recuperação de senha)
+- [ ] Rotas de cadastro e recuperação no `LimitePorIpFilter`
 - [ ] Cadastro com confirmação de e-mail
 - [ ] Recuperação com token de uso único e expiração; resposta igual para e-mail existente ou não
 - [ ] E-mails pela Iagente; verificados no Mailpit nos testes
 
-**1.7 Testes de autorização e e2e de API** — capítulo 11
+**1.7 e2e de API e pipeline** — capítulo 11
 
-- [ ] Matriz parametrizada rota × papel → status esperado
-- [ ] Testes de token adulterado, expirado, `alg` trocado, refresh reutilizado, rate limit 429
 - [ ] `compose.e2e.yml`: HTTP, `*.localhost`, seed do profile `e2e` (admin, aluno matriculado, aluno sem matrícula)
 - [ ] Perfil Maven `e2e` no backend (`src/e2e/java`, REST Assured, Awaitility) com `support/` conforme o padrão da skill `criar-teste-e2e`
 - [ ] Jornadas `CadastroE2E` (cadastro → e-mail no Mailpit → confirmação → login) e `SessaoE2E` (login → refresh → logout pelo Caddy, cookie sem `Domain`)
+- [ ] Jornada `ProxyE2E`: `X-Forwarded-For` forjado pelo cliente através do Caddy não muda o IP registrado na auditoria
 - [ ] `pipeline.yml`: testes → build das imagens (cache `type=gha`) → e2e → artefatos em caso de falha (relatórios + `docker compose logs`)
 
 **1.8 VPS** — capítulos 12 e 13
@@ -277,6 +279,8 @@ deploy automático. Depois desta fase, toda funcionalidade nova segue o fluxo no
   - homologação com senha ou IP e `X-Robots-Tag: noindex`; `adm.` restrito por IP
   - por enquanto `aluno.` e `adm.` só fazem proxy de `/api` (os fronts entram na Fase 11)
   - headers: HSTS (sem `includeSubDomains`), `X-Content-Type-Options`, `Referrer-Policy`; `lb_try_duration` no proxy da API
+  - Caddy substitui o `X-Forwarded-For` recebido do cliente (sem `trusted_proxies`); a porta da API nunca é publicada, só o Caddy chega nela
+  - `AUTH_ORIGENS` e `S3_CORS_ORIGENS` com os hosts exatos de cada ambiente
 - [ ] Limites de recursos:
 
 | Serviço | Produção | Homologação |

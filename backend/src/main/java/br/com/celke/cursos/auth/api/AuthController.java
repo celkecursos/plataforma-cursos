@@ -3,9 +3,11 @@ package br.com.celke.cursos.auth.api;
 import br.com.celke.cursos.auth.application.AuthService;
 import br.com.celke.cursos.auth.application.AuthService.Sessao;
 import br.com.celke.cursos.auth.application.SessaoInvalidaException;
+import br.com.celke.cursos.shared.web.OrigemRequisicao;
 import br.com.celke.cursos.usuario.application.UsuarioService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
@@ -26,19 +28,25 @@ public class AuthController {
     private final AuthService authService;
     private final UsuarioService usuarioService;
     private final CookieRefresh cookieRefresh;
+    private final VerificadorOrigem verificadorOrigem;
 
-    public AuthController(AuthService authService, UsuarioService usuarioService, CookieRefresh cookieRefresh) {
+    public AuthController(
+            AuthService authService,
+            UsuarioService usuarioService,
+            CookieRefresh cookieRefresh,
+            VerificadorOrigem verificadorOrigem) {
         this.authService = authService;
         this.usuarioService = usuarioService;
         this.cookieRefresh = cookieRefresh;
+        this.verificadorOrigem = verificadorOrigem;
     }
 
     @PostMapping("/login")
     @Operation(
             summary = "Entrar com e-mail e senha",
             description = "Devolve o access token e grava o refresh token em cookie.")
-    public ResponseEntity<SessaoResponse> login(@Valid @RequestBody LoginRequest request) {
-        return comCookie(authService.entrar(request.email(), request.senha()));
+    public ResponseEntity<SessaoResponse> login(@Valid @RequestBody LoginRequest request, HttpServletRequest http) {
+        return comCookie(authService.entrar(request.email(), request.senha(), OrigemRequisicao.de(http)));
     }
 
     @PostMapping("/refresh")
@@ -46,13 +54,16 @@ public class AuthController {
             summary = "Renovar a sessão",
             description = "Troca o refresh token do cookie por um novo e emite outro access token.")
     public ResponseEntity<SessaoResponse> refresh(
-            @CookieValue(name = CookieRefresh.NOME, required = false) String refreshToken) {
+            @CookieValue(name = CookieRefresh.NOME, required = false) String refreshToken, HttpServletRequest http) {
+        verificadorOrigem.verificar(http);
         return comCookie(authService.renovar(refreshToken));
     }
 
     @PostMapping("/logout")
     @Operation(summary = "Sair", description = "Revoga a sessão do cookie e apaga o cookie.")
-    public ResponseEntity<Void> logout(@CookieValue(name = CookieRefresh.NOME, required = false) String refreshToken) {
+    public ResponseEntity<Void> logout(
+            @CookieValue(name = CookieRefresh.NOME, required = false) String refreshToken, HttpServletRequest http) {
+        verificadorOrigem.verificar(http);
         authService.sair(refreshToken);
         return semCookie();
     }

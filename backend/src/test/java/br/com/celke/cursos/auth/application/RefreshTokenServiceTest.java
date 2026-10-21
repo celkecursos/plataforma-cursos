@@ -14,6 +14,7 @@ import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneOffset;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
@@ -42,8 +43,8 @@ class RefreshTokenServiceTest {
 
     @BeforeEach
     void criar() {
-        var props =
-                new AuthProperties("segredo", "plataforma-cursos", Duration.ofMinutes(10), Duration.ofDays(14), true);
+        var props = new AuthProperties(
+                "segredo", "plataforma-cursos", Duration.ofMinutes(10), Duration.ofDays(14), true, List.of());
         service = new RefreshTokenService(repository, props, Clock.fixed(AGORA, ZoneOffset.UTC));
     }
 

@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.time.Duration;
 import java.util.Base64;
+import java.util.List;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 
@@ -29,6 +30,7 @@ class AuthPropertiesTest {
     }
 
     private static AuthProperties props(String segredo) {
-        return new AuthProperties(segredo, "plataforma-cursos", Duration.ofMinutes(10), Duration.ofDays(14), true);
+        return new AuthProperties(
+                segredo, "plataforma-cursos", Duration.ofMinutes(10), Duration.ofDays(14), true, List.of());
     }
 }
