@@ -233,15 +233,18 @@ capítulo.
 
 ### Cap. 14 — Deploy automático com rollback
 
-**Fase:** 1.9
+**Fase:** 1.9 · **Prompt:** [f01-09](prompts/f01-09-deploy-automatico.md) · **Roteiro:** [vps.md](vps.md)
 
 - **Objetivo:** merge na branch = versão no ar, com volta automática se falhar.
 - **Conteúdo:**
-  - Imagens com tag = SHA do commit, nunca `latest`.
-  - `deploy.sh <ambiente> <sha>`: valida os argumentos, faz backup do banco, `pull`, `up -d --wait`, grava a tag atual e volta para a anterior se o health check falhar.
+  - Imagens com tag = SHA do commit, nunca `latest`, publicadas no GHCR pelo próprio job de e2e: vai para o servidor exatamente a imagem que passou nas jornadas.
+  - `deploy.sh` na VPS: valida os argumentos, recebe só os arquivos de compose esperados, faz backup do banco, troca a tag, espera todos os containers ficarem saudáveis e, se algum não ficar, volta para a versão anterior (arquivos e tag).
+  - Um deploy por vez (`flock`), deploy que continua mesmo se a conexão SSH cair, últimas versões e backups guardados.
   - Chave SSH presa ao script no `authorized_keys` (`command=...,no-pty,no-port-forwarding`) e impressão digital da VPS fixada no Actions.
-  - Push na `homolog` → homologação; push na `main` → produção, com aprovação opcional.
+  - Push na `homolog` → homologação; push na `main` → produção, com aprovação opcional; só PRs cancelam execuções antigas do pipeline.
   - Migrations compatíveis com a versão anterior, porque o rollback não desfaz migration.
+- **Segurança:** a chave do deploy não abre shell, terminal nem túnel; o script recusa ambiente ou SHA fora do formato (inclusive tentativa de injetar comandos pelo SSH) e só extrai os arquivos esperados do pacote.
+- **Testes:** simulação local de uma VPS: versão boa no ar, versão quebrada com rollback automático, backup restaurável, argumentos inválidos e deploy simultâneo recusados; chave presa ao script conferida com um `sshd` real.
 - **Entrega:** deploy nos dois ambientes pelo pipeline e um rollback testado de propósito.
 
 ---

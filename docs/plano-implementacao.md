@@ -307,3 +307,222 @@ Limites de recursos:
 | Garage | 768 MB | 512 MB |
 | Caddy (compartilhado) | 128 MB | — |
 
+**1.9 Deploy automático** — capítulo 14
+
+- [x] Publicação no GHCR pelo job de e2e, depois das jornadas e só em push: as imagens testadas recebem a tag do SHA (sem rebuild); label `org.opencontainers.image.source` liga o pacote ao repositório
+- [x] `infra/scripts/deploy.sh` (na VPS em `/usr/local/bin/plataforma-cursos-deploy`, dono root): valida `<producao|homolog> <sha>` (também de `SSH_ORIGINAL_COMMAND`), extrai só os arquivos de compose esperados, backup do banco, troca a tag, `up --pull missing --wait`, rollback automático para a versão anterior (arquivos e tag) se algum container não ficar saudável; `flock`, `trap '' HUP`, guarda 5 versões e 10 backups, `deploy.log`
+- [x] Chave do deploy presa ao script no `authorized_keys` (`command=...,no-port-forwarding,no-X11-forwarding,no-agent-forwarding,no-pty`), instalada pelo `preparar-vps.sh`
+- [x] Workflow reutilizável `deploy.yml` (environment `homolog` ou `production`, um deploy por ambiente, nunca cancelado); no pipeline: push em `homolog` → homologação; push em `main` → produção; só PRs cancelam execuções antigas
+- [x] Testado localmente: deploy de uma versão boa, deploy de uma versão quebrada com rollback automático, backup restaurável, validação de argumentos (inclusive injeção pelo SSH) e deploy simultâneo barrado; chave presa ao script testada com `sshd` real (sem shell, terminal ou túnel)
+- [x] Roteiro `docs/vps.md`: secrets do repositório, primeira subida pelo pipeline, Caddy e administradores, operação (histórico, voltar versão, atualizar Caddy e script)
+- [ ] Secrets `VPS_HOST`, `VPS_SSH_KEY` e `VPS_KNOWN_HOSTS` no repositório (conta dona) e, se o plano permitir, aprovação obrigatória no environment `production`
+- [ ] Primeiro deploy nos dois ambientes pelo pipeline; Caddy no ar; administrador criado em cada um
+
+**Pronto quando:** cadastro, login e logout funcionando pela API em `homolog-aluno.celke.uno/api` e
+`aluno.celke.uno/api`, e-mail chegando pela Iagente, pipeline completo verde e um rollback testado de propósito.
+
+---
+
+### Fase 2 — `feature/cursos`
+
+Objetivo: API de gestão de cursos, turmas, módulos e aulas. Capítulos 15 e 16.
+
+- [ ] Migrations: `cursos`, `turmas`, `modulos`, `aulas` com status como enum, ordem, slug, aula gratuita
+- [ ] CRUD em `/api/adm/**` com validação
+- [ ] Reordenação de módulos e aulas
+- [ ] Capa do curso: upload pré-assinado de imagem, redimensionamento, sem EXIF
+- [ ] Endpoints públicos de catálogo (para o site): cursos publicados, por slug
+- [ ] Testes: validações, ordenação, autorização
+- [ ] e2e de API: admin cria curso → turma → módulo → aula; catálogo público lista o curso
+
+---
+
+### Fase 3 — `feature/matricula-acesso`
+
+Objetivo: matrícula e uma política única de acesso. Capítulos 17 e 18.
+
+- [ ] Migration `matriculas` (início, fim, status enum, forma de pagamento, transação)
+- [ ] Endpoints do ADM: matricular, alterar período, cancelar
+- [ ] `AcessoAulaPolicy`: status ativo + dentro do período, ou aula gratuita; usada por aula, vídeo, arquivo, fórum, progresso e certificado
+- [ ] Endpoints do aluno: meus cursos (ativos, arquivados, expirados), turma com módulos e aulas, arquivar/desarquivar
+- [ ] Testes: todas as combinações status × datas; IDOR (aluno A em dados do aluno B)
+- [ ] e2e de API: aluno matriculado vê a turma; sem matrícula ou com matrícula vencida recebe 403
+
+---
+
+### Fase 4 — `feature/upload-video`
+
+Objetivo: o vídeo enviado vira HLS comprimido. Capítulos 19 a 21.
+
+- [ ] Migration `videos` (status, duração, tamanho original e final, chaves S3, erro)
+- [ ] Presign de upload multipart para `uploads/`; validação de tipo e tamanho antes de assinar
+- [ ] Confirmação do upload: API confere tamanho e assinatura real do arquivo; enfileira job
+- [ ] Worker: `ffprobe` → ffmpeg via `ProcessBuilder` (lista de argumentos)
+  - H.264 CRF 23–26, `maxrate`, AAC 128k, segmentos de 6 s, 720p + 1080p (sem aumentar a resolução de origem)
+  - thumbnail; envio para `videos/`; apaga o original após sucesso
+- [ ] Job volta para a fila se o worker parar no meio (`stop_grace_period` + lease com expiração)
+- [ ] Endpoints do ADM: status de processamento, reprocessar, tamanho antes/depois
+- [ ] Medir tempo de processamento por minuto de vídeo na VPS e registrar no tutorial
+- [ ] Testes: transcodificação de vídeo de 3 s; arquivo com extensão falsa rejeitado
+- [ ] e2e de API: upload multipart de vídeo curto → status "pronto"
+
+---
+
+### Fase 5 — `feature/entrega-video`
+
+Objetivo: vídeo protegido e progresso salvo. Capítulos 22 a 24.
+
+- [ ] `GET /api/aulas/{id}/video.m3u8` e playlists das variantes: verifica a policy e reescreve com segmentos pré-assinados (validade = duração + margem)
+- [ ] Opcional (cap. 20): HLS com AES-128 e chave por endpoint autenticado
+- [ ] Progresso: posição atual, vista/revisar, percentual da turma
+- [ ] Log de acesso com retenção definida (LGPD)
+- [ ] Testes: 403 sem matrícula no `.m3u8` e na chave; URL de segmento expira
+- [ ] e2e de API: playlist assinada → segmento baixa com 200 → após expirar, 403; progresso refletido na turma
+
+---
+
+### Fase 6 — `feature/arquivos-apoio`
+
+Capítulo 25.
+
+- [ ] Arquivos por aula (código-fonte) e por módulo; upload pelo ADM
+- [ ] Download por URL pré-assinada curta, sempre pela policy
+- [ ] Testes e e2e de download permitido e bloqueado
+
+---
+
+### Fase 7 — `feature/forum`
+
+Capítulo 26.
+
+- [ ] Tópicos por aula e por turma; perguntas, respostas e anexos validados
+- [ ] Markdown convertido para HTML filtrado (contra XSS)
+- [ ] Moderação no ADM: ocultar, fixar, responder como instrutor
+- [ ] Rate limit em criação de pergunta e resposta
+- [ ] Testes: XSS, IDOR em anexo, acesso de aluno sem matrícula
+- [ ] e2e de API: aluno pergunta, admin responde, aluno vê a resposta
+
+---
+
+### Fase 8 — `feature/certificado`
+
+Capítulo 27.
+
+- [ ] Regra de conclusão (percentual de aulas vistas) configurável por turma
+- [ ] Dados do certificado (nome completo) confirmados pelo aluno
+- [ ] PDF com openhtmltopdf; código de validação público
+- [ ] Endpoint público de validação (usado pelo site)
+- [ ] e2e de API: aluno conclui → gera certificado → código valida
+
+---
+
+### Fase 9 — `feature/perfil-termos`
+
+Capítulo 28.
+
+- [ ] Perfil: dados, troca de senha (exige senha atual), foto redimensionada sem EXIF
+- [ ] Termos versionados; aceite obrigatório no primeiro acesso e a cada nova versão (API responde com indicação de termo pendente)
+- [ ] Endpoints do ADM: nova versão de termo e de política de privacidade
+- [ ] e2e de API: novo termo publicado → rotas do aluno bloqueadas até o aceite
+
+---
+
+### Fase 10 — `feature/operacao`
+
+Capítulos 29 a 31. Fica antes do front porque precisa estar pronta antes de entrarem dados reais em produção.
+
+- [ ] Backup diário do PostgreSQL e do Garage para fora da VPS (restic); restauração testada e documentada
+- [ ] Monitor de uptime externo; alerta de disco e de falhas no worker
+- [ ] Rotação de logs do Docker; limpeza de uploads órfãos e dos dados da homologação
+- [ ] Conta "horas de vídeo que cabem no disco" e plano de saída para S3 externo (R2/B2)
+- [ ] Revisão OWASP ASVS nível 1 da API; varredura com OWASP ZAP na homologação; Trivy no pipeline
+
+---
+
+## Bloco B — Frontend
+
+**Pré-requisito:** `@celke/ui` publicado no npm, já com os componentes da área do aluno:
+`PlayerVideo` (hls.js, `xhrSetup` com token, retomar posição, enviar progresso), `CardCurso`,
+`ListaAulas` e componentes de fórum. Esses componentes são feitos no repositório da biblioteca (capítulo 32).
+
+### Fase 11 — `feature/web-base`
+
+Capítulo 33.
+
+- [ ] Workspace `web/` com `site`, `aluno`, `adm` (Vite + React + TypeScript, Node LTS)
+- [ ] `@celke/ui` do npm com versão fixa
+- [ ] Cliente HTTP: token em memória, refresh silencioso, fila de requisições durante o refresh
+- [ ] Rotas protegidas por papel; tratamento de termo pendente
+- [ ] Aluno: login, cadastro, confirmação de e-mail, recuperar senha
+- [ ] ADM: login, layout `Estrutura`
+- [ ] Proxy do Vite `/api → localhost:8080` (mesma origem também no dev)
+- [ ] Imagem `web`: build dos fronts + Caddy servindo `/srv/site`, `/srv/aluno`, `/srv/adm`
+- [ ] Caddy: CSP (`connect-src 'self' https://media.celke.uno`), `X-Frame-Options`, cache longo nos assets com hash e sem cache no `index.html`; desligar o Swagger da homologação se não for mais necessário
+- [ ] Vitest + Testing Library; Playwright no navegador entra no `pipeline.yml`
+- [ ] e2e: login aluno, login admin, aluno barrado no ADM, logout
+
+### Fase 12 — `feature/web-adm`
+
+Capítulo 34.
+
+- [ ] Cursos, turmas, módulos e aulas (`Tabela`, `Form`, `Filtros`, `Paginacao`), arrastar para reordenar
+- [ ] Upload de vídeo multipart com progresso, status de processamento, reprocessar
+- [ ] Arquivos de apoio, matrículas, moderação do fórum, termos
+- [ ] e2e: admin cria curso completo e envia vídeo curto até "pronto"
+
+### Fase 13 — `feature/web-aluno`
+
+Capítulo 35.
+
+- [ ] Dashboard (`CardCurso`), cursos arquivados e expirados
+- [ ] Turma com módulos, aulas e progresso
+- [ ] Aula: `PlayerVideo`, `ListaAulas`, anterior/próxima, vista/revisar, arquivos, fórum
+- [ ] Certificados e perfil (dados, senha, foto)
+- [ ] e2e: login → turma → aula → vídeo toca → marca como vista → progresso atualizado
+
+### Fase 14 — `feature/site`
+
+Capítulo 36.
+
+- [ ] Layout novo com os tokens do `@celke/ui`
+- [ ] Pré-renderização estática (uma página HTML por rota) em `cursos.celke.uno`
+- [ ] Home, catálogo, página do curso (dados da API no build), validar certificado, termos, privacidade
+- [ ] SEO: meta tags, Open Graph, sitemap, `robots.txt`
+- [ ] Meta de Lighthouse definida e verificada no CI
+
+---
+
+### Fase 15 (opcional) — `feature/migracao-legado`
+
+Capítulo 37.
+
+- [ ] ETL do MySQL do CLMS: usuários, cursos, turmas, módulos, aulas, matrículas, progresso
+- [ ] Mapear status numéricos do legado (`3, 4, 13, 14, 15`...) para os enums novos
+- [ ] Senhas `$2y$` do Laravel aceitas no primeiro login e re-hash
+- [ ] Reprocessar vídeos existentes no S3 para HLS
+
+---
+
+## 5. Mapa fase → capítulos do tutorial
+
+O conteúdo de cada capítulo está em [capitulos.md](capitulos.md).
+
+| Fase | Branch | Capítulos |
+|---|---|---|
+| 0 | — | 1, 2 |
+| 1 | `feature/base-projeto` | 3–14 |
+| 2 | `feature/cursos` | 15, 16 |
+| 3 | `feature/matricula-acesso` | 17, 18 |
+| 4 | `feature/upload-video` | 19–21 |
+| 5 | `feature/entrega-video` | 22–24 |
+| 6 | `feature/arquivos-apoio` | 25 |
+| 7 | `feature/forum` | 26 |
+| 8 | `feature/certificado` | 27 |
+| 9 | `feature/perfil-termos` | 28 |
+| 10 | `feature/operacao` | 29–31 |
+| — | repositório do `@celke/ui` | 32 |
+| 11 | `feature/web-base` | 33 |
+| 12 | `feature/web-adm` | 34 |
+| 13 | `feature/web-aluno` | 35 |
+| 14 | `feature/site` | 36 |
+| 15 | `feature/migracao-legado` | 37 |

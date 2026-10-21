@@ -17,3 +17,4 @@ Ao final de cada prompt, confira a seção **Verificação** dele antes de segui
 | 7 | [Cadastro, confirmação de e-mail e recuperação de senha](f01-06-cadastro-e-recuperacao.md) | 1.6 | `feature/base-projeto` |
 | 8 | [Testes e2e e pipeline no GitHub Actions](f01-07-e2e-e-pipeline.md) | 1.7 | `feature/base-projeto` |
 | 9 | [Preparar a VPS: produção e homologação](f01-08-vps.md) | 1.8 | `feature/base-projeto` |
+| 10 | [Deploy automático com rollback](f01-09-deploy-automatico.md) | 1.9 | `feature/base-projeto` |

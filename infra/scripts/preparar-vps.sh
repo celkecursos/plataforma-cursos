@@ -8,9 +8,9 @@
 #   bash preparar-vps.sh
 #
 # O que faz: atualiza o sistema, instala o Docker oficial (com rotação de logs), cria o usuário
-# administrador (sudo) e o usuário deploy (sem sudo, no grupo docker), deixa o SSH só por chave e sem
-# root, liga o ufw (22, 80 e 443), o fail2ban, as atualizações automáticas e um swap de 2 GB, e cria
-# /opt/plataforma-cursos.
+# administrador (sudo) e o usuário deploy (sem sudo, no grupo docker, com a chave presa ao script de
+# deploy), deixa o SSH só por chave e sem root, liga o ufw (22, 80 e 443), o fail2ban, as atualizações
+# automáticas e um swap de 2 GB, e cria /opt/plataforma-cursos.
 set -euo pipefail
 
 [[ $EUID -eq 0 ]] || { echo "Rode como root." >&2; exit 1; }
@@ -18,6 +18,8 @@ set -euo pipefail
 
 export DEBIAN_FRONTEND=noninteractive
 BASE=/opt/plataforma-cursos
+# Script de deploy (instalado depois, pelo roteiro): fora de $BASE, numa pasta que o deploy não altera
+SCRIPT_DEPLOY=/usr/local/bin/plataforma-cursos-deploy
 
 echo "==> Atualizando o sistema"
 apt-get update -q
@@ -61,10 +63,11 @@ else
   echo "AVISO: sem terminal para definir a senha do sudo; rode depois: passwd $ADMIN_USUARIO" >&2
 fi
 
-echo "==> Usuário deploy: sem sudo, no grupo docker"
-# Atenção: o grupo docker equivale a root. Na etapa de deploy, a chave do deploy fica presa a um
-# único script (command= no authorized_keys).
-criar_usuario deploy "$DEPLOY_CHAVE"
+echo "==> Usuário deploy: sem sudo, no grupo docker, chave presa ao script de deploy"
+# O grupo docker equivale a root. Por isso a chave do deploy só executa o script de deploy: sem shell,
+# sem túnel e sem terminal, mesmo se ela vazar.
+criar_usuario deploy \
+  "command=\"$SCRIPT_DEPLOY\",no-port-forwarding,no-X11-forwarding,no-agent-forwarding,no-pty $DEPLOY_CHAVE"
 usermod -aG docker deploy
 
 echo "==> SSH só por chave e sem root"

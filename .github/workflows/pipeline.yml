@@ -1,5 +1,6 @@
-# Testes, build das imagens e e2e. Roda em todo PR para homolog e main, e de novo depois do merge
-# (o push na main refaz o build e o e2e com o código exato que vai para produção).
+# Testes, build das imagens e e2e em todo PR para homolog e main. Depois do merge (push), refaz tudo
+# com o código exato do commit, publica no GHCR as imagens que passaram no e2e (tag = SHA) e implanta:
+# push na homolog → homologação; push na main → produção.
 name: Pipeline
 
 on:
@@ -11,7 +12,8 @@ on:
 
 concurrency:
   group: pipeline-${{ github.ref }}
-  cancel-in-progress: true
+  # Só PRs cancelam execuções antigas: um deploy nunca é interrompido no meio
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 permissions:
   contents: read
@@ -62,6 +64,9 @@ jobs:
     needs: testes
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: write
     steps:
       - uses: actions/checkout@v7
 
@@ -81,6 +86,8 @@ jobs:
           target: api
           tags: plataforma-cursos-api:e2e
           load: true
+          # Liga o pacote do GHCR ao repositório (mesmas permissões)
+          labels: org.opencontainers.image.source=https://github.com/${{ github.repository }}
           cache-from: type=gha,scope=api
           cache-to: type=gha,mode=max,scope=api
 
@@ -91,6 +98,8 @@ jobs:
           target: worker
           tags: plataforma-cursos-worker:e2e
           load: true
+          # Liga o pacote do GHCR ao repositório (mesmas permissões)
+          labels: org.opencontainers.image.source=https://github.com/${{ github.repository }}
           cache-from: type=gha,scope=worker
           cache-to: type=gha,mode=max,scope=worker
 
@@ -100,6 +109,18 @@ jobs:
       - name: Jornadas e2e
         working-directory: backend
         run: ./mvnw -B verify -Pe2e
+
+      # Só depois do merge, e só se o e2e passou: as imagens publicadas são exatamente as testadas
+      - name: Publicar imagens no GHCR
+        if: github.event_name == 'push'
+        env:
+          REGISTRO: ghcr.io/${{ github.repository_owner }}
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+          for imagem in api worker; do
+            docker tag "plataforma-cursos-$imagem:e2e" "$REGISTRO/plataforma-cursos-$imagem:$GITHUB_SHA"
+            docker push "$REGISTRO/plataforma-cursos-$imagem:$GITHUB_SHA"
+          done
 
       - name: Logs da stack
         if: failure()
@@ -117,3 +138,21 @@ jobs:
       - name: Derrubar a stack de e2e
         if: always()
         run: $COMPOSE_E2E down -v
+
+  deploy-homolog:
+    name: Homologação
+    needs: e2e
+    if: github.event_name == 'push' && github.ref == 'refs/heads/homolog'
+    uses: ./.github/workflows/deploy.yml
+    with:
+      ambiente: homolog
+    secrets: inherit
+
+  deploy-producao:
+    name: Produção
+    needs: e2e
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    uses: ./.github/workflows/deploy.yml
+    with:
+      ambiente: producao
+    secrets: inherit

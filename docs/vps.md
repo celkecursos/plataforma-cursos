@@ -1,7 +1,8 @@
 # Roteiro da VPS
 
 Preparação da VPS da Hostinger (Ubuntu 24.04) para a produção e a homologação. Feito uma vez; as
-atualizações depois disso são do deploy automático.
+versões novas são implantadas pelo pipeline (merge na `homolog` → homologação; merge na `main` →
+produção), pelo script `/usr/local/bin/plataforma-cursos-deploy`.
 
 ## Como fica a VPS
 
@@ -16,7 +17,10 @@ atualizações depois disso são do deploy automático.
 ├── producao/                      projeto plataforma-cursos-producao, rede plataforma-cursos-producao
 │   ├── compose.prod.yml
 │   ├── garage/garage.toml
-│   └── .env                       segredos da produção
+│   ├── .env                       segredos da produção (TAG = versão no ar)
+│   ├── versoes/<sha>/             arquivos de compose das últimas versões (rollback)
+│   ├── backups/                   dump do banco antes de cada deploy
+│   └── deploy.log                 histórico dos deploys
 └── homolog/                       projeto plataforma-cursos-homolog, rede plataforma-cursos-homolog
     ├── compose.prod.yml
     ├── compose.homolog.yml
@@ -65,7 +69,7 @@ No seu computador:
 # Sua chave (administrador). Use a que já tem, se houver:
 cat ~/.ssh/id_ed25519.pub
 
-# Chave só do deploy automático (a privada vai para os secrets do GitHub na etapa de deploy)
+# Chave só do deploy automático (a privada vai para o secret VPS_SSH_KEY do GitHub)
 ssh-keygen -t ed25519 -f ~/.ssh/plataforma-cursos-deploy -C "github-deploy" -N ""
 cat ~/.ssh/plataforma-cursos-deploy.pub
 ```
@@ -83,6 +87,9 @@ K
 DEPLOY_CHAVE="ssh-ed25519 AAAA... github-deploy" \
 bash /root/preparar-vps.sh
 ```
+
+A chave do deploy fica presa ao script de deploy (`command=` no `authorized_keys`): ela não abre shell,
+terminal nem túnel, mesmo se vazar.
 
 **Não feche a sessão de root** até confirmar, em outro terminal:
 
@@ -106,8 +113,11 @@ scp infra/compose.prod.yml $VPS:/tmp/plataforma/producao/
 scp infra/compose.prod.yml infra/compose.homolog.yml $VPS:/tmp/plataforma/homolog/
 scp infra/garage/garage.toml $VPS:/tmp/plataforma/producao/garage/
 scp infra/garage/garage.toml $VPS:/tmp/plataforma/homolog/garage/
-scp infra/scripts/gerar-env-servidor.sh $VPS:/tmp/plataforma/
-ssh $VPS 'sudo cp -r /tmp/plataforma/. /opt/plataforma-cursos/ && sudo chown -R deploy:deploy /opt/plataforma-cursos && rm -rf /tmp/plataforma'
+scp infra/scripts/gerar-env-servidor.sh infra/scripts/deploy.sh $VPS:/tmp/plataforma/
+ssh $VPS 'sudo install -o root -g root -m 755 /tmp/plataforma/deploy.sh /usr/local/bin/plataforma-cursos-deploy \
+  && rm /tmp/plataforma/deploy.sh \
+  && sudo cp -r /tmp/plataforma/. /opt/plataforma-cursos/ && sudo chown -R deploy:deploy /opt/plataforma-cursos \
+  && rm -rf /tmp/plataforma'
 ```
 
 ## 6. Configuração de cada ambiente
@@ -138,32 +148,47 @@ Crie no GitHub um token clássico só com `read:packages` e, na VPS, como `deplo
 echo "<token>" | docker login ghcr.io -u <usuario-github> --password-stdin
 ```
 
-## 8. Primeira subida
+## 8. Deploy automático no GitHub
 
-As imagens são publicadas no GHCR pelo pipeline na etapa de deploy automático. Com a primeira versão
-publicada, na VPS como `deploy`, usando a tag (SHA) dela:
+Feito com a conta dona do repositório (colaboradores não veem as configurações). Em **Settings →
+Secrets and variables → Actions**, crie os secrets do repositório (servem aos dois ambientes: a VPS e a
+chave são as mesmas):
 
-```bash
-cd /opt/plataforma-cursos
-sed -i 's/^TAG=.*/TAG=<sha>/' producao/.env homolog/.env
+| Secret | Valor |
+|---|---|
+| `VPS_HOST` | IP da VPS |
+| `VPS_SSH_KEY` | conteúdo de `~/.ssh/plataforma-cursos-deploy` (a chave **privada** do deploy) |
+| `VPS_KNOWN_HOSTS` | saída de `ssh-keyscan -t ed25519 <ip-da-vps>` (conferida com o painel da Hostinger) |
 
-docker compose -p plataforma-cursos-producao -f producao/compose.prod.yml --env-file producao/.env \
-  --project-directory producao up -d --wait
-docker compose -p plataforma-cursos-homolog -f homolog/compose.prod.yml -f homolog/compose.homolog.yml \
-  --env-file homolog/.env --project-directory homolog up -d --wait
-docker compose -f caddy/compose.yml --env-file caddy/.env --project-directory caddy up -d
-```
+Os jobs de deploy usam os environments `homolog` e `production`, criados automaticamente na primeira
+execução. Se o plano da conta permitir environments em repositório privado, ative em **Settings →
+Environments → production** a opção **Required reviewers**: o deploy da produção passa a esperar a sua
+aprovação.
 
-Crie o administrador de cada ambiente (a senha é pedida no terminal):
+## 9. Primeira subida
 
-```bash
-docker compose -p plataforma-cursos-producao -f producao/compose.prod.yml --env-file producao/.env \
-  --project-directory producao run --rm api criar-admin admin@celke.uno "Administrador"
-docker compose -p plataforma-cursos-homolog -f homolog/compose.prod.yml -f homolog/compose.homolog.yml \
-  --env-file homolog/.env --project-directory homolog run --rm api criar-admin admin@celke.uno "Administrador"
-```
+1. Abra um PR de `feature/base-projeto` para `homolog`, espere o pipeline ficar verde e faça o merge.
+   O pipeline publica as imagens no GHCR e implanta a homologação (é a primeira subida dela: sem backup
+   e sem versão anterior).
+2. Depois de validar a homologação, abra o PR de `homolog` para `main` e faça o merge: o pipeline
+   implanta a produção.
+3. Com os dois ambientes no ar (as redes deles existem), suba o Caddy na VPS, como `deploy`:
 
-## 9. Verificação
+   ```bash
+   cd /opt/plataforma-cursos
+   docker compose -f caddy/compose.yml --env-file caddy/.env --project-directory caddy up -d
+   ```
+
+4. Crie o administrador de cada ambiente (a senha é pedida no terminal):
+
+   ```bash
+   docker compose -p plataforma-cursos-producao -f producao/compose.prod.yml --env-file producao/.env \
+     --project-directory producao run --rm api criar-admin admin@celke.uno "Administrador"
+   docker compose -p plataforma-cursos-homolog -f homolog/compose.prod.yml -f homolog/compose.homolog.yml \
+     --env-file homolog/.env --project-directory homolog run --rm api criar-admin admin@celke.uno "Administrador"
+   ```
+
+## 10. Verificação
 
 Do seu computador:
 
@@ -177,3 +202,29 @@ ssh root@<ip-da-vps>                                        # recusado
 ```
 
 Na VPS: `docker stats --no-stream` mostra cada container dentro do limite de memória.
+
+## 11. Operação
+
+**Histórico dos deploys**: `tail -n 50 /opt/plataforma-cursos/<ambiente>/deploy.log`. Um deploy que não
+fica saudável volta sozinho para a versão anterior e o job do pipeline falha.
+
+**Voltar para uma versão antiga** (uma das guardadas em `versoes/`), como `deploy`:
+
+```bash
+tar -C /opt/plataforma-cursos/producao/versoes/<sha> -cz compose.prod.yml garage/garage.toml \
+  | plataforma-cursos-deploy producao <sha>
+```
+
+O rollback não desfaz migrations: por isso toda migration precisa ser compatível com a versão anterior.
+
+**Atualizar o Caddy** (é compartilhado pelos dois ambientes, então não entra no deploy automático):
+copie os arquivos novos de `infra/caddy/` para `/opt/plataforma-cursos/caddy/` e, como `deploy`:
+
+```bash
+cd /opt/plataforma-cursos
+docker compose -f caddy/compose.yml --env-file caddy/.env --project-directory caddy up -d --force-recreate
+```
+
+**Atualizar o script de deploy**: copie o `infra/scripts/deploy.sh` novo para a VPS e, como
+administrador, `sudo install -o root -g root -m 755 deploy.sh /usr/local/bin/plataforma-cursos-deploy`.
+
