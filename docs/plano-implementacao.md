@@ -4,6 +4,9 @@ Sistema do aluno (cursos, aulas em vídeo, fórum, certificado) com backend Java
 usando `@celke/ui`, tudo em Docker numa VPS da Hostinger. Este plano também é o roteiro do tutorial:
 cada fase vira uma branch e um ou mais capítulos.
 
+**Prompts:** cada etapa implementada tem um prompt em [`docs/prompts/`](prompts/README.md). Executados
+na ordem do índice, eles recriam o projeto do zero.
+
 **Ordem de trabalho:** primeiro todo o backend (com infraestrutura, CI e deploy), depois o frontend,
 quando o `@celke/ui` já estiver publicado no npm.
 
@@ -53,7 +56,7 @@ O domínio principal `celke.uno` já é usado por outras aplicações e não ser
 | `adm.celke.uno` | `homolog-adm.celke.uno` | SPA do ADM + `/api` (restrito por IP) |
 | `media.celke.uno` | `homolog-media.celke.uno` | Garage (subdomínio próprio: a assinatura depende do host) |
 
-> Nomes propostos — confirmar que nenhum desses subdomínios já está em uso antes da Fase 1.10.
+> Nomes propostos — confirmar que nenhum desses subdomínios já está em uso antes da etapa 1.8 (VPS).
 
 Cuidados por dividir o domínio com outras aplicações:
 
@@ -104,22 +107,29 @@ Regras:
 
 ```
 plataforma-cursos/
+├── CLAUDE.md                    regras gerais do repositório
 ├── backend/
+│   ├── CLAUDE.md                regras do projeto Java (código e testes)
+│   ├── .claude/skills/          criar-teste-unitario, criar-teste-integracao, criar-teste-e2e
+│   │                            (cada uma com SKILL.md = processo e padrao.md = padrão)
 │   ├── Dockerfile               targets: api | worker (com ffmpeg)
-│   └── src/main/java/br/com/celke/cursos/
-│       ├── shared/              config, security, erros, storage S3, fila, e-mail
-│       ├── auth/
-│       ├── usuario/
-│       ├── curso/               curso, turma, módulo, aula
-│       ├── matricula/           matrícula + AcessoAulaPolicy
-│       ├── video/               upload, transcodificação, playlist
-│       ├── progresso/
-│       ├── arquivo/
-│       ├── forum/
-│       ├── certificado/
-│       └── perfil/
-│       (cada módulo: api/ · application/ · domain/ · infra/)
-├── e2e/                         testes e2e (API agora, navegador depois)
+│   ├── pom.xml                  Surefire (*Test), Failsafe (*IT), JaCoCo, Spotless, perfil e2e
+│   └── src/
+│       ├── main/java/br/com/celke/cursos/
+│       │   ├── shared/          config, security, erros, storage S3, fila, e-mail
+│       │   ├── auth/
+│       │   ├── usuario/
+│       │   ├── curso/           curso, turma, módulo, aula
+│       │   ├── matricula/       matrícula + AcessoAulaPolicy
+│       │   ├── video/           upload, transcodificação, playlist
+│       │   ├── progresso/
+│       │   ├── arquivo/
+│       │   ├── forum/
+│       │   ├── certificado/
+│       │   └── perfil/
+│       │   (cada módulo: api/ · application/ · domain/ · infra/)
+│       ├── test/java/           unitários (*Test) e integração (*IT) + support/
+│       └── e2e/java/            e2e caixa-preta (*E2E: REST Assured + Awaitility)
 ├── web/                         (a partir da Fase 11)
 │   ├── package.json             workspaces
 │   ├── site/
@@ -136,7 +146,8 @@ plataforma-cursos/
 │   │   └── Caddyfile
 │   └── scripts/                 deploy.sh, backup-db.sh, backup-s3.sh, restore.sh, garage-init.sh
 ├── docs/
-│   └── plano-implementacao.md
+│   ├── plano-implementacao.md
+│   └── prompts/                 prompts para recriar o projeto em sequência
 └── .github/workflows/
     └── pipeline.yml
 ```
@@ -145,11 +156,14 @@ plataforma-cursos/
 
 ## 4. Fases
 
-Cada fase = uma branch = um PR para `homolog`. Definição de pronto de **todo** PR:
+Cada fase = uma branch = um PR para `homolog`. As regras gerais ficam no `CLAUDE.md` da raiz; as do
+backend, no `backend/CLAUDE.md`, com o padrão de cada nível de teste nas skills
+`/criar-teste-unitario`, `/criar-teste-integracao` e `/criar-teste-e2e` (`backend/.claude/skills/`).
+Definição de pronto de **todo** PR:
 
-- [ ] Testes unitários e de integração passando (`mvn verify`; `npm test` a partir da Fase 11)
+- [ ] `./mvnw verify` do backend passando (unitários + integração + cobertura + Spotless); `npm test` a partir da Fase 11
 - [ ] e2e passando no Actions
-- [ ] Endpoints novos cobertos na matriz de autorização (anônimo / aluno / admin)
+- [ ] Rotas novas com matriz de papéis (anônimo / ALUNO / ADMIN) e, se usam a `AcessoAulaPolicy`, matriz de acesso ao conteúdo
 - [ ] Endpoints novos documentados no OpenAPI
 - [ ] Migrations compatíveis com a versão anterior (expandir → depois contrair)
 - [ ] Nenhum segredo no código ou no compose
@@ -176,41 +190,43 @@ Cada fase = uma branch = um PR para `homolog`. Definição de pronto de **todo**
 Objetivo: API rodando local e na VPS (homologação e produção), com auth completa, CI, e2e de API e
 deploy automático. Depois desta fase, toda funcionalidade nova segue o fluxo normal.
 
-**1.1 Ambiente local** — capítulo 2
+**1.1 Esqueleto do backend e padrão de testes** — capítulos 2 e 5
+
+- [x] `CLAUDE.md` da raiz (regras gerais) e `backend/CLAUDE.md` (código e testes do projeto Java)
+- [x] Skills `criar-teste-unitario`, `criar-teste-integracao` e `criar-teste-e2e` em `backend/.claude/skills/`, cada uma com o padrão do nível (`padrao.md`)
+- [x] Projeto gerado no Spring Initializr: Spring Boot 4.1.1, Java 25, `br.com.celke.cursos`; dependências: webmvc, security, data-jpa, validation, flyway, actuator, postgresql, springdoc, testcontainers. As demais (AWS SDK, mail, Thymeleaf) entram na etapa que as usa
+- [x] `application.yaml` com credenciais do banco sem valor padrão, `open-in-view` desligado, `ddl-auto: validate`, threads virtuais, shutdown gracioso, cabeçalhos do proxy, sem stack trace nas respostas; `application-worker.yaml` sem servidor HTTP
+- [x] Sem usuário embutido do Spring Security (`UserDetailsServiceAutoConfiguration` excluída)
+- [x] `SecurityConfig`: stateless, sem CSRF/sessão/formulário/HTTP Basic, 401 para não autenticado; públicos só `GET` de health/probes e da documentação
+- [x] Actuator: só `health`, com probes de liveness/readiness e sem detalhes
+- [x] Swagger ligado por `DOCS_ENABLED=true` (dev e homologação), desligado por padrão
+- [x] Surefire para `*Test` (com `-Dskip.unit=true` para pular), Failsafe para `*IT`, JaCoCo somando os dois com mínimo de 80% de linhas, Spotless (palantir-java-format) verificado no `verify`
+- [x] `support/Containers` (PostgreSQL 18 como bean com `@ServiceConnection`) e `support/IntegrationTest` (`MockMvcTester`, `stamp()`)
+- [x] `SegurancaPadraoIT`: health e probes públicos com `UP` e sem detalhes; demais rotas e métodos exigem autenticação; documentação desligada
+- [x] Dockerfile multi-stage: build com JDK 25, jar em camadas, execução com JRE 25 e usuário sem root; targets `api` e `worker` (com ffmpeg)
+
+**1.2 Ambiente local** — capítulo 2
 
 - [ ] `infra/compose.yml`: PostgreSQL 18, Garage, API, worker, Mailpit; versões fixas
+- [ ] Variáveis obrigatórias com `${VARIAVEL:?mensagem}` no compose (mensagem clara quando faltar)
 - [ ] `garage.toml` com `replication_factor = 1`, `db_engine = "sqlite"`, volumes para `metadata_dir` e `data_dir`, segredos (`rpc_secret`, `admin_token`) vindos do `.env`
 - [ ] `garage-init.sh`: buckets `uploads` e `videos`, chave da aplicação com leitura/escrita só nesses buckets, CORS e lifecycle (expira `uploads/` abandonados)
 - [ ] Healthchecks + `depends_on: condition: service_healthy`
 - [ ] `.env.example` completo; `.env` no `.gitignore`
 - [ ] Portas ligadas apenas em `127.0.0.1`
 
-**1.2 Esqueleto do backend** — capítulo 3
-
-- [ ] Projeto Spring Boot 4.1.x + Java 25: webmvc, security, data-jpa, validation, flyway, actuator, mail, AWS SDK v2, springdoc
-- [ ] Pacotes por funcionalidade conforme a seção 3
-- [ ] `@ConfigurationProperties` validadas — a aplicação não sobe sem segredo
-- [ ] Profiles `api`, `worker`, `e2e`, `test`
-- [ ] Dockerfile multi-stage com usuário não-root, targets `api` e `worker`
-- [ ] Actuator: só `health` exposto; probes de liveness/readiness
-- [ ] OpenAPI/Swagger UI ligado no dev e na homologação (com a senha do Caddy), desligado em produção — é a forma de testar manualmente enquanto não há front
-
 **1.3 Padrões compartilhados** — capítulo 4
 
-- [ ] `ProblemDetail` (RFC 9457) com handler global, sem stack trace na resposta
+- [ ] `ProblemDetail` (RFC 9457) com handler global, sem stack trace na resposta; 401/403 da segurança também em `ProblemDetail`
 - [ ] DTOs como `record`, paginação padrão
 - [ ] Logs JSON com id de correlação
 - [ ] `StorageService` (AWS SDK v2, path-style): presign GET/PUT, multipart, delete
 - [ ] Fila: tabela `jobs` + `FilaService` (enfileirar, reservar com `SKIP LOCKED`, concluir, falhar com backoff)
 - [ ] `EmailService` com templates (Thymeleaf), envio assíncrono pela fila, SMTP da Iagente
-
-**1.4 Testes de integração** — capítulo 5
-
-- [ ] Classe base com Testcontainers (PostgreSQL 18 + Garage + Mailpit)
-- [ ] JaCoCo com cobertura mínima no `verify`
+- [ ] `support/Containers` com Garage e Mailpit; `support/Mailpit`
 - [ ] Testes de `StorageService`, `FilaService` (dois consumidores nunca pegam o mesmo job) e `EmailService`
 
-**1.5 Usuários e autenticação** — capítulos 6 e 7
+**1.4 Usuários e autenticação** — capítulos 6 e 7
 
 - [ ] Migrations `usuarios`, `papeis`, `refresh_tokens`, `tokens_uso_unico`
 - [ ] Hash de senha Argon2 (aceitar também `$2y$` do Laravel, para a migração do legado)
@@ -218,8 +234,9 @@ deploy automático. Depois desta fase, toda funcionalidade nova segue o fluxo no
 - [ ] Login: access token de 10 min no corpo; refresh opaco em cookie `HttpOnly; Secure; SameSite=Strict; Path=/api/auth`, **sem `Domain`**
 - [ ] Refresh com rotação; reuso de token revoga a família
 - [ ] Logout e "sair de todos os dispositivos"
+- [ ] Seed do profile `test` (admin, aluno); `support/UsuariosSeed`; `login()` e `bearer()` no `IntegrationTest`
 
-**1.6 Autorização e proteções** — capítulos 8 e 10
+**1.5 Autorização e proteções** — capítulos 8 e 10
 
 - [ ] `SecurityFilterChain` nega tudo por padrão; rotas públicas declaradas com método HTTP
 - [ ] Papéis do token + `@PreAuthorize`
@@ -227,21 +244,22 @@ deploy automático. Depois desta fase, toda funcionalidade nova segue o fluxo no
 - [ ] Endpoint de refresh: verificação de `Origin` (CSRF)
 - [ ] Auditoria de login (sucesso/falha, IP, user-agent)
 
-**1.7 Cadastro e recuperação de senha** — capítulo 9
+**1.6 Cadastro e recuperação de senha** — capítulo 9
 
 - [ ] Cadastro com confirmação de e-mail
 - [ ] Recuperação com token de uso único e expiração; resposta igual para e-mail existente ou não
 - [ ] E-mails pela Iagente; verificados no Mailpit nos testes
 
-**1.8 Testes de autorização e e2e de API** — capítulo novo antes do 31
+**1.7 Testes de autorização e e2e de API** — capítulo novo antes do 31
 
 - [ ] Matriz parametrizada rota × papel → status esperado
 - [ ] Testes de token adulterado, expirado, `alg` trocado, refresh reutilizado, rate limit 429
 - [ ] `compose.e2e.yml`: HTTP, `*.localhost`, seed do profile `e2e` (admin, aluno matriculado, aluno sem matrícula)
-- [ ] e2e de API: cadastro → e-mail no Mailpit → confirmação → login → refresh → logout; aluno barrado em `/api/adm`
+- [ ] Perfil Maven `e2e` no backend (`src/e2e/java`, REST Assured, Awaitility) com `support/` conforme o padrão da skill `criar-teste-e2e`
+- [ ] Jornadas `CadastroE2E` (cadastro → e-mail no Mailpit → confirmação → login) e `SessaoE2E` (login → refresh → logout pelo Caddy, cookie sem `Domain`)
 - [ ] `pipeline.yml`: testes → build das imagens (cache `type=gha`) → e2e → artefatos em caso de falha (relatórios + `docker compose logs`)
 
-**1.9 VPS** — capítulos 31 e 32
+**1.8 VPS** — capítulos 31 e 32
 
 - [ ] Usuário `deploy` sem sudo, SSH só por chave, root desativado, fail2ban, `ufw` (22/80/443), swap de 2 GB
 - [ ] DNS dos subdomínios de produção e homologação apontando para a VPS
@@ -260,7 +278,7 @@ deploy automático. Depois desta fase, toda funcionalidade nova segue o fluxo no
 | Garage | 768 MB | 512 MB |
 | Caddy (compartilhado) | 128 MB | — |
 
-**1.10 Deploy automático** — capítulos 32.1 e 34
+**1.9 Deploy automático** — capítulos 32.1 e 34
 
 - [ ] `docker login ghcr.io` na VPS com token só de leitura
 - [ ] `deploy.sh <ambiente> <sha>`: valida argumentos, backup do banco, `pull`, `up -d --wait`, grava a tag atual, rollback se falhar

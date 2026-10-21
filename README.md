@@ -21,3 +21,4 @@ como tutorial.
 ## Documentação
 
 - [Plano de implementação](docs/plano-implementacao.md)
+- [Prompts para recriar o projeto passo a passo](docs/prompts/README.md)

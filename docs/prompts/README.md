@@ -1,0 +1,12 @@
+# Prompts
+
+Prompts para recriar a Plataforma de Cursos do zero com o Claude Code. Execute-os **na ordem da
+tabela**, cada um numa sessão do Claude Code aberta na raiz do repositório. Cada prompt parte do
+estado deixado pelos anteriores.
+
+Ao final de cada prompt, confira a seção **Verificação** dele antes de seguir para o próximo.
+
+| Ordem | Prompt | Fase do plano | Branch |
+|---|---|---|---|
+| 1 | [Estrutura inicial do repositório](f00-01-estrutura-inicial.md) | 0 | `main` |
+| 2 | [Esqueleto do backend e padrão de testes](f01-01-esqueleto-backend-e-testes.md) | 1.1 | `feature/base-projeto` |

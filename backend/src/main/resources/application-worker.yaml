@@ -1,0 +1,4 @@
+# Worker: processa a fila (transcodificação de vídeo, e-mails) e não atende HTTP
+spring:
+  main:
+    web-application-type: none
