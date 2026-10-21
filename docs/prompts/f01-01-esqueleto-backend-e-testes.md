@@ -531,7 +531,7 @@ próprio (`stamp`), então nunca depende de quantas requisições outras classes
 - Status sozinho não basta. Sucesso: confira os campos relevantes do JSON
   (`assertThat(resposta).hasStatusOk().bodyJson().extractingPath("$.slug").isEqualTo(...)`),
   incluindo as normalizações que a API faz.
-- Erro: o formato `ProblemDetail` — `type`, `title`, `status`, `detail`, `instance`. Erro de
+- Erro: o formato `ProblemDetail` — `title`, `status`, `detail`, `instance` e `requestId`. Erro de
   negócio confere o `detail` exato em português; erro de validação (400) confere a lista
   `erros` com os campos esperados.
 - Toda resposta que carrega usuário confere a **ausência** de `senha`, hash e tokens — em

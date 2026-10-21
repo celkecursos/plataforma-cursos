@@ -8,6 +8,7 @@ x-app: &app
   DB_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:?defina POSTGRES_DB no infra/.env}
   DB_USERNAME: ${POSTGRES_USER:?defina POSTGRES_USER no infra/.env}
   DB_PASSWORD: ${POSTGRES_PASSWORD:?defina POSTGRES_PASSWORD no infra/.env}
+  JWT_SEGREDO: ${JWT_SEGREDO:?defina JWT_SEGREDO no infra/.env}
   S3_ENDPOINT: http://garage:3900
   # Endereço que o navegador usa nas URLs pré-assinadas
   S3_ENDPOINT_PUBLICO: http://localhost:${S3_PORTA:-3900}

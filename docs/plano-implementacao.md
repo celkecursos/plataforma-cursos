@@ -234,13 +234,15 @@ deploy automático. Depois desta fase, toda funcionalidade nova segue o fluxo no
 
 **1.4 Usuários e autenticação** — capítulos 6 e 7
 
-- [ ] Migrations `usuarios`, `papeis`, `refresh_tokens`, `tokens_uso_unico`
-- [ ] Hash de senha Argon2 (aceitar também `$2y$` do Laravel, para a migração do legado)
-- [ ] Comando para criar admin: `docker compose run --rm api criar-admin <email>` com senha digitada na hora
-- [ ] Login: access token de 10 min no corpo; refresh opaco em cookie `HttpOnly; Secure; SameSite=Strict; Path=/api/auth`, **sem `Domain`**
-- [ ] Refresh com rotação; reuso de token revoga a família
-- [ ] Logout e "sair de todos os dispositivos"
-- [ ] Seed do profile `test` (admin, aluno); `support/UsuariosSeed`; `login()` e `bearer()` no `IntegrationTest`
+- [x] Migrations `usuarios` (e-mail único e em minúsculas), `usuario_papeis` e `refresh_tokens`
+- [x] Hash de senha Argon2; BCrypt `$2y$` do Laravel aceito e regravado em Argon2 no login; política de senha por tamanho (admin: 12 a 128)
+- [x] Comando `docker compose run --rm api criar-admin <email> "<nome>"`: sem servidor HTTP, senha digitada duas vezes no terminal
+- [x] Access token JWT (Nimbus, HS256, 10 min, `sub` e `papeis`) com o Resource Server do Spring Security: só HS256, emissor e validade conferidos, papéis em `ROLE_*`; `JWT_SEGREDO` validado ao subir
+- [x] Refresh opaco com hash SHA-256, rotação, família revogada na reutilização (gravada mesmo com a sessão recusada) e `SELECT ... FOR UPDATE`
+- [x] Cookie `refresh_token`: `HttpOnly; Secure; SameSite=Strict; Path=/api/auth`, 14 dias, **sem `Domain`**
+- [x] Rotas `login`, `refresh`, `logout` (públicas), `sair-de-todos` e `me` (privadas); mesma resposta e mesmo tempo para e-mail inexistente e senha errada
+- [x] Seed do profile `test` (admin, aluno); `support/UsuariosSeed`; `login()`, `bearer()` e `criarUsuario()` no `IntegrationTest`
+- [x] Testes: token adulterado, expirado, de outra chave, com outro algoritmo, `alg: none` e de outro emissor recusados; rotação, reutilização, logout e sair de todos; matriz de papéis das rotas de autenticação
 
 **1.5 Autorização e proteções** — capítulos 8 e 9
 
@@ -252,6 +254,7 @@ deploy automático. Depois desta fase, toda funcionalidade nova segue o fluxo no
 
 **1.6 Cadastro e recuperação de senha** — capítulo 10
 
+- [ ] Migration `tokens_uso_unico` (confirmação de e-mail e recuperação de senha)
 - [ ] Cadastro com confirmação de e-mail
 - [ ] Recuperação com token de uso único e expiração; resposta igual para e-mail existente ou não
 - [ ] E-mails pela Iagente; verificados no Mailpit nos testes

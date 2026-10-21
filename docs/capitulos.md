@@ -112,12 +112,13 @@ capítulo.
 
 ### Cap. 6 — Usuários e senhas
 
-**Fase:** 1.4
+**Fase:** 1.4 · **Prompt:** [f01-04](prompts/f01-04-usuarios-e-login.md)
 
 - **Objetivo:** guardar usuários e senhas com segurança.
 - **Conteúdo:**
   - Migrations de `usuarios` e `papeis` (ALUNO, ADMIN).
-  - Senhas com Argon2; hash `$2y$` do Laravel aceito para a migração do legado.
+  - Senhas com Argon2; hash `$2y$` do Laravel aceito e regravado em Argon2 no login.
+  - Política de senha por tamanho (mínimo 12 para admin, máximo 128).
   - O primeiro admin é criado por comando (`docker compose run --rm api criar-admin <email>`), com a senha digitada na hora — nunca por migration.
   - Seed do profile `test` e `support/UsuariosSeed`.
 - **Testes:** hash da senha e criação do admin.
@@ -125,15 +126,17 @@ capítulo.
 
 ### Cap. 7 — Login com JWT e refresh em cookie
 
-**Fase:** 1.4
+**Fase:** 1.4 · **Prompt:** [f01-04](prompts/f01-04-usuarios-e-login.md)
 
 - **Objetivo:** sessão segura sem guardar token em `localStorage`.
 - **Conteúdo:**
   - Access token de 10 minutos no corpo da resposta, guardado pelo frontend só em memória.
   - Refresh token opaco, com o hash salvo no banco e rotação a cada uso. Se um refresh já usado reaparecer, toda a família de tokens é revogada.
   - Cookie `HttpOnly; Secure; SameSite=Strict; Path=/api/auth`, **sem `Domain`**, para não ser enviado às outras aplicações de `celke.uno`.
-  - Logout e "sair de todos os dispositivos"; `login()` e `bearer()` no `IntegrationTest`.
-- **Testes:** token adulterado, expirado ou com `alg` trocado é recusado; refresh reutilizado revoga a família; atributos do cookie conferidos.
+  - JWT assinado e validado pelo Resource Server do Spring Security: só HS256, emissor e validade conferidos.
+  - Login com a mesma resposta e o mesmo tempo para e-mail inexistente e senha errada.
+  - Logout e "sair de todos os dispositivos"; `login()`, `bearer()` e `criarUsuario()` no `IntegrationTest`.
+- **Testes:** token adulterado, expirado, de outra chave, com outro algoritmo, `alg: none` ou de outro emissor é recusado; refresh reutilizado revoga a família; atributos do cookie conferidos.
 - **Entrega:** login, refresh e logout funcionando pelo Swagger.
 
 ### Cap. 8 — Autorização

@@ -7,6 +7,9 @@ spring:
       mail.smtp.starttls.required: false
 
 app:
+  auth:
+    # Chave só dos testes (48 bytes em Base64)
+    jwt-segredo: dGVzdGUtdGVzdGUtdGVzdGUtdGVzdGUtdGVzdGUtdGVzdGUtdGVzdGUtdGVzdGUt
   armazenamento:
     cors-origens: http://localhost:5173
   email:

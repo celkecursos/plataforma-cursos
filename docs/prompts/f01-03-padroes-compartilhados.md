@@ -930,7 +930,6 @@ public class RespostasSeguranca implements AuthenticationEntryPoint, AccessDenie
     private void escrever(HttpServletRequest request, HttpServletResponse response, HttpStatus status, String detalhe)
             throws IOException {
         Map<String, Object> corpo = new LinkedHashMap<>();
-        corpo.put("type", "about:blank");
         corpo.put("title", status.getReasonPhrase());
         corpo.put("status", status.value());
         corpo.put("detail", detalhe);

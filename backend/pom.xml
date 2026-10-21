@@ -18,6 +18,7 @@
 		<java.version>25</java.version>
 		<springdoc.version>3.1.1</springdoc.version>
 		<aws-sdk.version>2.57.1</aws-sdk.version>
+		<bouncycastle.version>1.86</bouncycastle.version>
 		<spotless.version>3.10.4</spotless.version>
 		<palantir-java-format.version>2.102.0</palantir-java-format.version>
 		<jacoco.version>0.8.15</jacoco.version>
@@ -62,6 +63,10 @@
 		</dependency>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-security-oauth2-resource-server</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-thymeleaf</artifactId>
 		</dependency>
 		<dependency>
@@ -79,6 +84,12 @@
 		<dependency>
 			<groupId>software.amazon.awssdk</groupId>
 			<artifactId>s3</artifactId>
+		</dependency>
+		<!-- Argon2 para o hash das senhas -->
+		<dependency>
+			<groupId>org.bouncycastle</groupId>
+			<artifactId>bcprov-jdk18on</artifactId>
+			<version>${bouncycastle.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>org.springdoc</groupId>

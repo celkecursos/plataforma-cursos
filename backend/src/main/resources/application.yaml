@@ -71,6 +71,13 @@ springdoc:
     enabled: ${DOCS_ENABLED:false}
 
 app:
+  auth:
+    # Segredo do JWT em Base64, com pelo menos 32 bytes (openssl rand -base64 48)
+    jwt-segredo: ${JWT_SEGREDO:}
+    emissor: plataforma-cursos
+    validade-acesso: PT10M
+    validade-refresh: P14D
+    cookie-seguro: true
   armazenamento:
     # Endereço usado pela aplicação (rede interna)
     endpoint: ${S3_ENDPOINT:}

@@ -8,18 +8,23 @@ import org.springframework.security.config.annotation.method.configuration.Enabl
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
+import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
 import org.springframework.security.web.SecurityFilterChain;
 import tools.jackson.databind.json.JsonMapper;
 
 /**
  * Segurança da API: tudo exige autenticação, exceto as rotas públicas declaradas aqui com o
- * método HTTP. A API é stateless (token no cabeçalho), sem sessão, formulário ou HTTP Basic. Só
- * existe na aplicação web: o worker não atende HTTP.
+ * método HTTP. A API é stateless: o access token (JWT) vem no cabeçalho {@code Authorization}, sem
+ * sessão, formulário ou HTTP Basic. Só existe na aplicação web: o worker não atende HTTP.
  */
 @Configuration
 @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
 @EnableMethodSecurity
 public class SecurityConfig {
+
+    /** Claim do JWT com os papéis do usuário (ALUNO, ADMIN), convertidos em ROLE_ALUNO, ROLE_ADMIN. */
+    public static final String CLAIM_PAPEIS = "papeis";
 
     @Bean
     SecurityFilterChain securityFilterChain(HttpSecurity http, JsonMapper jsonMapper) throws Exception {
@@ -32,6 +37,9 @@ public class SecurityConfig {
                 // 401 e 403 no formato ProblemDetail
                 .exceptionHandling(
                         erros -> erros.authenticationEntryPoint(respostas).accessDeniedHandler(respostas))
+                .oauth2ResourceServer(recurso -> recurso.jwt(jwt -> jwt.jwtAuthenticationConverter(conversorPapeis()))
+                        .authenticationEntryPoint(respostas)
+                        .accessDeniedHandler(respostas))
                 .authorizeHttpRequests(rotas -> rotas
                         // Health check e probes (Docker e Caddy)
                         .requestMatchers(HttpMethod.GET, "/actuator/health", "/actuator/health/**")
@@ -40,8 +48,20 @@ public class SecurityConfig {
                         .requestMatchers(
                                 HttpMethod.GET, "/v3/api-docs", "/v3/api-docs/**", "/swagger-ui.html", "/swagger-ui/**")
                         .permitAll()
+                        // Autenticação: login e renovação/saída pelo cookie de refresh
+                        .requestMatchers(HttpMethod.POST, "/api/auth/login", "/api/auth/refresh", "/api/auth/logout")
+                        .permitAll()
                         .anyRequest()
                         .authenticated());
         return http.build();
+    }
+
+    private static JwtAuthenticationConverter conversorPapeis() {
+        JwtGrantedAuthoritiesConverter papeis = new JwtGrantedAuthoritiesConverter();
+        papeis.setAuthoritiesClaimName(CLAIM_PAPEIS);
+        papeis.setAuthorityPrefix("ROLE_");
+        JwtAuthenticationConverter conversor = new JwtAuthenticationConverter();
+        conversor.setJwtGrantedAuthoritiesConverter(papeis);
+        return conversor;
     }
 }
