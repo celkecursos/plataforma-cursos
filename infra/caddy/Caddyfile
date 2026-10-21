@@ -1,0 +1,46 @@
+# Porta de entrada da plataforma. Os hosts vêm do ambiente (HOST_ALUNO, HOST_ADM, HOST_MEDIA):
+# com "https://..." o Caddy emite o certificado sozinho; com "http://..." (e2e) atende sem TLS.
+{
+	admin off
+}
+
+# Headers de segurança em todas as respostas
+(seguranca) {
+	header {
+		X-Content-Type-Options nosniff
+		Referrer-Policy strict-origin-when-cross-origin
+		Strict-Transport-Security "max-age=31536000"
+		-Server
+	}
+}
+
+# Só a API e o health check passam; o resto (Swagger, outros endpoints do Actuator) não sai daqui.
+# O X-Forwarded-For que o cliente mandar é substituído pelo IP real da conexão.
+(api) {
+	@api path /api/* /actuator/health /actuator/health/*
+	handle @api {
+		reverse_proxy api:8080 {
+			# Durante o deploy a API reinicia: segura a requisição em vez de responder 502
+			lb_try_duration 30s
+		}
+	}
+	handle {
+		respond 404
+	}
+}
+
+{$HOST_ALUNO} {
+	import seguranca
+	import api
+}
+
+{$HOST_ADM} {
+	import seguranca
+	import api
+}
+
+# Arquivos do bucket por URL pré-assinada (o host faz parte da assinatura e é repassado como veio)
+{$HOST_MEDIA} {
+	import seguranca
+	reverse_proxy garage:3900
+}

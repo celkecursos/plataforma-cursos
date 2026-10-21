@@ -1,9 +1,11 @@
 # Testes e2e — o padrão do projeto
 
 Os testes e2e tratam o sistema como **caixa-preta**: a stack completa sobe com
-`infra/compose.prod.yml` + `infra/compose.e2e.yml` (Caddy, API, worker, PostgreSQL, Garage,
-Mailpit) usando **as mesmas imagens que vão para produção**, e os testes chamam o sistema só
-por HTTP, como um cliente faria. Não há acesso ao banco, ao código da aplicação nem a mocks.
+`infra/compose.prod.yml` + `infra/compose.e2e.yml` + `infra/e2e.env` (Caddy, API, worker,
+PostgreSQL, Garage, Mailpit) usando **as mesmas imagens que vão para produção**, e os testes chamam
+o sistema só por HTTP, como um cliente faria. Não há acesso ao banco, ao código da aplicação nem a
+mocks. A stack de e2e é um projeto Compose separado (`plataforma-cursos-e2e`): sobe e desce sem
+mexer no ambiente local.
 
 Ficam no próprio projeto Java, num source set separado (`src/e2e/java`), e só rodam com o
 perfil Maven `e2e`.
@@ -15,8 +17,9 @@ acesso caso a caso já estão nos níveis abaixo.
 
 Entra no e2e o que depende de **vários containers juntos** ou da infraestrutura:
 
-- roteamento do Caddy por host (`aluno.localhost`, `adm.localhost`, `media.localhost`) e
-  proxy de `/api`;
+- roteamento do Caddy por host (`aluno.localhost`, `adm.localhost`, `media.localhost`), proxy de
+  `/api` e bloqueio do que não é API;
+- IP real do cliente atrás do proxy (`X-Forwarded-For` forjado não muda nada);
 - cookie de refresh atravessando o proxy (login → refresh → logout);
 - e-mail real saindo da API e chegando ao Mailpit (cadastro → confirmação; recuperação de senha);
 - URL pré-assinada usada **de fora**, direto no Garage (upload multipart, download);
@@ -32,11 +35,12 @@ Entra no e2e o que depende de **vários containers juntos** ou da infraestrutura
 ```
 src/e2e/java/br/com/celke/cursos/e2e/
   support/                 # configuração e utilitários — nenhum teste aqui
-    E2eConfig.java         # URLs base por host, vindas de propriedades do sistema
-    Api.java               # RequestSpecification por host, login(), bearer()
-    Mailpit.java           # buscar e-mail, extrair link
-    Dados.java             # stamp() com prefixo e2e-
-    Arquivos.java          # leitura das amostras
+    E2eConfig.java         # porta do Caddy, Mailpit, senha do seed (propriedades do sistema)
+    Api.java               # aluno(), adm(): requisição pelo Caddy com o cabeçalho Host; login(), bearer()
+    Mailpit.java           # aguardar(destinatario, assunto), token(email)
+    Dados.java             # stamp() e email() com prefixo e2e-
+    Contas.java            # criarConfirmada(): conta própria pelo caminho real (cadastro → e-mail → link)
+    Arquivos.java          # leitura das amostras (a partir das jornadas de vídeo)
   <jornada>/
     <Jornada>E2E.java      # CadastroE2E, SessaoE2E, VideoE2E, ProxyE2E...
 src/e2e/resources/
@@ -46,8 +50,10 @@ src/e2e/resources/
 - Nome da classe termina em `E2E`. Um arquivo por jornada.
 - Bibliotecas: JUnit 5, REST Assured, Awaitility, AssertJ (escopo de teste, usadas só pelo
   perfil `e2e`).
-- Os usuários iniciais vêm do seed do profile `e2e` da API; as credenciais ficam em
-  `support/Api.java`.
+- Os usuários iniciais vêm do seed do profile `e2e` da API (`SeedE2e`, senha de
+  `SEED_E2E_SENHA`); e-mails e senha ficam em `support/E2eConfig.java`.
+- Todos os sites respondem em `localhost:8088`; o cabeçalho `Host` escolhe qual. As jornadas não
+  dependem da resolução de `*.localhost` na máquina.
 
 ## Cada classe é independente
 
@@ -67,8 +73,9 @@ nunca `Thread.sleep`. O vídeo de amostra é curto (3 s) para caber no runner do
 ## O que conferir
 
 - Status **e** corpo, como na integração; erros no formato `ProblemDetail`.
-- O que o Caddy acrescenta: `Strict-Transport-Security` (quando HTTPS), `X-Content-Type-Options`,
-  `Referrer-Policy`, `Cache-Control` dos assets e do `index.html`.
+- O que o Caddy acrescenta: `Strict-Transport-Security`, `X-Content-Type-Options`,
+  `Referrer-Policy`, ausência do cabeçalho `Server` e, com os fronts, `Cache-Control` dos assets e
+  do `index.html`.
 - Cookie de refresh com `HttpOnly`, `SameSite=Strict`, `Path=/api/auth`, sem `Domain`.
 - URLs devolvidas pela API apontam para o host de mídia esperado, nunca para o endereço
   interno do container.
@@ -84,7 +91,7 @@ container (variável faltando, healthcheck, rede).
 Na raiz do repositório:
 
 ```bash
-docker compose -f infra/compose.prod.yml -f infra/compose.e2e.yml up -d --build --wait
+docker compose -f infra/compose.prod.yml -f infra/compose.e2e.yml --env-file infra/e2e.env up -d --build --wait
 ```
 
 Dentro de `backend/`:
@@ -94,7 +101,7 @@ Dentro de `backend/`:
 ./mvnw verify -Pe2e -Dit.test=VideoE2E       # uma jornada
 ```
 
-Depois, na raiz: `docker compose -f infra/compose.prod.yml -f infra/compose.e2e.yml down -v`.
+Depois, na raiz: `docker compose -f infra/compose.prod.yml -f infra/compose.e2e.yml --env-file infra/e2e.env down -v`.
 
 Se uma jornada falhar por **bug real**, não ajuste o teste para passar — avise com a
 jornada, o passo, o esperado e o obtido.

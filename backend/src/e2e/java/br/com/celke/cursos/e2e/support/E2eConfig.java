@@ -1,0 +1,28 @@
+package br.com.celke.cursos.e2e.support;
+
+/**
+ * Endereços da stack de e2e. Padrões iguais aos de {@code infra/e2e.env}; podem ser trocados por
+ * propriedades do sistema ({@code -De2e.porta=...}).
+ */
+public final class E2eConfig {
+
+    /** Porta do Caddy no host. Os sites são escolhidos pelo cabeçalho Host. */
+    public static final int PORTA = Integer.getInteger("e2e.porta", 8088);
+
+    public static final String MAILPIT = System.getProperty("e2e.mailpit", "http://localhost:8026");
+
+    public static final String SENHA_SEED = System.getProperty("e2e.senha-seed", "senha-do-seed-e2e");
+
+    public static final String HOST_ALUNO = "aluno.localhost";
+    public static final String HOST_ADM = "adm.localhost";
+
+    public static final String ADMIN_SEED = "admin.e2e@teste.celke.uno";
+    public static final String ALUNO_SEED = "aluno.e2e@teste.celke.uno";
+
+    private E2eConfig() {}
+
+    /** Origem que o navegador envia para um host da plataforma ({@code http://aluno.localhost:8088}). */
+    public static String origem(String host) {
+        return "http://" + host + ":" + PORTA;
+    }
+}

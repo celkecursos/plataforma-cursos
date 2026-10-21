@@ -1,0 +1,119 @@
+# Stack dos servidores: Caddy na frente, imagens publicadas no GHCR com a tag do commit (TAG) e
+# nenhuma porta publicada além das do Caddy. Todas as variáveis vêm do .env do ambiente.
+name: plataforma-cursos
+
+# Configuração compartilhada pela API e pelo worker
+x-app: &app
+  DB_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:?defina POSTGRES_DB}
+  DB_USERNAME: ${POSTGRES_USER:?defina POSTGRES_USER}
+  DB_PASSWORD: ${POSTGRES_PASSWORD:?defina POSTGRES_PASSWORD}
+  JWT_SEGREDO: ${JWT_SEGREDO:?defina JWT_SEGREDO}
+  AUTH_ORIGENS: ${AUTH_ORIGENS:?defina AUTH_ORIGENS}
+  FRONT_ALUNO_URL: ${FRONT_ALUNO_URL:?defina FRONT_ALUNO_URL}
+  S3_ENDPOINT: http://garage:3900
+  S3_ENDPOINT_PUBLICO: ${S3_ENDPOINT_PUBLICO:?defina S3_ENDPOINT_PUBLICO}
+  S3_BUCKET: ${S3_BUCKET:?defina S3_BUCKET}
+  S3_ACCESS_KEY: ${S3_ACCESS_KEY:?defina S3_ACCESS_KEY}
+  S3_SECRET_KEY: ${S3_SECRET_KEY:?defina S3_SECRET_KEY}
+  S3_CORS_ORIGENS: ${S3_CORS_ORIGENS:?defina S3_CORS_ORIGENS}
+  SMTP_HOST: ${SMTP_HOST:?defina SMTP_HOST}
+  SMTP_PORT: ${SMTP_PORT:-587}
+  SMTP_USERNAME: ${SMTP_USERNAME:-}
+  SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+  SMTP_AUTH: ${SMTP_AUTH:-true}
+  SMTP_STARTTLS: ${SMTP_STARTTLS:-true}
+  EMAIL_REMETENTE: ${EMAIL_REMETENTE:?defina EMAIL_REMETENTE}
+  LOGGING_STRUCTURED_FORMAT_CONSOLE: ecs
+
+services:
+  caddy:
+    image: caddy:2.11.7-alpine
+    restart: unless-stopped
+    environment:
+      HOST_ALUNO: ${HOST_ALUNO:?defina HOST_ALUNO}
+      HOST_ADM: ${HOST_ADM:?defina HOST_ADM}
+      HOST_MEDIA: ${HOST_MEDIA:?defina HOST_MEDIA}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_dados:/data
+      - caddy_config:/config
+    depends_on:
+      api:
+        condition: service_healthy
+
+  api:
+    image: ${IMAGEM_API:-ghcr.io/celkecursos/plataforma-cursos-api}:${TAG:?defina TAG}
+    restart: unless-stopped
+    environment:
+      <<: *app
+    depends_on:
+      postgres:
+        condition: service_healthy
+      garage:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8080/actuator/health/readiness"]
+      interval: 5s
+      timeout: 3s
+      start_period: 30s
+      retries: 20
+
+  worker:
+    image: ${IMAGEM_WORKER:-ghcr.io/celkecursos/plataforma-cursos-worker}:${TAG:?defina TAG}
+    restart: unless-stopped
+    environment:
+      <<: *app
+    depends_on:
+      # As migrations são aplicadas pela API; o worker sobe depois dela
+      api:
+        condition: service_healthy
+    healthcheck:
+      # O worker regrava este arquivo a cada 10 s (não tem servidor HTTP para health check)
+      test: ["CMD-SHELL", "find /tmp/worker-batimento -mmin -1 | grep -q ."]
+      interval: 10s
+      timeout: 3s
+      start_period: 30s
+      retries: 3
+
+  postgres:
+    image: postgres:18.6-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:?defina POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER:?defina POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?defina POSTGRES_PASSWORD}
+    volumes:
+      - postgres:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  garage:
+    image: dxflrs/garage:v2.4.1
+    restart: unless-stopped
+    command: ["/garage", "server", "--single-node", "--default-bucket"]
+    environment:
+      GARAGE_RPC_SECRET: ${GARAGE_RPC_SECRET:?defina GARAGE_RPC_SECRET}
+      GARAGE_ADMIN_TOKEN: ${GARAGE_ADMIN_TOKEN:?defina GARAGE_ADMIN_TOKEN}
+      GARAGE_DEFAULT_BUCKET: ${S3_BUCKET:?defina S3_BUCKET}
+      GARAGE_DEFAULT_ACCESS_KEY: ${S3_ACCESS_KEY:?defina S3_ACCESS_KEY}
+      GARAGE_DEFAULT_SECRET_KEY: ${S3_SECRET_KEY:?defina S3_SECRET_KEY}
+    volumes:
+      - ./garage/garage.toml:/etc/garage.toml:ro
+      - garage:/var/lib/garage
+    healthcheck:
+      test: ["CMD", "/garage", "status"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+volumes:
+  postgres:
+  garage:
+  caddy_dados:
+  caddy_config:

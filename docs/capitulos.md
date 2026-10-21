@@ -189,16 +189,18 @@ capítulo.
 
 ### Cap. 11 — Testes e2e e pipeline no GitHub Actions
 
-**Fase:** 1.7
+**Fase:** 1.7 · **Prompt:** [f01-07](prompts/f01-07-e2e-e-pipeline.md)
 
 - **Objetivo:** cada PR testado com a stack inteira, usando as imagens que vão para produção.
 - **Conteúdo:**
-  - `infra/compose.e2e.yml`: HTTP, hosts `*.localhost` (resolvidos pelo próprio sistema), seed do profile `e2e`, Mailpit.
-  - Perfil Maven `e2e` no backend (`src/e2e/java`, REST Assured, Awaitility).
-  - Jornadas `CadastroE2E` (cadastro → e-mail → confirmação → login) e `SessaoE2E` (login → refresh → logout pelo Caddy).
-  - `pipeline.yml`: testes → build das imagens com cache → e2e → relatórios e `docker compose logs` anexados quando falha.
-  - Gatilhos: PR para `homolog` ou `main` roda testes e e2e; push na `main` refaz o build e o e2e.
+  - `infra/compose.prod.yml`: a stack dos servidores, com Caddy na frente e imagens do GHCR pela tag do commit.
+  - `infra/caddy/Caddyfile`: hosts pelo ambiente, só `/api` e o health check chegam à API, headers de segurança.
+  - `infra/compose.e2e.yml` + `infra/e2e.env`: a mesma stack com HTTP em `*.localhost`, Mailpit e o seed do profile `e2e`, num projeto Compose separado do ambiente local.
+  - Perfil Maven `e2e` no backend (`src/e2e/java`, REST Assured, Awaitility); os sites são escolhidos pelo cabeçalho `Host`, sem depender da resolução de `*.localhost`.
+  - Jornadas `CadastroE2E` (e-mail entregue pelo worker de verdade), `SessaoE2E` (login → refresh → logout pelo Caddy) e `ProxyE2E` (headers, rotas bloqueadas, `X-Forwarded-For` forjado sem efeito).
+  - `pipeline.yml`: testes → build das imagens com cache → e2e → relatórios e `docker compose logs` anexados quando falha; PR e push para `homolog` e `main`.
   - Regras de proteção das branches com os checks obrigatórios.
+- **Segurança:** o e2e prova pelo próprio limite por IP que o cliente não consegue forjar o IP atrás do Caddy; Swagger e endpoints internos do Actuator não saem do proxy.
 - **Testes:** as próprias jornadas e2e.
 - **Entrega:** PR com o pipeline verde e as regras de proteção ativas.
 

@@ -1,0 +1,41 @@
+# e2e: a stack dos servidores (compose.prod.yml) com HTTP em *.localhost, Mailpit no lugar do SMTP,
+# imagens construídas localmente e o seed do profile e2e. Projeto separado do ambiente local.
+#
+#   docker compose -f infra/compose.prod.yml -f infra/compose.e2e.yml --env-file infra/e2e.env up -d --build --wait
+#   docker compose -f infra/compose.prod.yml -f infra/compose.e2e.yml --env-file infra/e2e.env down -v
+name: plataforma-cursos-e2e
+
+services:
+  caddy:
+    ports: !override
+      - "127.0.0.1:${E2E_PORTA:?defina E2E_PORTA}:80"
+
+  api:
+    image: plataforma-cursos-api:e2e
+    build:
+      context: ../backend
+      target: api
+    environment:
+      SPRING_PROFILES_ACTIVE: api,e2e
+      SEED_E2E_SENHA: ${SEED_E2E_SENHA:?defina SEED_E2E_SENHA}
+      # Todas as jornadas saem do mesmo IP
+      APP_LIMITES_REQUISICOES_POR_IP_POR_MINUTO: "300"
+
+  worker:
+    image: plataforma-cursos-worker:e2e
+    build:
+      context: ../backend
+      target: worker
+    depends_on:
+      mailpit:
+        condition: service_healthy
+
+  mailpit:
+    image: axllent/mailpit:v1.31.6
+    ports:
+      - "127.0.0.1:${E2E_MAILPIT_PORTA:?defina E2E_MAILPIT_PORTA}:8025"
+    healthcheck:
+      test: ["CMD", "/mailpit", "readyz"]
+      interval: 5s
+      timeout: 3s
+      retries: 20

@@ -22,8 +22,8 @@ nenhum passo depende disso, a jornada é teste de integração — diga isso ao 
 
 Leia:
 
-1. `infra/compose.prod.yml` e `infra/compose.e2e.yml` — serviços, hosts, healthchecks,
-   variáveis do profile `e2e`.
+1. `infra/compose.prod.yml`, `infra/compose.e2e.yml` e `infra/e2e.env` — serviços, hosts,
+   healthchecks, variáveis do profile `e2e`.
 2. `infra/caddy/Caddyfile` — hosts, proxy de `/api`, headers.
 3. Os controllers das rotas da jornada e o seed do profile `e2e`.
 4. `backend/src/e2e/java/.../support/` e o perfil `e2e` do `backend/pom.xml` — o que já existe.
@@ -39,12 +39,13 @@ confere e os tempos máximos de espera (Awaitility). Espere o ok antes de escrev
   `src/e2e/resources` como fontes de teste, pula unitários e integração e roda só `*E2E`
   no Failsafe.
 - `support/`:
-  - `E2eConfig.java` — URLs base de `aluno`, `adm` e `media` por propriedade do sistema
-    (padrão `http://aluno.localhost`, `http://adm.localhost`, `http://media.localhost`).
-  - `Api.java` — `RequestSpecification` por host, `login(email, senha)`, `bearer(token)`,
-    credenciais do seed do profile `e2e`.
-  - `Mailpit.java` — buscar o último e-mail de um destinatário e extrair links.
-  - `Dados.java` — `stamp()` com prefixo `e2e-`.
+  - `E2eConfig.java` — porta do Caddy (`e2e.porta`, padrão 8088), Mailpit (`e2e.mailpit`), senha
+    e e-mails do seed do profile `e2e`.
+  - `Api.java` — `aluno()`, `adm()`: requisição para `localhost:<porta>` com o cabeçalho `Host`
+    do site; `login(email, senha)`, `bearer(token)`.
+  - `Mailpit.java` — `aguardar(destinatario, assunto)` com Awaitility e `token(email)`.
+  - `Dados.java` — `stamp()` e `email()` com prefixo `e2e-`.
+  - `Contas.java` — `criarConfirmada()`: conta própria pelo caminho real.
   - `Arquivos.java` — leitura das amostras em `src/e2e/resources/amostras/`.
 
 ## 5. Escrever e verificar
@@ -52,7 +53,7 @@ confere e os tempos máximos de espera (Awaitility). Espere o ok antes de escrev
 Na raiz do repositório:
 
 ```bash
-docker compose -f infra/compose.prod.yml -f infra/compose.e2e.yml up -d --build --wait
+docker compose -f infra/compose.prod.yml -f infra/compose.e2e.yml --env-file infra/e2e.env up -d --build --wait
 ```
 
 Dentro de `backend/`:

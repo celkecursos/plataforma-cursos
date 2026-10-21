@@ -1,0 +1,119 @@
+# Testes, build das imagens e e2e. Roda em todo PR para homolog e main, e de novo depois do merge
+# (o push na main refaz o build e o e2e com o código exato que vai para produção).
+name: Pipeline
+
+on:
+  pull_request:
+    branches: [homolog, main]
+  push:
+    branches: [homolog, main]
+  workflow_dispatch:
+
+concurrency:
+  group: pipeline-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  COMPOSE_E2E: docker compose -f infra/compose.prod.yml -f infra/compose.e2e.yml --env-file infra/e2e.env
+
+jobs:
+  testes:
+    name: Testes (unitários e integração)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: "25"
+          cache: maven
+
+      # Unitários, integração (Testcontainers), cobertura mínima e formatação
+      - name: Verificar
+        run: ./mvnw -B verify
+
+      - name: Relatórios dos testes
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: relatorios-testes
+          path: |
+            backend/target/surefire-reports
+            backend/target/failsafe-reports
+
+      - name: Relatório de cobertura
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: cobertura
+          path: backend/target/site/jacoco
+          if-no-files-found: ignore
+
+  e2e:
+    name: e2e (stack completa)
+    needs: testes
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: "25"
+          cache: maven
+
+      - uses: docker/setup-buildx-action@v4
+
+      # As mesmas imagens que vão para os servidores, com cache de camadas entre execuções
+      - name: Imagem da API
+        uses: docker/build-push-action@v7
+        with:
+          context: backend
+          target: api
+          tags: plataforma-cursos-api:e2e
+          load: true
+          cache-from: type=gha,scope=api
+          cache-to: type=gha,mode=max,scope=api
+
+      - name: Imagem do worker
+        uses: docker/build-push-action@v7
+        with:
+          context: backend
+          target: worker
+          tags: plataforma-cursos-worker:e2e
+          load: true
+          cache-from: type=gha,scope=worker
+          cache-to: type=gha,mode=max,scope=worker
+
+      - name: Subir a stack de e2e
+        run: $COMPOSE_E2E up -d --no-build --wait
+
+      - name: Jornadas e2e
+        working-directory: backend
+        run: ./mvnw -B verify -Pe2e
+
+      - name: Logs da stack
+        if: failure()
+        run: $COMPOSE_E2E logs --no-color > stack-e2e.log
+
+      - name: Relatórios do e2e
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: e2e-falha
+          path: |
+            stack-e2e.log
+            backend/target/failsafe-reports
+
+      - name: Derrubar a stack de e2e
+        if: always()
+        run: $COMPOSE_E2E down -v

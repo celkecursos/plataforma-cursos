@@ -10,7 +10,7 @@ Toda tarefa só está concluída quando passa:
 ```bash
 ./mvnw spotless:apply      # formata (palantir-java-format)
 ./mvnw verify              # unitários + integração + cobertura mínima + spotless:check
-./mvnw verify -Pe2e        # e2e, com a stack de e2e no ar (a partir da etapa de e2e)
+./mvnw verify -Pe2e        # e2e, com a stack de e2e no ar (como subir: skill criar-teste-e2e)
 ```
 
 O `verify` precisa do Docker rodando (Testcontainers).
