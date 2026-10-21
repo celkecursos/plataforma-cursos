@@ -46,11 +46,12 @@ Convenções gerais deste repositório. Cada projeto tem o próprio guia com as 
 |---|---|---|
 | `backend/` | API e worker (Java 25, Spring Boot 4.1) | `backend/CLAUDE.md` |
 | `infra/` | Docker Compose, Caddy, scripts de deploy | — |
-| `docs/` | Plano de implementação e prompts do tutorial | — |
+| `docs/` | Plano de implementação, roteiro de capítulos e prompts do tutorial | — |
 
 ## Antes de começar
 
-- Leia `README.md` e `docs/plano-implementacao.md` (decisões, fases e estrutura).
+- Leia `README.md` e `docs/plano-implementacao.md` (decisões, fases e estrutura). O conteúdo de cada
+  capítulo do tutorial está em `docs/capitulos.md`.
 
 ## Branches
 

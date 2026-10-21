@@ -190,7 +190,7 @@ Definição de pronto de **todo** PR:
 Objetivo: API rodando local e na VPS (homologação e produção), com auth completa, CI, e2e de API e
 deploy automático. Depois desta fase, toda funcionalidade nova segue o fluxo normal.
 
-**1.1 Esqueleto do backend e padrão de testes** — capítulos 2 e 5
+**1.1 Esqueleto do backend e padrão de testes** — capítulo 3
 
 - [x] `CLAUDE.md` da raiz (regras gerais) e `backend/CLAUDE.md` (código e testes do projeto Java)
 - [x] Skills `criar-teste-unitario`, `criar-teste-integracao` e `criar-teste-e2e` em `backend/.claude/skills/`, cada uma com o padrão do nível (`padrao.md`)
@@ -205,7 +205,7 @@ deploy automático. Depois desta fase, toda funcionalidade nova segue o fluxo no
 - [x] `SegurancaPadraoIT`: health e probes públicos com `UP` e sem detalhes; demais rotas e métodos exigem autenticação; documentação desligada
 - [x] Dockerfile multi-stage: build com JDK 25, jar em camadas, execução com JRE 25 e usuário sem root; targets `api` e `worker` (com ffmpeg)
 
-**1.2 Ambiente local** — capítulo 2
+**1.2 Ambiente local** — capítulo 4
 
 - [ ] `infra/compose.yml`: PostgreSQL 18, Garage, API, worker, Mailpit; versões fixas
 - [ ] Variáveis obrigatórias com `${VARIAVEL:?mensagem}` no compose (mensagem clara quando faltar)
@@ -215,7 +215,7 @@ deploy automático. Depois desta fase, toda funcionalidade nova segue o fluxo no
 - [ ] `.env.example` completo; `.env` no `.gitignore`
 - [ ] Portas ligadas apenas em `127.0.0.1`
 
-**1.3 Padrões compartilhados** — capítulo 4
+**1.3 Padrões compartilhados** — capítulo 5
 
 - [ ] `ProblemDetail` (RFC 9457) com handler global, sem stack trace na resposta; 401/403 da segurança também em `ProblemDetail`
 - [ ] DTOs como `record`, paginação padrão
@@ -236,7 +236,7 @@ deploy automático. Depois desta fase, toda funcionalidade nova segue o fluxo no
 - [ ] Logout e "sair de todos os dispositivos"
 - [ ] Seed do profile `test` (admin, aluno); `support/UsuariosSeed`; `login()` e `bearer()` no `IntegrationTest`
 
-**1.5 Autorização e proteções** — capítulos 8 e 10
+**1.5 Autorização e proteções** — capítulos 8 e 9
 
 - [ ] `SecurityFilterChain` nega tudo por padrão; rotas públicas declaradas com método HTTP
 - [ ] Papéis do token + `@PreAuthorize`
@@ -244,13 +244,13 @@ deploy automático. Depois desta fase, toda funcionalidade nova segue o fluxo no
 - [ ] Endpoint de refresh: verificação de `Origin` (CSRF)
 - [ ] Auditoria de login (sucesso/falha, IP, user-agent)
 
-**1.6 Cadastro e recuperação de senha** — capítulo 9
+**1.6 Cadastro e recuperação de senha** — capítulo 10
 
 - [ ] Cadastro com confirmação de e-mail
 - [ ] Recuperação com token de uso único e expiração; resposta igual para e-mail existente ou não
 - [ ] E-mails pela Iagente; verificados no Mailpit nos testes
 
-**1.7 Testes de autorização e e2e de API** — capítulo novo antes do 31
+**1.7 Testes de autorização e e2e de API** — capítulo 11
 
 - [ ] Matriz parametrizada rota × papel → status esperado
 - [ ] Testes de token adulterado, expirado, `alg` trocado, refresh reutilizado, rate limit 429
@@ -259,7 +259,7 @@ deploy automático. Depois desta fase, toda funcionalidade nova segue o fluxo no
 - [ ] Jornadas `CadastroE2E` (cadastro → e-mail no Mailpit → confirmação → login) e `SessaoE2E` (login → refresh → logout pelo Caddy, cookie sem `Domain`)
 - [ ] `pipeline.yml`: testes → build das imagens (cache `type=gha`) → e2e → artefatos em caso de falha (relatórios + `docker compose logs`)
 
-**1.8 VPS** — capítulos 31 e 32
+**1.8 VPS** — capítulos 12 e 13
 
 - [ ] Usuário `deploy` sem sudo, SSH só por chave, root desativado, fail2ban, `ufw` (22/80/443), swap de 2 GB
 - [ ] DNS dos subdomínios de produção e homologação apontando para a VPS
@@ -278,7 +278,7 @@ deploy automático. Depois desta fase, toda funcionalidade nova segue o fluxo no
 | Garage | 768 MB | 512 MB |
 | Caddy (compartilhado) | 128 MB | — |
 
-**1.9 Deploy automático** — capítulos 32.1 e 34
+**1.9 Deploy automático** — capítulo 14
 
 - [ ] `docker login ghcr.io` na VPS com token só de leitura
 - [ ] `deploy.sh <ambiente> <sha>`: valida argumentos, backup do banco, `pull`, `up -d --wait`, grava a tag atual, rollback se falhar
@@ -293,7 +293,7 @@ deploy automático. Depois desta fase, toda funcionalidade nova segue o fluxo no
 
 ### Fase 2 — `feature/cursos`
 
-Objetivo: API de gestão de cursos, turmas, módulos e aulas. Capítulos 11 e 12.
+Objetivo: API de gestão de cursos, turmas, módulos e aulas. Capítulos 15 e 16.
 
 - [ ] Migrations: `cursos`, `turmas`, `modulos`, `aulas` com status como enum, ordem, slug, aula gratuita
 - [ ] CRUD em `/api/adm/**` com validação
@@ -307,7 +307,7 @@ Objetivo: API de gestão de cursos, turmas, módulos e aulas. Capítulos 11 e 12
 
 ### Fase 3 — `feature/matricula-acesso`
 
-Objetivo: matrícula e uma política única de acesso. Capítulos 13 e 14.
+Objetivo: matrícula e uma política única de acesso. Capítulos 17 e 18.
 
 - [ ] Migration `matriculas` (início, fim, status enum, forma de pagamento, transação)
 - [ ] Endpoints do ADM: matricular, alterar período, cancelar
@@ -320,7 +320,7 @@ Objetivo: matrícula e uma política única de acesso. Capítulos 13 e 14.
 
 ### Fase 4 — `feature/upload-video`
 
-Objetivo: o vídeo enviado vira HLS comprimido. Capítulos 15 a 18.
+Objetivo: o vídeo enviado vira HLS comprimido. Capítulos 19 a 21.
 
 - [ ] Migration `videos` (status, duração, tamanho original e final, chaves S3, erro)
 - [ ] Presign de upload multipart para `uploads/`; validação de tipo e tamanho antes de assinar
@@ -338,7 +338,7 @@ Objetivo: o vídeo enviado vira HLS comprimido. Capítulos 15 a 18.
 
 ### Fase 5 — `feature/entrega-video`
 
-Objetivo: vídeo protegido e progresso salvo. Capítulos 19 a 21.
+Objetivo: vídeo protegido e progresso salvo. Capítulos 22 a 24.
 
 - [ ] `GET /api/aulas/{id}/video.m3u8` e playlists das variantes: verifica a policy e reescreve com segmentos pré-assinados (validade = duração + margem)
 - [ ] Opcional (cap. 20): HLS com AES-128 e chave por endpoint autenticado
@@ -351,7 +351,7 @@ Objetivo: vídeo protegido e progresso salvo. Capítulos 19 a 21.
 
 ### Fase 6 — `feature/arquivos-apoio`
 
-Capítulo 22.
+Capítulo 25.
 
 - [ ] Arquivos por aula (código-fonte) e por módulo; upload pelo ADM
 - [ ] Download por URL pré-assinada curta, sempre pela policy
@@ -361,7 +361,7 @@ Capítulo 22.
 
 ### Fase 7 — `feature/forum`
 
-Capítulo 23.
+Capítulo 26.
 
 - [ ] Tópicos por aula e por turma; perguntas, respostas e anexos validados
 - [ ] Markdown convertido para HTML filtrado (contra XSS)
@@ -374,7 +374,7 @@ Capítulo 23.
 
 ### Fase 8 — `feature/certificado`
 
-Capítulo 24.
+Capítulo 27.
 
 - [ ] Regra de conclusão (percentual de aulas vistas) configurável por turma
 - [ ] Dados do certificado (nome completo) confirmados pelo aluno
@@ -386,7 +386,7 @@ Capítulo 24.
 
 ### Fase 9 — `feature/perfil-termos`
 
-Capítulo 25.
+Capítulo 28.
 
 - [ ] Perfil: dados, troca de senha (exige senha atual), foto redimensionada sem EXIF
 - [ ] Termos versionados; aceite obrigatório no primeiro acesso e a cada nova versão (API responde com indicação de termo pendente)
@@ -397,7 +397,7 @@ Capítulo 25.
 
 ### Fase 10 — `feature/operacao`
 
-Capítulos 35 a 37. Fica antes do front porque precisa estar pronta antes de entrarem dados reais em produção.
+Capítulos 29 a 31. Fica antes do front porque precisa estar pronta antes de entrarem dados reais em produção.
 
 - [ ] Backup diário do PostgreSQL e do Garage para fora da VPS (restic); restauração testada e documentada
 - [ ] Monitor de uptime externo; alerta de disco e de falhas no worker
@@ -411,11 +411,11 @@ Capítulos 35 a 37. Fica antes do front porque precisa estar pronta antes de ent
 
 **Pré-requisito:** `@celke/ui` publicado no npm, já com os componentes da área do aluno:
 `PlayerVideo` (hls.js, `xhrSetup` com token, retomar posição, enviar progresso), `CardCurso`,
-`ListaAulas` e componentes de fórum. Esses componentes são feitos no repositório da biblioteca.
+`ListaAulas` e componentes de fórum. Esses componentes são feitos no repositório da biblioteca (capítulo 32).
 
 ### Fase 11 — `feature/web-base`
 
-Capítulo 26.
+Capítulo 33.
 
 - [ ] Workspace `web/` com `site`, `aluno`, `adm` (Vite + React + TypeScript, Node LTS)
 - [ ] `@celke/ui` do npm com versão fixa
@@ -431,7 +431,7 @@ Capítulo 26.
 
 ### Fase 12 — `feature/web-adm`
 
-Capítulo 29.
+Capítulo 34.
 
 - [ ] Cursos, turmas, módulos e aulas (`Tabela`, `Form`, `Filtros`, `Paginacao`), arrastar para reordenar
 - [ ] Upload de vídeo multipart com progresso, status de processamento, reprocessar
@@ -440,7 +440,7 @@ Capítulo 29.
 
 ### Fase 13 — `feature/web-aluno`
 
-Capítulos 27 e 28.
+Capítulo 35.
 
 - [ ] Dashboard (`CardCurso`), cursos arquivados e expirados
 - [ ] Turma com módulos, aulas e progresso
@@ -450,7 +450,7 @@ Capítulos 27 e 28.
 
 ### Fase 14 — `feature/site`
 
-Capítulo 30.
+Capítulo 36.
 
 - [ ] Layout novo com os tokens do `@celke/ui`
 - [ ] Pré-renderização estática (uma página HTML por rota) em `cursos.celke.uno`
@@ -462,7 +462,7 @@ Capítulo 30.
 
 ### Fase 15 (opcional) — `feature/migracao-legado`
 
-Capítulo 38.
+Capítulo 37.
 
 - [ ] ETL do MySQL do CLMS: usuários, cursos, turmas, módulos, aulas, matrículas, progresso
 - [ ] Mapear status numéricos do legado (`3, 4, 13, 14, 15`...) para os enums novos
@@ -473,21 +473,24 @@ Capítulo 38.
 
 ## 5. Mapa fase → capítulos do tutorial
 
+O conteúdo de cada capítulo está em [capitulos.md](capitulos.md).
+
 | Fase | Branch | Capítulos |
 |---|---|---|
-| 0 | — | 1 |
-| 1 | `feature/base-projeto` | 2–10, e2e/pipeline, 31, 32, 32.1, 34 |
-| 2 | `feature/cursos` | 11, 12 |
-| 3 | `feature/matricula-acesso` | 13, 14 |
-| 4 | `feature/upload-video` | 15–18 |
-| 5 | `feature/entrega-video` | 19–21 |
-| 6 | `feature/arquivos-apoio` | 22 |
-| 7 | `feature/forum` | 23 |
-| 8 | `feature/certificado` | 24 |
-| 9 | `feature/perfil-termos` | 25 |
-| 10 | `feature/operacao` | 35–37 |
-| 11 | `feature/web-base` | 26 |
-| 12 | `feature/web-adm` | 29 |
-| 13 | `feature/web-aluno` | 27, 28 |
-| 14 | `feature/site` | 30 |
-| 15 | `feature/migracao-legado` | 38 |
+| 0 | — | 1, 2 |
+| 1 | `feature/base-projeto` | 3–14 |
+| 2 | `feature/cursos` | 15, 16 |
+| 3 | `feature/matricula-acesso` | 17, 18 |
+| 4 | `feature/upload-video` | 19–21 |
+| 5 | `feature/entrega-video` | 22–24 |
+| 6 | `feature/arquivos-apoio` | 25 |
+| 7 | `feature/forum` | 26 |
+| 8 | `feature/certificado` | 27 |
+| 9 | `feature/perfil-termos` | 28 |
+| 10 | `feature/operacao` | 29–31 |
+| — | repositório do `@celke/ui` | 32 |
+| 11 | `feature/web-base` | 33 |
+| 12 | `feature/web-adm` | 34 |
+| 13 | `feature/web-aluno` | 35 |
+| 14 | `feature/site` | 36 |
+| 15 | `feature/migracao-legado` | 37 |

@@ -42,6 +42,7 @@ como tutorial.
 ## Documentação
 
 - [Plano de implementação](docs/plano-implementacao.md)
+- [Roteiro do tutorial (capítulos)](docs/capitulos.md)
 - [Prompts para recriar o projeto passo a passo](docs/prompts/README.md)
 ````
 
@@ -77,8 +78,8 @@ test-results/
 ## Antes de executar
 
 O repositório já existe no GitHub e está clonado (ou iniciado com `git init -b main` e o `origin`
-configurado). As pastas `docs/plano-implementacao.md` e `docs/prompts/` são copiadas do projeto de
-referência do tutorial.
+configurado). Os arquivos `docs/plano-implementacao.md`, `docs/capitulos.md` e a pasta `docs/prompts/`
+são copiados do projeto de referência do tutorial.
 
 ## Verificação
 
