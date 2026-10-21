@@ -1,7 +1,10 @@
-# Porta de entrada da plataforma. Os hosts vêm do ambiente (HOST_ALUNO, HOST_ADM, HOST_MEDIA):
-# com "https://..." o Caddy emite o certificado sozinho; com "http://..." (e2e) atende sem TLS.
+# Porta de entrada da plataforma. Um Caddy só atende os dois ambientes da VPS: cada site está em
+# sites/<ambiente>.caddy e chega à API e ao Garage do seu ambiente pelos apelidos <ambiente>-api e
+# <ambiente>-garage. Com "https://..." o Caddy emite o certificado sozinho; com "http://..." atende
+# sem TLS (e2e).
 {
 	admin off
+	email {$ACME_EMAIL:nao-configurado@celke.uno}
 }
 
 # Headers de segurança em todas as respostas
@@ -16,10 +19,11 @@
 
 # Só a API e o health check passam; o resto (Swagger, outros endpoints do Actuator) não sai daqui.
 # O X-Forwarded-For que o cliente mandar é substituído pelo IP real da conexão.
+# Argumento: o ambiente (producao, homolog, e2e).
 (api) {
 	@api path /api/* /actuator/health /actuator/health/*
 	handle @api {
-		reverse_proxy api:8080 {
+		reverse_proxy {args[0]}-api:8080 {
 			# Durante o deploy a API reinicia: segura a requisição em vez de responder 502
 			lb_try_duration 30s
 		}
@@ -29,18 +33,35 @@
 	}
 }
 
-{$HOST_ALUNO} {
-	import seguranca
-	import api
-}
-
-{$HOST_ADM} {
-	import seguranca
-	import api
+# Como (api), mas também com a documentação (Swagger): só na homologação
+(api_com_docs) {
+	@api path /api/* /actuator/health /actuator/health/* /v3/api-docs /v3/api-docs/* /swagger-ui.html /swagger-ui/*
+	handle @api {
+		reverse_proxy {args[0]}-api:8080 {
+			lb_try_duration 30s
+		}
+	}
+	handle {
+		respond 404
+	}
 }
 
 # Arquivos do bucket por URL pré-assinada (o host faz parte da assinatura e é repassado como veio)
-{$HOST_MEDIA} {
-	import seguranca
-	reverse_proxy garage:3900
+(midia) {
+	reverse_proxy {args[0]}-garage:3900
 }
+
+# Painel administrativo: só os IPs de ADM_IPS (separados por espaço)
+(somente_ips_adm) {
+	@fora not remote_ip {$ADM_IPS}
+	respond @fora "Acesso restrito." 403
+}
+
+# Homologação: só os IPs de HOMOLOG_IPS e fora dos buscadores
+(homolog) {
+	header X-Robots-Tag "noindex, nofollow"
+	@fora not remote_ip {$HOMOLOG_IPS}
+	respond @fora "Acesso restrito." 403
+}
+
+import sites/*.caddy

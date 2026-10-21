@@ -206,27 +206,29 @@ capítulo.
 
 ### Cap. 12 — Preparar a VPS
 
-**Fase:** 1.8
+**Fase:** 1.8 · **Prompt:** [f01-08](prompts/f01-08-vps.md) · **Roteiro:** [vps.md](vps.md)
 
 - **Objetivo:** servidor seguro antes de receber a aplicação.
 - **Conteúdo:**
-  - Ubuntu, usuário `deploy` sem sudo, login SSH só por chave, root desativado, fail2ban, swap de 2 GB.
+  - `preparar-vps.sh` numa VPS Ubuntu 24.04 nova: Docker oficial com rotação de logs, administrador com sudo e usuário `deploy` sem sudo, SSH só por chave e sem root, fail2ban, atualizações automáticas, swap de 2 GB.
   - Firewall do painel da Hostinger + `ufw`: só 22, 80 e 443.
-  - Cuidado: o Docker contorna o `ufw`. Por isso PostgreSQL e Garage ficam ligados só em `127.0.0.1` e a administração do Garage é feita por túnel SSH.
-  - DNS dos subdomínios de produção e homologação apontando para a VPS.
+  - Cuidado: o Docker contorna o `ufw` nas portas que publica. Por isso só o Caddy publica portas; PostgreSQL, Garage e API ficam só na rede interna.
+  - A configuração do SSH vale antes da que vem na imagem (`50-cloud-init.conf`), e o script só termina depois de você confirmar o login do administrador num segundo terminal.
+  - DNS dos seis subdomínios (produção e homologação) apontando para a VPS.
 - **Entrega:** acesso SSH só por chave e portas fechadas conferidas de fora.
 
 ### Cap. 13 — Produção e homologação com Docker na VPS
 
-**Fase:** 1.8
+**Fase:** 1.8 · **Prompt:** [f01-08](prompts/f01-08-vps.md) · **Roteiro:** [vps.md](vps.md)
 
 - **Objetivo:** os dois ambientes rodando na mesma VPS sem um derrubar o outro.
 - **Conteúdo:**
-  - `compose.prod.yml` com imagens versionadas no GHCR e `restart: unless-stopped`; `compose.homolog.yml` por cima, com limites menores e worker sob demanda.
-  - `/opt/plataforma-cursos/{producao,homolog,caddy}`, cada ambiente com `.env` próprio (permissão 600) e segredos diferentes.
-  - Um Caddy só nas portas 80/443, ligado às redes dos dois ambientes; homologação protegida por senha ou IP e com `noindex`; `adm.` restrito por IP.
-  - Headers no Caddy: HSTS sem `includeSubDomains`, `X-Content-Type-Options`, `Referrer-Policy`; `lb_try_duration` para a API reiniciar sem erro 502.
-  - Limites de memória e CPU por container (API 1 GB, worker 2 GB e 1,5 CPU, PostgreSQL 1 GB, Garage 768 MB; homologação menor).
+  - `compose.prod.yml` por ambiente (`AMBIENTE`), com rede e apelidos próprios (`producao-api`, `homolog-api`); `compose.homolog.yml` por cima, com limites menores e o Swagger.
+  - `/opt/plataforma-cursos/{caddy,producao,homolog}`, cada ambiente com `.env` próprio (permissão 600) gerado com segredos aleatórios e diferentes.
+  - Um Caddy só nas portas 80/443, ligado às redes dos dois ambientes; `Caddyfile` com trechos comuns e um arquivo de sites por ambiente — o e2e usa o mesmo `Caddyfile`.
+  - Homologação restrita por IP e com `noindex` (senha do Caddy não serve: ocuparia o cabeçalho `Authorization` do JWT); `adm.` de produção restrito por IP.
+  - Headers no Caddy: HSTS sem `includeSubDomains`, `X-Content-Type-Options`, `Referrer-Policy`, sem `Server`; `lb_try_duration` para a API reiniciar sem erro 502.
+  - Limites de memória e CPU por container (produção: API 1 GB, worker 2 GB e 1,5 CPU, PostgreSQL 1 GB, Garage 768 MB; homologação menor, com o worker em meia CPU) e `-Xmx` de acordo.
 - **Entrega:** `homolog-aluno.celke.uno/api` e `aluno.celke.uno/api` respondendo com HTTPS.
 
 ### Cap. 14 — Deploy automático com rollback

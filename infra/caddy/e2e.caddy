@@ -1,0 +1,15 @@
+# Sites da stack de e2e (montado em /etc/caddy/sites só nela): HTTP em *.localhost
+http://aluno.localhost {
+	import seguranca
+	import api e2e
+}
+
+http://adm.localhost {
+	import seguranca
+	import api e2e
+}
+
+http://media.localhost {
+	import seguranca
+	import midia e2e
+}

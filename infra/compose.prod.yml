@@ -1,6 +1,10 @@
-# Stack dos servidores: Caddy na frente, imagens publicadas no GHCR com a tag do commit (TAG) e
-# nenhuma porta publicada além das do Caddy. Todas as variáveis vêm do .env do ambiente.
-name: plataforma-cursos
+# Stack de um ambiente dos servidores (produção ou homologação): API, worker, PostgreSQL e Garage.
+# Imagens publicadas no GHCR com a tag do commit (TAG); nenhuma porta publicada. O Caddy (projeto
+# próprio, em caddy/) chega à API e ao Garage pela rede plataforma-cursos-<AMBIENTE>, pelos apelidos
+# <AMBIENTE>-api e <AMBIENTE>-garage. Todas as variáveis vêm do .env do ambiente.
+#
+#   Produção:    docker compose -p plataforma-cursos-producao -f compose.prod.yml up -d --wait
+#   Homologação: docker compose -p plataforma-cursos-homolog -f compose.prod.yml -f compose.homolog.yml up -d --wait
 
 # Configuração compartilhada pela API e pelo worker
 x-app: &app
@@ -26,46 +30,38 @@ x-app: &app
   LOGGING_STRUCTURED_FORMAT_CONSOLE: ecs
 
 services:
-  caddy:
-    image: caddy:2.11.7-alpine
-    restart: unless-stopped
-    environment:
-      HOST_ALUNO: ${HOST_ALUNO:?defina HOST_ALUNO}
-      HOST_ADM: ${HOST_ADM:?defina HOST_ADM}
-      HOST_MEDIA: ${HOST_MEDIA:?defina HOST_MEDIA}
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
-      - caddy_dados:/data
-      - caddy_config:/config
-    depends_on:
-      api:
-        condition: service_healthy
-
   api:
     image: ${IMAGEM_API:-ghcr.io/celkecursos/plataforma-cursos-api}:${TAG:?defina TAG}
     restart: unless-stopped
     environment:
       <<: *app
+      JAVA_TOOL_OPTIONS: -Xmx512m
     depends_on:
       postgres:
         condition: service_healthy
       garage:
         condition: service_healthy
+    networks:
+      default:
+        aliases:
+          - ${AMBIENTE:?defina AMBIENTE}-api
     healthcheck:
       test: ["CMD", "curl", "-fsS", "http://localhost:8080/actuator/health/readiness"]
       interval: 5s
       timeout: 3s
       start_period: 30s
       retries: 20
+    deploy:
+      resources:
+        limits:
+          memory: 1G
 
   worker:
     image: ${IMAGEM_WORKER:-ghcr.io/celkecursos/plataforma-cursos-worker}:${TAG:?defina TAG}
     restart: unless-stopped
     environment:
       <<: *app
+      JAVA_TOOL_OPTIONS: -Xmx768m
     depends_on:
       # As migrations são aplicadas pela API; o worker sobe depois dela
       api:
@@ -77,6 +73,12 @@ services:
       timeout: 3s
       start_period: 30s
       retries: 3
+    deploy:
+      resources:
+        limits:
+          # A transcodificação (ffmpeg) não pode tomar a CPU toda da VPS
+          cpus: "1.5"
+          memory: 2G
 
   postgres:
     image: postgres:18.6-alpine
@@ -92,6 +94,10 @@ services:
       interval: 5s
       timeout: 3s
       retries: 20
+    deploy:
+      resources:
+        limits:
+          memory: 1G
 
   garage:
     image: dxflrs/garage:v2.4.1
@@ -106,14 +112,24 @@ services:
     volumes:
       - ./garage/garage.toml:/etc/garage.toml:ro
       - garage:/var/lib/garage
+    networks:
+      default:
+        aliases:
+          - ${AMBIENTE:?defina AMBIENTE}-garage
     healthcheck:
       test: ["CMD", "/garage", "status"]
       interval: 5s
       timeout: 5s
       retries: 20
+    deploy:
+      resources:
+        limits:
+          memory: 768M
+
+networks:
+  default:
+    name: plataforma-cursos-${AMBIENTE:?defina AMBIENTE}
 
 volumes:
   postgres:
   garage:
-  caddy_dados:
-  caddy_config:

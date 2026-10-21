@@ -1,0 +1,16 @@
+# Produção
+{$PRODUCAO_HOST_ALUNO} {
+	import seguranca
+	import api producao
+}
+
+{$PRODUCAO_HOST_ADM} {
+	import seguranca
+	import somente_ips_adm
+	import api producao
+}
+
+{$PRODUCAO_HOST_MEDIA} {
+	import seguranca
+	import midia producao
+}
