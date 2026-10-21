@@ -6,6 +6,7 @@ package br.com.celke.cursos.usuario.domain;
  */
 public final class PoliticaSenha {
 
+    public static final int MINIMO_ALUNO = 10;
     public static final int MINIMO_ADMIN = 12;
     public static final int MAXIMO = 128;
 

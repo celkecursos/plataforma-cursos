@@ -34,7 +34,7 @@ class CriarAdminServiceTest {
     void criaAdmin() {
         service.criar("Admin", "admin@celke.uno", "senha-longa-do-admin");
 
-        verify(usuarioService).criar("Admin", "admin@celke.uno", "senha-longa-do-admin", Set.of(Papel.ADMIN));
+        verify(usuarioService).criarConfirmado("Admin", "admin@celke.uno", "senha-longa-do-admin", Set.of(Papel.ADMIN));
     }
 
     @ParameterizedTest(name = "{0}")
@@ -47,6 +47,6 @@ class CriarAdminServiceTest {
         assertThatThrownBy(() -> service.criar(nome, email, senha))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessage(mensagem);
-        verify(usuarioService, never()).criar(any(), any(), any(), any());
+        verify(usuarioService, never()).criarConfirmado(any(), any(), any(), any());
     }
 }

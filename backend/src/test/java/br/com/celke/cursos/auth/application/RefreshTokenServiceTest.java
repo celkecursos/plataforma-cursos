@@ -49,14 +49,7 @@ class RefreshTokenServiceTest {
     }
 
     private static RefreshToken tokenGravado(Instant expiraEm) {
-        return new RefreshToken(7L, FAMILIA, RefreshTokenService.hash(TOKEN), expiraEm, AGORA.minusSeconds(60));
-    }
-
-    @Test
-    @DisplayName("hash é o SHA-256 em hexadecimal")
-    void hashSha256() {
-        assertThat(RefreshTokenService.hash("abc"))
-                .isEqualTo("ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad");
+        return new RefreshToken(7L, FAMILIA, TokenSeguro.hash(TOKEN), expiraEm, AGORA.minusSeconds(60));
     }
 
     @Test
@@ -67,7 +60,7 @@ class RefreshTokenServiceTest {
         ArgumentCaptor<RefreshToken> salvo = ArgumentCaptor.forClass(RefreshToken.class);
         verify(repository).save(salvo.capture());
         assertThat(salvo.getValue().getHash())
-                .isEqualTo(RefreshTokenService.hash(emitido.token()))
+                .isEqualTo(TokenSeguro.hash(emitido.token()))
                 .isNotEqualTo(emitido.token());
         assertThat(salvo.getValue().getUsuarioId()).isEqualTo(7L);
         assertThat(emitido.expiraEm()).isEqualTo(AGORA.plus(Duration.ofDays(14)));
@@ -84,7 +77,7 @@ class RefreshTokenServiceTest {
     @DisplayName("rotacionar marca o token como usado e emite outro na mesma família")
     void rotacionar() {
         RefreshToken atual = tokenGravado(AGORA.plusSeconds(1));
-        when(repository.findByHash(RefreshTokenService.hash(TOKEN))).thenReturn(Optional.of(atual));
+        when(repository.findByHash(TokenSeguro.hash(TOKEN))).thenReturn(Optional.of(atual));
 
         var novo = service.rotacionar(TOKEN);
 
@@ -150,7 +143,7 @@ class RefreshTokenServiceTest {
     @Test
     @DisplayName("logout revoga a família do token")
     void logout() {
-        when(repository.findByHash(RefreshTokenService.hash(TOKEN)))
+        when(repository.findByHash(TokenSeguro.hash(TOKEN)))
                 .thenReturn(Optional.of(tokenGravado(AGORA.plusSeconds(60))));
 
         service.revogarFamiliaDoToken(TOKEN);

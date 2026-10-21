@@ -14,8 +14,13 @@ public final class UsuarioFixture {
     private UsuarioFixture() {}
 
     public static Usuario usuario(long id, String email, String senhaHash, Papel... papeis) {
-        Usuario usuario = new Usuario("Usuário " + id, email, senhaHash, Set.of(papeis), CRIADO_EM);
+        Usuario usuario = new Usuario("Usuário " + id, email, senhaHash, Set.of(papeis), true, CRIADO_EM);
         ReflectionTestUtils.setField(usuario, "id", id);
+        return usuario;
+    }
+
+    public static Usuario naoConfirmado(Usuario usuario) {
+        ReflectionTestUtils.setField(usuario, "emailConfirmadoEm", null);
         return usuario;
     }
 

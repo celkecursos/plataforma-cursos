@@ -96,7 +96,7 @@ class AuthBloqueioIT extends IntegrationTest {
     }
 
     @Test
-    @DisplayName("o limite por IP vale para login e refresh, e não para as outras rotas")
+    @DisplayName("o limite por IP vale para as rotas de autenticação e conta, e não para o logout")
     void limitePorIpLigado() {
         assertThat(mvc.post()
                         .uri("/api/auth/login")
@@ -105,6 +105,12 @@ class AuthBloqueioIT extends IntegrationTest {
                 .headers()
                 .containsHeader("X-RateLimit-Remaining");
         assertThat(mvc.post().uri("/api/auth/refresh")).headers().containsHeader("X-RateLimit-Remaining");
+        assertThat(mvc.post()
+                        .uri("/api/auth/recuperar-senha")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{}"))
+                .headers()
+                .containsHeader("X-RateLimit-Remaining");
         assertThat(mvc.post().uri("/api/auth/logout")).headers().doesNotContainHeader("X-RateLimit-Remaining");
     }
 

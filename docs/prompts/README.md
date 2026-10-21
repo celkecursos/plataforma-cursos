@@ -14,3 +14,4 @@ Ao final de cada prompt, confira a seção **Verificação** dele antes de segui
 | 4 | [Padrões compartilhados](f01-03-padroes-compartilhados.md) | 1.3 | `feature/base-projeto` |
 | 5 | [Usuários e login com JWT e refresh em cookie](f01-04-usuarios-e-login.md) | 1.4 | `feature/base-projeto` |
 | 6 | [Autorização e proteções](f01-05-protecoes.md) | 1.5 | `feature/base-projeto` |
+| 7 | [Cadastro, confirmação de e-mail e recuperação de senha](f01-06-cadastro-e-recuperacao.md) | 1.6 | `feature/base-projeto` |

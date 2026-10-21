@@ -27,11 +27,25 @@ class UsuarioTest {
     @Test
     @DisplayName("novo usuário nasce ativo, com nome sem espaços nas pontas e e-mail normalizado")
     void novoUsuario() {
-        Usuario usuario = new Usuario("  Ana  ", " Ana@Celke.uno ", "{argon2}hash", Set.of(Papel.ALUNO), AGORA);
+        Usuario usuario = new Usuario("  Ana  ", " Ana@Celke.uno ", "{argon2}hash", Set.of(Papel.ALUNO), true, AGORA);
 
         assertThat(usuario.getNome()).isEqualTo("Ana");
         assertThat(usuario.getEmail()).isEqualTo("ana@celke.uno");
         assertThat(usuario.isAtivo()).isTrue();
         assertThat(usuario.getPapeis()).containsExactly(Papel.ALUNO);
+        assertThat(usuario.isEmailConfirmado()).isTrue();
+    }
+
+    @Test
+    @DisplayName("cadastro com e-mail pendente é confirmado uma vez; confirmar de novo não muda nada")
+    void confirmarEmail() {
+        Usuario usuario = new Usuario("Ana", "ana@celke.uno", "{argon2}hash", Set.of(Papel.ALUNO), false, AGORA);
+        assertThat(usuario.isEmailConfirmado()).isFalse();
+
+        usuario.confirmarEmail(AGORA.plusSeconds(60));
+        usuario.confirmarEmail(AGORA.plusSeconds(120));
+
+        assertThat(usuario.isEmailConfirmado()).isTrue();
+        assertThat(usuario).extracting("emailConfirmadoEm").isEqualTo(AGORA.plusSeconds(60));
     }
 }

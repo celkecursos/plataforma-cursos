@@ -48,8 +48,8 @@ public class AuthService {
 
     /**
      * Confere o bloqueio antes de tudo (sem calcular hash), depois a senha. Falha e sucesso
-     * atualizam os contadores de bloqueio e ficam na auditoria; o cliente recebe sempre a mesma
-     * mensagem, sem saber o motivo.
+     * atualizam os contadores de bloqueio e ficam na auditoria. Toda falha recebe a mesma mensagem;
+     * só quem acertou a senha fica sabendo que falta confirmar o e-mail.
      */
     @Transactional
     public Sessao entrar(String email, String senha, OrigemRequisicao origem) {
@@ -62,12 +62,13 @@ public class AuthService {
         Optional<Usuario> encontrado = usuarioService.buscarPorEmail(email);
         String hash = encontrado.map(Usuario::getSenhaHash).orElse(hashFicticio);
         boolean senhaConfere = passwordEncoder.matches(senha, hash);
-        ResultadoLogin resultado = encontrado.isEmpty()
-                ? ResultadoLogin.EMAIL_DESCONHECIDO
-                : !senhaConfere
-                        ? ResultadoLogin.SENHA_INVALIDA
-                        : !encontrado.get().isAtivo() ? ResultadoLogin.USUARIO_INATIVO : ResultadoLogin.SUCESSO;
+        ResultadoLogin resultado = resultado(encontrado, senhaConfere);
         auditoriaLoginService.registrar(email, encontrado.orElse(null), resultado, origem);
+        if (resultado == ResultadoLogin.EMAIL_NAO_CONFIRMADO) {
+            // Quem chegou aqui sabe a senha: pode saber que falta confirmar o e-mail
+            bloqueioLoginService.registrarSucesso(email, origem.ip());
+            throw new EmailNaoConfirmadoException();
+        }
         if (resultado != ResultadoLogin.SUCESSO) {
             bloqueioLoginService.registrarFalha(email, origem.ip());
             throw new CredenciaisInvalidasException();
@@ -76,6 +77,19 @@ public class AuthService {
         Usuario usuario = encontrado.get();
         usuarioService.atualizarHashSeNecessario(usuario, senha);
         return abrirSessao(usuario, refreshTokenService.emitir(usuario.getId()));
+    }
+
+    private static ResultadoLogin resultado(Optional<Usuario> encontrado, boolean senhaConfere) {
+        if (encontrado.isEmpty()) {
+            return ResultadoLogin.EMAIL_DESCONHECIDO;
+        }
+        if (!senhaConfere) {
+            return ResultadoLogin.SENHA_INVALIDA;
+        }
+        if (!encontrado.get().isAtivo()) {
+            return ResultadoLogin.USUARIO_INATIVO;
+        }
+        return encontrado.get().isEmailConfirmado() ? ResultadoLogin.SUCESSO : ResultadoLogin.EMAIL_NAO_CONFIRMADO;
     }
 
     /**

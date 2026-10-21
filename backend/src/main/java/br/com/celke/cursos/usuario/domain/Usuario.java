@@ -43,6 +43,10 @@ public class Usuario {
     @Column(name = "papel", length = 20)
     private Set<Papel> papeis = EnumSet.noneOf(Papel.class);
 
+    /** Nulo enquanto o dono não confirmar o e-mail. */
+    @Column(name = "email_confirmado_em")
+    private Instant emailConfirmadoEm;
+
     @Column(name = "criado_em", nullable = false)
     private Instant criadoEm;
 
@@ -51,12 +55,14 @@ public class Usuario {
 
     protected Usuario() {}
 
-    public Usuario(String nome, String email, String senhaHash, Set<Papel> papeis, Instant agora) {
+    public Usuario(
+            String nome, String email, String senhaHash, Set<Papel> papeis, boolean emailConfirmado, Instant agora) {
         this.nome = nome.strip();
         this.email = normalizarEmail(email);
         this.senhaHash = senhaHash;
         this.ativo = true;
         this.papeis = EnumSet.copyOf(papeis);
+        this.emailConfirmadoEm = emailConfirmado ? agora : null;
         this.criadoEm = agora;
         this.atualizadoEm = agora;
     }
@@ -64,6 +70,18 @@ public class Usuario {
     /** E-mail sempre em minúsculas e sem espaços nas pontas (o banco também exige minúsculas). */
     public static String normalizarEmail(String email) {
         return email.strip().toLowerCase(Locale.ROOT);
+    }
+
+    /** Confirma o e-mail; confirmar de novo não muda a data da primeira confirmação. */
+    public void confirmarEmail(Instant agora) {
+        if (emailConfirmadoEm == null) {
+            this.emailConfirmadoEm = agora;
+            this.atualizadoEm = agora;
+        }
+    }
+
+    public boolean isEmailConfirmado() {
+        return emailConfirmadoEm != null;
     }
 
     public void trocarHashSenha(String novoHash, Instant agora) {

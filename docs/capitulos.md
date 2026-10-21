@@ -167,16 +167,21 @@ capítulo.
 
 ### Cap. 10 — Cadastro, confirmação de e-mail e recuperação de senha
 
-**Fase:** 1.6
+**Fase:** 1.6 · **Prompt:** [f01-06](prompts/f01-06-cadastro-e-recuperacao.md)
 
 - **Objetivo:** o aluno cria a conta e recupera a senha sozinho.
 - **Conteúdo:**
-  - Cadastro com confirmação de e-mail.
-  - Tokens de uso único com expiração.
-  - Envio pelo SMTP da Iagente, com remetente de `celke.uno` configurado com SPF e DKIM; Mailpit no desenvolvimento e nos testes.
-- **Segurança:** a recuperação responde igual para e-mail existente e inexistente, para não revelar quais contas existem.
-- **Testes:** expiração e uso único dos tokens; e-mail recebido no Mailpit com o link correto.
-- **Entrega:** cadastro → e-mail → confirmação → login, e recuperação de senha completa.
+  - Cadastro com conta pendente e link de confirmação válido por 48 horas; login só depois de confirmar.
+  - Recuperação de senha com link de 1 hora; a nova senha encerra todas as sessões e também confirma o e-mail.
+  - Tokens de uso único com só o hash no banco; um link novo invalida o anterior.
+  - E-mails pela fila, montados com Thymeleaf e enviados pelo worker: Mailpit no desenvolvimento, Iagente nos servidores (remetente de `celke.uno` com SPF e DKIM).
+  - Healthcheck do worker por arquivo de batimento, para o compose e o deploy saberem que ele subiu.
+- **Segurança:**
+  - Cadastro, reenvio e recuperação respondem sempre o mesmo, exista ou não a conta; quem descobre o que aconteceu é o dono da caixa, pelo e-mail que recebe.
+  - No máximo 3 e-mails por hora por conta e tipo, contra uso da plataforma para lotar a caixa de alguém.
+  - Senha de aluno de 10 a 128 caracteres; limite por IP também nas rotas da conta.
+- **Testes:** jornadas completas lendo o link no Mailpit; link de uso único; link antigo invalidado pelo reenvio; e-mail inexistente sem envio; limite de e-mails por hora.
+- **Entrega:** cadastro → e-mail → confirmação → login, e recuperação de senha completa, com os e-mails enviados pelo worker.
 
 ---
 

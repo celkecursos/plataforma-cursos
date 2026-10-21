@@ -2,14 +2,8 @@ package br.com.celke.cursos.auth.application;
 
 import br.com.celke.cursos.auth.domain.RefreshToken;
 import br.com.celke.cursos.auth.infra.RefreshTokenRepository;
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.security.SecureRandom;
 import java.time.Clock;
 import java.time.Instant;
-import java.util.Base64;
-import java.util.HexFormat;
 import java.util.Optional;
 import java.util.UUID;
 import org.slf4j.Logger;
@@ -25,7 +19,6 @@ import org.springframework.transaction.annotation.Transactional;
 public class RefreshTokenService {
 
     private static final Logger LOG = LoggerFactory.getLogger(RefreshTokenService.class);
-    private static final SecureRandom ALEATORIO = new SecureRandom();
 
     private final RefreshTokenRepository repository;
     private final AuthProperties props;
@@ -53,7 +46,7 @@ public class RefreshTokenService {
             return Optional.empty();
         }
         Instant agora = clock.instant();
-        Optional<RefreshToken> encontrado = repository.findByHash(hash(token));
+        Optional<RefreshToken> encontrado = repository.findByHash(TokenSeguro.hash(token));
         if (encontrado.isEmpty()) {
             return Optional.empty();
         }
@@ -79,7 +72,9 @@ public class RefreshTokenService {
         if (token == null || token.isBlank()) {
             return;
         }
-        repository.findByHash(hash(token)).ifPresent(t -> repository.revogarFamilia(t.getFamilia(), clock.instant()));
+        repository
+                .findByHash(TokenSeguro.hash(token))
+                .ifPresent(t -> repository.revogarFamilia(t.getFamilia(), clock.instant()));
     }
 
     /** "Sair de todos os dispositivos": revoga todas as famílias do usuário. */
@@ -89,21 +84,10 @@ public class RefreshTokenService {
     }
 
     private RefreshEmitido emitirNaFamilia(Long usuarioId, UUID familia, Instant agora) {
-        byte[] aleatorio = new byte[32];
-        ALEATORIO.nextBytes(aleatorio);
-        String token = Base64.getUrlEncoder().withoutPadding().encodeToString(aleatorio);
+        String token = TokenSeguro.gerar();
         Instant expiraEm = agora.plus(props.validadeRefresh());
-        repository.save(new RefreshToken(usuarioId, familia, hash(token), expiraEm, agora));
+        repository.save(new RefreshToken(usuarioId, familia, TokenSeguro.hash(token), expiraEm, agora));
         return new RefreshEmitido(token, usuarioId, expiraEm);
-    }
-
-    static String hash(String token) {
-        try {
-            byte[] digest = MessageDigest.getInstance("SHA-256").digest(token.getBytes(StandardCharsets.UTF_8));
-            return HexFormat.of().formatHex(digest);
-        } catch (NoSuchAlgorithmException e) {
-            throw new IllegalStateException(e);
-        }
     }
 
     public record RefreshEmitido(String token, Long usuarioId, Instant expiraEm) {}

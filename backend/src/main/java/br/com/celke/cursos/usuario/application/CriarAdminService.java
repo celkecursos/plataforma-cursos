@@ -27,6 +27,6 @@ public class CriarAdminService {
         if (problemaSenha != null) {
             throw new IllegalArgumentException(problemaSenha);
         }
-        return usuarioService.criar(nome, email, senha, Set.of(Papel.ADMIN));
+        return usuarioService.criarConfirmado(nome, email, senha, Set.of(Papel.ADMIN));
     }
 }

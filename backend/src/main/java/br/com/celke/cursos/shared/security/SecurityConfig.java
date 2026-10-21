@@ -51,6 +51,15 @@ public class SecurityConfig {
                         // Autenticação: login e renovação/saída pelo cookie de refresh
                         .requestMatchers(HttpMethod.POST, "/api/auth/login", "/api/auth/refresh", "/api/auth/logout")
                         .permitAll()
+                        // Conta: cadastro, confirmação de e-mail e recuperação de senha
+                        .requestMatchers(
+                                HttpMethod.POST,
+                                "/api/auth/cadastro",
+                                "/api/auth/confirmar-email",
+                                "/api/auth/reenviar-confirmacao",
+                                "/api/auth/recuperar-senha",
+                                "/api/auth/redefinir-senha")
+                        .permitAll()
                         .anyRequest()
                         .authenticated());
         return http.build();

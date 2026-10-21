@@ -44,17 +44,54 @@ class UsuarioServiceTest {
     }
 
     @Test
-    @DisplayName("cria o usuário com o e-mail normalizado e a senha em hash")
+    @DisplayName("cria o usuário confirmado com o e-mail normalizado e a senha em hash")
     void cria() {
         when(repository.existsByEmail("ana@celke.uno")).thenReturn(false);
         when(passwordEncoder.encode("senha-da-ana-123")).thenReturn("{argon2}hash");
         when(repository.save(any(Usuario.class))).thenAnswer(invocacao -> invocacao.getArgument(0));
 
-        Usuario criado = service.criar("Ana", " Ana@Celke.uno ", "senha-da-ana-123", Set.of(Papel.ALUNO));
+        Usuario criado = service.criarConfirmado("Ana", " Ana@Celke.uno ", "senha-da-ana-123", Set.of(Papel.ALUNO));
 
         assertThat(criado.getEmail()).isEqualTo("ana@celke.uno");
         assertThat(criado.getSenhaHash()).isEqualTo("{argon2}hash");
         assertThat(criado.getPapeis()).containsExactly(Papel.ALUNO);
+        assertThat(criado.isEmailConfirmado()).isTrue();
+    }
+
+    @Test
+    @DisplayName("cadastro do aluno cria conta ALUNO com o e-mail pendente")
+    void cadastraAluno() {
+        when(repository.existsByEmail("ana@celke.uno")).thenReturn(false);
+        when(passwordEncoder.encode("senha-da-ana-123")).thenReturn("{argon2}hash");
+        when(repository.save(any(Usuario.class))).thenAnswer(invocacao -> invocacao.getArgument(0));
+
+        Usuario criado = service.cadastrarAluno("Ana", "ana@celke.uno", "senha-da-ana-123");
+
+        assertThat(criado.getPapeis()).containsExactly(Papel.ALUNO);
+        assertThat(criado.isEmailConfirmado()).isFalse();
+    }
+
+    @Test
+    @DisplayName("confirma o e-mail e grava")
+    void confirmaEmail() {
+        Usuario usuario = UsuarioFixture.naoConfirmado(UsuarioFixture.usuario(1, "ana@celke.uno", "hash", Papel.ALUNO));
+
+        service.confirmarEmail(usuario);
+
+        assertThat(usuario.isEmailConfirmado()).isTrue();
+        verify(repository).save(usuario);
+    }
+
+    @Test
+    @DisplayName("troca a senha gravando o novo hash")
+    void trocaSenha() {
+        Usuario usuario = UsuarioFixture.usuario(1, "ana@celke.uno", "{argon2}antigo", Papel.ALUNO);
+        when(passwordEncoder.encode("nova-senha-da-ana")).thenReturn("{argon2}novo");
+
+        service.trocarSenha(usuario, "nova-senha-da-ana");
+
+        assertThat(usuario.getSenhaHash()).isEqualTo("{argon2}novo");
+        verify(repository).save(usuario);
     }
 
     @Test
@@ -62,7 +99,7 @@ class UsuarioServiceTest {
     void emailDuplicado() {
         when(repository.existsByEmail("ana@celke.uno")).thenReturn(true);
 
-        assertThatThrownBy(() -> service.criar("Ana", "ANA@celke.uno", "senha-da-ana-123", Set.of(Papel.ALUNO)))
+        assertThatThrownBy(() -> service.cadastrarAluno("Ana", "ANA@celke.uno", "senha-da-ana-123"))
                 .isInstanceOf(ConflitoException.class)
                 .hasMessage("Já existe um usuário com este e-mail.");
         verify(repository, never()).save(any());

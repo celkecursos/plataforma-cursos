@@ -256,11 +256,16 @@ deploy automático. Depois desta fase, toda funcionalidade nova segue o fluxo no
 
 **1.6 Cadastro e recuperação de senha** — capítulo 10
 
-- [ ] Migration `tokens_uso_unico` (confirmação de e-mail e recuperação de senha)
-- [ ] Rotas de cadastro e recuperação no `LimitePorIpFilter`
-- [ ] Cadastro com confirmação de e-mail
-- [ ] Recuperação com token de uso único e expiração; resposta igual para e-mail existente ou não
-- [ ] E-mails pela Iagente; verificados no Mailpit nos testes
+- [x] Migration: `usuarios.email_confirmado_em` (contas existentes confirmadas), `tokens_uso_unico` e novo resultado `EMAIL_NAO_CONFIRMADO` na auditoria
+- [x] Cadastro de aluno (`POST /api/auth/cadastro`) com conta pendente e link de confirmação (48 h); resposta igual para e-mail novo e já cadastrado — conta ativa recebe um aviso (no máximo um por hora), cadastro pendente recebe o link de novo
+- [x] Confirmação (`confirmar-email`) e reenvio (`reenviar-confirmacao`); login com e-mail pendente recebe 403 próprio só quando a senha está certa
+- [x] Recuperação (`recuperar-senha`, link de 1 h, resposta igual exista ou não a conta) e redefinição (`redefinir-senha`): troca a senha, confirma o e-mail e encerra todas as sessões
+- [x] Tokens de uso único com hash SHA-256 (`TokenSeguro`, compartilhado com o refresh): um novo invalida os anteriores do mesmo tipo; no máximo 3 e-mails por hora por conta e tipo
+- [x] Senha de aluno com 10 a 128 caracteres; contas do comando e dos seeds nascem confirmadas
+- [x] Templates de e-mail (`confirmacao-email`, `recuperacao-senha`, `cadastro-existente`) com links para `FRONT_ALUNO_URL`; envio pelo worker (Mailpit no ambiente local)
+- [x] Rotas da conta públicas (só POST) e no `LimitePorIpFilter`
+- [x] Healthcheck do worker por arquivo de batimento (`BatimentoWorker`), separado do consumo da fila: o `up --wait` e o deploy passam a esperar o worker
+- [x] Testes: jornadas de cadastro e recuperação com os e-mails lidos no Mailpit, link de uso único, limite de e-mails, mesma resposta para e-mail inexistente
 
 **1.7 e2e de API e pipeline** — capítulo 11
 

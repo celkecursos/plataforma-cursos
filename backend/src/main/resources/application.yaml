@@ -81,8 +81,14 @@ app:
     cookie-seguro: true
     # Origens do front que podem renovar e encerrar a sessão (separadas por vírgula)
     origens-permitidas: ${AUTH_ORIGENS:}
+  conta:
+    # Área do aluno: base dos links enviados por e-mail
+    url-aluno: ${FRONT_ALUNO_URL:}
+    validade-confirmacao: PT48H
+    validade-recuperacao: PT1H
+    emails-por-hora: 3
   limites:
-    # Login e refresh: requisições por IP a cada minuto
+    # Rotas de autenticação e conta: requisições por IP a cada minuto
     requisicoes-por-ip-por-minuto: 30
     # Falhas de login seguidas que bloqueiam o par e-mail + IP, e o e-mail vindo de qualquer IP
     falhas-por-email-e-ip: 5

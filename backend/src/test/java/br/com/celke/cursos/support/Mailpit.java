@@ -4,10 +4,14 @@ import static org.awaitility.Awaitility.await;
 
 import java.time.Duration;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import org.springframework.web.client.RestClient;
 
 /** Consulta os e-mails capturados pelo Mailpit (API HTTP do container). */
 public class Mailpit {
+
+    private static final Pattern TOKEN_NO_LINK = Pattern.compile("[?&]token=([A-Za-z0-9_-]+)");
 
     private final RestClient http;
 
@@ -24,13 +28,32 @@ public class Mailpit {
         return http.get().uri("/api/v1/message/{id}", id).retrieve().body(EmailRecebido.class);
     }
 
-    private String idMaisRecente(String destinatario) {
-        Busca busca = http.get()
+    /** Quantos e-mails o destinatário recebeu até agora. */
+    public int quantidadePara(String destinatario) {
+        Busca busca = buscar(destinatario);
+        return busca == null ? 0 : busca.messages().size();
+    }
+
+    /** Token do link no HTML de um e-mail ({@code ...?token=<valor>}). */
+    public static String tokenDoLink(EmailRecebido email) {
+        Matcher matcher = TOKEN_NO_LINK.matcher(email.HTML());
+        if (!matcher.find()) {
+            throw new AssertionError("O e-mail não tem link com token: " + email.Subject());
+        }
+        return matcher.group(1);
+    }
+
+    private Busca buscar(String destinatario) {
+        return http.get()
                 .uri(u -> u.path("/api/v1/search")
                         .queryParam("query", "to:\"" + destinatario + "\"")
                         .build())
                 .retrieve()
                 .body(Busca.class);
+    }
+
+    private String idMaisRecente(String destinatario) {
+        Busca busca = buscar(destinatario);
         return busca == null || busca.messages().isEmpty()
                 ? null
                 : busca.messages().getFirst().ID();

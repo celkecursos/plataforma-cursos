@@ -38,7 +38,14 @@ import tools.jackson.databind.json.JsonMapper;
 public class LimitePorIpFilter extends OncePerRequestFilter {
 
     /** Rotas limitadas (sempre POST). */
-    static final Set<String> ROTAS = Set.of("/api/auth/login", "/api/auth/refresh");
+    static final Set<String> ROTAS = Set.of(
+            "/api/auth/login",
+            "/api/auth/refresh",
+            "/api/auth/cadastro",
+            "/api/auth/confirmar-email",
+            "/api/auth/reenviar-confirmacao",
+            "/api/auth/recuperar-senha",
+            "/api/auth/redefinir-senha");
 
     static final String CABECALHO_RESTANTE = "X-RateLimit-Remaining";
 

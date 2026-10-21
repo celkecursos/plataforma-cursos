@@ -25,15 +25,41 @@ public class UsuarioService {
         this.clock = clock;
     }
 
-    /** Cria o usuário com a senha em hash. A senha já deve ter passado pela {@code PoliticaSenha}. */
+    /**
+     * Cria um usuário com o e-mail já confirmado: contas criadas por quem administra a plataforma
+     * (comando {@code criar-admin}, seeds). A senha já deve ter passado pela {@code PoliticaSenha}.
+     */
     @Transactional
-    public Usuario criar(String nome, String email, String senha, Set<Papel> papeis) {
+    public Usuario criarConfirmado(String nome, String email, String senha, Set<Papel> papeis) {
+        return criar(nome, email, senha, papeis, true);
+    }
+
+    /** Cadastro feito pelo próprio aluno: o e-mail fica pendente até ele confirmar. */
+    @Transactional
+    public Usuario cadastrarAluno(String nome, String email, String senha) {
+        return criar(nome, email, senha, Set.of(Papel.ALUNO), false);
+    }
+
+    private Usuario criar(String nome, String email, String senha, Set<Papel> papeis, boolean confirmado) {
         String emailNormalizado = Usuario.normalizarEmail(email);
         if (repository.existsByEmail(emailNormalizado)) {
             throw new ConflitoException("Já existe um usuário com este e-mail.");
         }
-        return repository.save(
-                new Usuario(nome, emailNormalizado, passwordEncoder.encode(senha), papeis, clock.instant()));
+        return repository.save(new Usuario(
+                nome, emailNormalizado, passwordEncoder.encode(senha), papeis, confirmado, clock.instant()));
+    }
+
+    @Transactional
+    public void confirmarEmail(Usuario usuario) {
+        usuario.confirmarEmail(clock.instant());
+        repository.save(usuario);
+    }
+
+    /** Troca a senha. A nova senha já deve ter passado pela {@code PoliticaSenha}. */
+    @Transactional
+    public void trocarSenha(Usuario usuario, String novaSenha) {
+        usuario.trocarHashSenha(passwordEncoder.encode(novaSenha), clock.instant());
+        repository.save(usuario);
     }
 
     @Transactional(readOnly = true)

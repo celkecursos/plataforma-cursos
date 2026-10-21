@@ -138,6 +138,33 @@ class AuthServiceTest {
     }
 
     @Test
+    @DisplayName("senha certa com e-mail não confirmado recebe 403 próprio, sem tokens, e zera o bloqueio")
+    void emailNaoConfirmado() {
+        Usuario pendente = UsuarioFixture.naoConfirmado(ana());
+        when(usuarioService.buscarPorEmail("ana@celke.uno")).thenReturn(Optional.of(pendente));
+        when(passwordEncoder.matches("senha-certa", "{argon2}hash-da-ana")).thenReturn(true);
+
+        assertThatThrownBy(() -> service.entrar("ana@celke.uno", "senha-certa", ORIGEM))
+                .isInstanceOf(EmailNaoConfirmadoException.class)
+                .hasMessage("Confirme o seu e-mail antes de entrar. Se não recebeu o link, peça um novo.");
+        verify(auditoriaLoginService).registrar("ana@celke.uno", pendente, ResultadoLogin.EMAIL_NAO_CONFIRMADO, ORIGEM);
+        verify(bloqueioLoginService).registrarSucesso("ana@celke.uno", "203.0.113.7");
+        verify(bloqueioLoginService, never()).registrarFalha(anyString(), anyString());
+        verify(refreshTokenService, never()).emitir(anyLong());
+    }
+
+    @Test
+    @DisplayName("e-mail não confirmado com a senha errada recebe a mensagem genérica")
+    void emailNaoConfirmadoSenhaErrada() {
+        when(usuarioService.buscarPorEmail("ana@celke.uno"))
+                .thenReturn(Optional.of(UsuarioFixture.naoConfirmado(ana())));
+        when(passwordEncoder.matches("senha-errada", "{argon2}hash-da-ana")).thenReturn(false);
+
+        assertThatThrownBy(() -> service.entrar("ana@celke.uno", "senha-errada", ORIGEM))
+                .isInstanceOf(CredenciaisInvalidasException.class);
+    }
+
+    @Test
     @DisplayName("login bloqueado é recusado antes de buscar o usuário ou calcular hash, e auditado como BLOQUEADO")
     void bloqueado() {
         doThrow(new MuitasTentativasException(Duration.ofMinutes(15)))

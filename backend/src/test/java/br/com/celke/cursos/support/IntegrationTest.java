@@ -2,6 +2,7 @@ package br.com.celke.cursos.support;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import br.com.celke.cursos.shared.fila.ProcessadorFila;
 import br.com.celke.cursos.usuario.application.UsuarioService;
 import br.com.celke.cursos.usuario.domain.Papel;
 import com.jayway.jsonpath.JsonPath;
@@ -35,6 +36,9 @@ public abstract class IntegrationTest {
     @Autowired
     private UsuarioService usuarioService;
 
+    @Autowired
+    private ProcessadorFila processadorFila;
+
     /** Identificador único em runtime para os dados criados pelo teste (prefixo {@code it-}). */
     protected static String stamp() {
         return "it-" + Long.toString(ThreadLocalRandom.current().nextLong(Long.MAX_VALUE), 36);
@@ -64,6 +68,13 @@ public abstract class IntegrationTest {
         }
     }
 
+    /** Processa todos os jobs pendentes (no worker isso é feito pelo consumo agendado). */
+    protected void processarFila() {
+        while (processadorFila.processarProximo()) {
+            // continua enquanto houver job disponível
+        }
+    }
+
     protected static String bearer(String accessToken) {
         return "Bearer " + accessToken;
     }
@@ -74,7 +85,7 @@ public abstract class IntegrationTest {
      */
     protected UsuarioTeste criarUsuario(Papel... papeis) {
         String email = stamp() + "@teste.celke.uno";
-        var usuario = usuarioService.criar("Usuário " + email, email, SENHA_TESTE, Set.of(papeis));
+        var usuario = usuarioService.criarConfirmado("Usuário " + email, email, SENHA_TESTE, Set.of(papeis));
         return new UsuarioTeste(usuario.getId(), email, SENHA_TESTE);
     }
 

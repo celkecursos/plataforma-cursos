@@ -11,3 +11,5 @@ spring:
 app:
   fila:
     consumidor-ativo: true
+    # Arquivo regravado a cada 10 s; o healthcheck do Docker confere se mudou no último minuto
+    arquivo-batimento: /tmp/worker-batimento

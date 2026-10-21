@@ -11,6 +11,8 @@ app:
     # Chave só dos testes (48 bytes em Base64)
     jwt-segredo: dGVzdGUtdGVzdGUtdGVzdGUtdGVzdGUtdGVzdGUtdGVzdGUtdGVzdGUtdGVzdGUt
     origens-permitidas: http://localhost:5173
+  conta:
+    url-aluno: http://localhost:5173
   limites:
     # Todas as requisições da suíte saem do mesmo IP: o limite por IP fica fora do caminho
     requisicoes-por-ip-por-minuto: 100000

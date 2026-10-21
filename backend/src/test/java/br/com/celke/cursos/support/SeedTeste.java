@@ -27,7 +27,7 @@ class SeedTeste implements ApplicationRunner {
 
     private void criarSeNaoExiste(String nome, String email, Papel papel) {
         if (usuarioService.buscarPorEmail(email).isEmpty()) {
-            usuarioService.criar(nome, email, UsuariosSeed.SENHA, Set.of(papel));
+            usuarioService.criarConfirmado(nome, email, UsuariosSeed.SENHA, Set.of(papel));
         }
     }
 }

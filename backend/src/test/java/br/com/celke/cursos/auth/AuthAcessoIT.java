@@ -28,7 +28,12 @@ class AuthAcessoIT extends IntegrationTest {
         // Sem token não pode dar 401 da segurança: o resultado vem da própria rota
         return Stream.of(
                 Arguments.of(HttpMethod.POST, "/api/auth/login", HttpStatus.BAD_REQUEST),
-                Arguments.of(HttpMethod.POST, "/api/auth/logout", HttpStatus.NO_CONTENT));
+                Arguments.of(HttpMethod.POST, "/api/auth/logout", HttpStatus.NO_CONTENT),
+                Arguments.of(HttpMethod.POST, "/api/auth/cadastro", HttpStatus.BAD_REQUEST),
+                Arguments.of(HttpMethod.POST, "/api/auth/confirmar-email", HttpStatus.BAD_REQUEST),
+                Arguments.of(HttpMethod.POST, "/api/auth/reenviar-confirmacao", HttpStatus.BAD_REQUEST),
+                Arguments.of(HttpMethod.POST, "/api/auth/recuperar-senha", HttpStatus.BAD_REQUEST),
+                Arguments.of(HttpMethod.POST, "/api/auth/redefinir-senha", HttpStatus.BAD_REQUEST));
     }
 
     @ParameterizedTest(name = "{0} {1}")
