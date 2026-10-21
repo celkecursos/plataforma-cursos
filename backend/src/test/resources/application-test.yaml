@@ -1,0 +1,13 @@
+# Profile dos testes de integração. Endereços dos containers vêm de support/Containers.
+spring:
+  mail:
+    properties:
+      mail.smtp.auth: false
+      mail.smtp.starttls.enable: false
+      mail.smtp.starttls.required: false
+
+app:
+  armazenamento:
+    cors-origens: http://localhost:5173
+  email:
+    remetente: nao-responda@teste.celke.uno

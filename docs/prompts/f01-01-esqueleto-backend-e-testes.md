@@ -876,7 +876,7 @@ jornada, o passo, o esperado e o obtido.
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-surefire-plugin</artifactId>
 				<configuration>
-					<skipTests>${skip.unit}</skipTests>
+					<skip>${skip.unit}</skip>
 				</configuration>
 			</plugin>
 

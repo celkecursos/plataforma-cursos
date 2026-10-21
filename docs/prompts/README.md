@@ -11,3 +11,4 @@ Ao final de cada prompt, confira a seção **Verificação** dele antes de segui
 | 1 | [Estrutura inicial do repositório](f00-01-estrutura-inicial.md) | 0 | `main` |
 | 2 | [Esqueleto do backend e padrão de testes](f01-01-esqueleto-backend-e-testes.md) | 1.1 | `feature/base-projeto` |
 | 3 | [Ambiente local com Docker](f01-02-ambiente-local.md) | 1.2 | `feature/base-projeto` |
+| 4 | [Padrões compartilhados](f01-03-padroes-compartilhados.md) | 1.3 | `feature/base-projeto` |

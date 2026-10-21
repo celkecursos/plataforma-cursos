@@ -7,3 +7,7 @@ spring:
   # As migrations são aplicadas pela API
   flyway:
     enabled: false
+
+app:
+  fila:
+    consumidor-ativo: true

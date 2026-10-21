@@ -90,19 +90,21 @@ capítulo.
 
 ### Cap. 5 — Padrões compartilhados
 
-**Fase:** 1.3
+**Fase:** 1.3 · **Prompt:** [f01-03](prompts/f01-03-padroes-compartilhados.md)
 
 - **Objetivo:** criar a base que todos os módulos usam.
 - **Conteúdo:**
-  - Erros no formato `ProblemDetail` (RFC 9457) com handler global; validação com a lista `erros` (`campo`, `mensagem`); 401/403 da segurança no mesmo formato.
-  - DTOs como `record`, paginação padrão, logs em JSON com id de correlação.
-  - `StorageService` com AWS SDK v2 (path-style): URLs pré-assinadas de GET/PUT, multipart, exclusão.
-  - Configuração do bucket aplicada pela API ao subir: CORS para os hosts do front e expiração de `uploads/` abandonados.
-  - Fila no PostgreSQL: tabela `jobs` e `FilaService` com `SELECT ... FOR UPDATE SKIP LOCKED`, tentativas com backoff.
-  - `EmailService` com templates Thymeleaf, envio assíncrono pela fila, SMTP da Iagente.
-- **Segurança:** nenhuma resposta com stack trace ou mensagem interna.
-- **Testes:** handler de erros; `StorageService` contra o Garage real; dois consumidores da fila nunca pegam o mesmo job; e-mail conferido no Mailpit.
-- **Entrega:** `./mvnw verify` verde com Garage e Mailpit no Testcontainers.
+  - Erros no formato `ProblemDetail` (RFC 9457) com handler global: validação com a lista `erros` (`campo`, `mensagem`) em português, exceções de negócio, erros do Spring MVC traduzidos, erro inesperado só com o id da requisição; 401/403 da segurança no mesmo formato.
+  - Id de correlação (`X-Request-Id`) no log e na resposta; logs em JSON (ECS).
+  - DTOs como `record`, paginação padrão (`Pagina<T>`), `Clock` único.
+  - `StorageService` com AWS SDK v2 (path-style): URLs pré-assinadas de GET/PUT com o endereço público, upload em partes, consulta, exclusão.
+  - Configuração do bucket aplicada pela API ao subir: CORS para os hosts do front (expondo o `ETag`) e expiração de `uploads/` abandonados.
+  - Fila no PostgreSQL: tabela `jobs`, `SELECT ... FOR UPDATE SKIP LOCKED`, lease, backoff exponencial, erro permanente, processador por tipo e consumo só no worker.
+  - `EmailService` enfileira; o worker monta o HTML com Thymeleaf e envia pelo SMTP (Mailpit no desenvolvimento, Iagente nos servidores).
+  - Configuração obrigatória em `@ConfigurationProperties` validadas.
+- **Segurança:** nenhuma resposta com stack trace ou mensagem interna; id de correlação recebido só é aceito se for seguro para o log; nome de template restrito a `[a-z0-9-]`; variáveis escapadas no HTML do e-mail; preflight do CORS recusado para origens fora da lista.
+- **Testes:** handler de erros e 401/403; `StorageService` contra o Garage real; dois consumidores da fila nunca pegam o mesmo job; backoff e lease vencido; e-mail conferido no Mailpit.
+- **Entrega:** `./mvnw verify` verde com Garage e Mailpit no Testcontainers, e a stack local aplicando o CORS no bucket.
 
 ---
 

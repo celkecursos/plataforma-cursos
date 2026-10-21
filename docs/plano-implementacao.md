@@ -220,15 +220,17 @@ deploy automático. Depois desta fase, toda funcionalidade nova segue o fluxo no
 
 **1.3 Padrões compartilhados** — capítulo 5
 
-- [ ] `ProblemDetail` (RFC 9457) com handler global, sem stack trace na resposta; 401/403 da segurança também em `ProblemDetail`
-- [ ] DTOs como `record`, paginação padrão
-- [ ] Logs JSON com id de correlação
-- [ ] `StorageService` (AWS SDK v2, path-style): presign GET/PUT, multipart, delete; variáveis `S3_*` na API e no worker
-- [ ] Configuração do bucket aplicada pela API ao subir, de forma idempotente: CORS para os hosts do front e lifecycle que expira `uploads/` abandonados e uploads multipart incompletos
-- [ ] Fila: tabela `jobs` + `FilaService` (enfileirar, reservar com `SKIP LOCKED`, concluir, falhar com backoff)
-- [ ] `EmailService` com templates (Thymeleaf), envio assíncrono pela fila, SMTP da Iagente
-- [ ] `support/Containers` com Garage e Mailpit; `support/Mailpit`
-- [ ] Testes de `StorageService`, `FilaService` (dois consumidores nunca pegam o mesmo job) e `EmailService`
+- [x] `ProblemDetail` (RFC 9457) com handler global: validação com a lista `erros` (`campo`, `mensagem`) em português, regra de negócio (`RegraNegocioException`, `NaoEncontradoException`, `ConflitoException`), erros do Spring MVC traduzidos em `messages.properties`, erro inesperado só com o id da requisição; `instance` e `requestId` em todo erro
+- [x] 401/403 da segurança também em `ProblemDetail` (`RespostasSeguranca`)
+- [x] Id de correlação `X-Request-Id` (aceito só se seguro, senão gerado) no MDC e na resposta; logs em JSON (ECS) no compose
+- [x] `Pagina<T>` e paginação padrão (20, máximo 100); `Clock` único em UTC
+- [x] `StorageService` (AWS SDK v2, path-style): presign GET/PUT, multipart, consulta, exclusão; presigner com o endereço público
+- [x] Configuração do bucket aplicada pela API ao subir, de forma idempotente: CORS para os hosts do front (expondo `ETag`) e lifecycle que expira `uploads/` e uploads em partes incompletos
+- [x] Fila: tabela `jobs` + `FilaService` (enfileirar, reservar com `SKIP LOCKED`, lease, concluir, falhar com backoff, falha definitiva), `ProcessadorFila` por tipo e consumo agendado só no worker
+- [x] `EmailService` (valida destinatário e template) e envio no worker com Thymeleaf e SMTP; health check do e-mail desligado
+- [x] `@ConfigurationProperties` validadas (`app.armazenamento`, `app.email`, `app.fila`)
+- [x] `support/Containers` com Garage e Mailpit; `support/Mailpit`; controller de erros só de teste
+- [x] Testes: handler de erros, id de correlação, `StorageService` contra o Garage real (inclusive preflight do CORS), fila (backoff, tentativas esgotadas, lease vencido, concorrência sem duplicidade), e-mail entregue no Mailpit com HTML escapado
 
 **1.4 Usuários e autenticação** — capítulos 6 e 7
 

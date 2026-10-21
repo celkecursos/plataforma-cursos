@@ -18,6 +18,27 @@ spring:
       ddl-auto: validate
   flyway:
     enabled: true
+  data:
+    web:
+      pageable:
+        default-page-size: 20
+        max-page-size: 100
+  web:
+    # Mensagens de validação em português
+    locale: pt_BR
+    locale-resolver: fixed
+  mail:
+    host: ${SMTP_HOST:}
+    port: ${SMTP_PORT:587}
+    username: ${SMTP_USERNAME:}
+    password: ${SMTP_PASSWORD:}
+    properties:
+      mail.smtp.auth: ${SMTP_AUTH:true}
+      mail.smtp.starttls.enable: ${SMTP_STARTTLS:true}
+      mail.smtp.starttls.required: ${SMTP_STARTTLS:true}
+      mail.smtp.connectiontimeout: 10000
+      mail.smtp.timeout: 10000
+      mail.smtp.writetimeout: 10000
 
 server:
   shutdown: graceful
@@ -37,6 +58,10 @@ management:
       probes:
         enabled: true
       show-details: never
+  health:
+    # O SMTP fora do ar não deve tirar a API do ar: o envio é pela fila, com novas tentativas
+    mail:
+      enabled: false
 
 # Swagger: ligado só no desenvolvimento e na homologação (DOCS_ENABLED=true)
 springdoc:
@@ -44,3 +69,26 @@ springdoc:
     enabled: ${DOCS_ENABLED:false}
   swagger-ui:
     enabled: ${DOCS_ENABLED:false}
+
+app:
+  armazenamento:
+    # Endereço usado pela aplicação (rede interna)
+    endpoint: ${S3_ENDPOINT:}
+    # Endereço que vai nas URLs pré-assinadas (o que o navegador acessa)
+    endpoint-publico: ${S3_ENDPOINT_PUBLICO:}
+    regiao: ${S3_REGIAO:garage}
+    bucket: ${S3_BUCKET:}
+    access-key: ${S3_ACCESS_KEY:}
+    secret-key: ${S3_SECRET_KEY:}
+    cors-origens: ${S3_CORS_ORIGENS:}
+    dias-uploads-abandonados: 2
+  email:
+    remetente: ${EMAIL_REMETENTE:}
+    nome-remetente: Plataforma de Cursos
+  fila:
+    max-tentativas: 5
+    lease: PT10M
+    backoff-base: PT30S
+    backoff-maximo: PT1H
+    intervalo: PT2S
+    consumidor-ativo: false
