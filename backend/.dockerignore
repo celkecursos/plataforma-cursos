@@ -1,0 +1,6 @@
+target/
+.claude/
+CLAUDE.md
+.idea/
+.vscode/
+*.iml

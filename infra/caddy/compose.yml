@@ -1,0 +1,47 @@
+# Caddy da VPS: único processo nas portas 80/443, ligado às redes da produção e da homologação.
+# Sobe depois das duas stacks (as redes são criadas por elas).
+#   docker compose up -d
+name: plataforma-cursos-caddy
+
+services:
+  caddy:
+    image: caddy:2.11.7-alpine
+    restart: unless-stopped
+    environment:
+      ACME_EMAIL: ${ACME_EMAIL:?defina ACME_EMAIL}
+      PRODUCAO_HOST_ALUNO: ${PRODUCAO_HOST_ALUNO:?defina PRODUCAO_HOST_ALUNO}
+      PRODUCAO_HOST_ADM: ${PRODUCAO_HOST_ADM:?defina PRODUCAO_HOST_ADM}
+      PRODUCAO_HOST_MEDIA: ${PRODUCAO_HOST_MEDIA:?defina PRODUCAO_HOST_MEDIA}
+      HOMOLOG_HOST_ALUNO: ${HOMOLOG_HOST_ALUNO:?defina HOMOLOG_HOST_ALUNO}
+      HOMOLOG_HOST_ADM: ${HOMOLOG_HOST_ADM:?defina HOMOLOG_HOST_ADM}
+      HOMOLOG_HOST_MEDIA: ${HOMOLOG_HOST_MEDIA:?defina HOMOLOG_HOST_MEDIA}
+      ADM_IPS: ${ADM_IPS:?defina ADM_IPS}
+      HOMOLOG_IPS: ${HOMOLOG_IPS:?defina HOMOLOG_IPS}
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./sites:/etc/caddy/sites:ro
+      - dados:/data
+      - config:/config
+    networks:
+      - producao
+      - homolog
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+
+networks:
+  producao:
+    external: true
+    name: plataforma-cursos-producao
+  homolog:
+    external: true
+    name: plataforma-cursos-homolog
+
+volumes:
+  dados:
+  config:
