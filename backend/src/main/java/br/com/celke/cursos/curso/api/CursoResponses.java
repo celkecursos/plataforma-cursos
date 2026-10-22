@@ -2,7 +2,8 @@ package br.com.celke.cursos.curso.api;
 
 import br.com.celke.cursos.curso.application.CapaCursoService.EnvioCapa;
 import br.com.celke.cursos.curso.application.CatalogoService.CursoDetalhe;
-import br.com.celke.cursos.curso.application.CatalogoService.ModuloDetalhe;
+import br.com.celke.cursos.curso.application.ConteudoTurmaService.AulaConteudo;
+import br.com.celke.cursos.curso.application.ConteudoTurmaService.ModuloConteudo;
 import br.com.celke.cursos.curso.domain.StatusConteudo;
 import br.com.celke.cursos.curso.domain.StatusCurso;
 import br.com.celke.cursos.curso.domain.StatusTurma;
@@ -118,16 +119,19 @@ public final class CursoResponses {
 
     public record ModuloCatalogo(String titulo, List<AulaCatalogo> aulas) {
 
-        static ModuloCatalogo de(ModuloDetalhe detalhe) {
+        static ModuloCatalogo de(ModuloConteudo modulo) {
             return new ModuloCatalogo(
-                    detalhe.modulo().getTitulo(),
-                    detalhe.aulas().stream()
-                            .map(aula -> new AulaCatalogo(aula.getId(), aula.getTitulo(), aula.isGratuita()))
-                            .toList());
+                    modulo.titulo(),
+                    modulo.aulas().stream().map(AulaCatalogo::de).toList());
         }
     }
 
-    public record AulaCatalogo(Long id, String titulo, boolean gratuita) {}
+    public record AulaCatalogo(Long id, String titulo, boolean gratuita) {
+
+        static AulaCatalogo de(AulaConteudo aula) {
+            return new AulaCatalogo(aula.id(), aula.titulo(), aula.gratuita());
+        }
+    }
 
     private static String enderecoCapa(br.com.celke.cursos.curso.domain.Curso curso) {
         return curso.getCapaChave() == null ? null : "/api/cursos/%s/capa".formatted(curso.getSlug());

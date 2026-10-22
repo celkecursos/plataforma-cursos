@@ -3,6 +3,7 @@ package br.com.celke.cursos.curso.infra;
 import br.com.celke.cursos.curso.domain.StatusTurma;
 import br.com.celke.cursos.curso.domain.Turma;
 import jakarta.persistence.LockModeType;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -17,6 +18,10 @@ public interface TurmaRepository extends JpaRepository<Turma, Long> {
 
     /** Turma ativa mais recente: é o conteúdo que o catálogo mostra. */
     Optional<Turma> findFirstByCursoIdAndStatusOrderByIdDesc(Long cursoId, StatusTurma status);
+
+    /** Turmas com o curso carregado na mesma consulta. */
+    @Query("select t from Turma t join fetch t.curso where t.id in :ids")
+    List<Turma> comCurso(Collection<Long> ids);
 
     /** Trava a turma enquanto a ordem dos módulos muda (criar, reordenar, excluir). */
     @Lock(LockModeType.PESSIMISTIC_WRITE)

@@ -5,8 +5,12 @@ import br.com.celke.cursos.usuario.domain.Papel;
 import br.com.celke.cursos.usuario.domain.Usuario;
 import br.com.celke.cursos.usuario.infra.UsuarioRepository;
 import java.time.Clock;
+import java.util.Collection;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -70,6 +74,12 @@ public class UsuarioService {
     @Transactional(readOnly = true)
     public Optional<Usuario> buscarPorId(Long id) {
         return repository.findById(id);
+    }
+
+    /** Usuários indexados pelo id, numa consulta só; ids inexistentes ficam fora do mapa. */
+    @Transactional(readOnly = true)
+    public Map<Long, Usuario> buscarPorIds(Collection<Long> ids) {
+        return repository.findAllById(ids).stream().collect(Collectors.toMap(Usuario::getId, Function.identity()));
     }
 
     /** Regrava o hash quando ele usa um algoritmo antigo (ex.: BCrypt vindo do sistema legado). */
