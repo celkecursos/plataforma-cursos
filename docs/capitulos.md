@@ -45,7 +45,7 @@ capítulo.
 
 ### Cap. 2 — Repositório, branches e fluxo de trabalho
 
-**Fase:** 0 · **Prompt:** [f00-01](prompts/f00-01-estrutura-inicial.md)
+**Fase:** 0 · **Prompts:** [f00-01](prompts/f00-01-estrutura-inicial.md), [f00-02](prompts/f00-02-orientacoes-para-ia.md)
 
 - **Objetivo:** deixar o repositório pronto para o fluxo de PRs com testes e deploy.
 - **Conteúdo:**
@@ -54,6 +54,9 @@ capítulo.
   - A `main` recebe código só da `homolog`; alteração reprovada na homologação é desfeita com `git revert`; depois de um hotfix, merge da `main` de volta na `homolog`.
   - Exclusão automática da branch após o merge; environments `homolog` e `production` no GitHub.
   - Como os prompts recriam o projeto passo a passo.
+  - Orientações para agentes de IA versionadas em `.claude/`: rules que carregam pelo caminho tocado,
+    mensagens de commit em Conventional Commits sem coautoria de IA (`/gc` e `/pc`), `/nova-branch`,
+    `/abrir-pr`, `/revisar-dod` e o pipeline SDD (spec → tasks → código) com três portões humanos.
 - **Entrega:** `main` e `homolog` no GitHub e a branch `feature/base-projeto` criada.
 
 ### Cap. 3 — Esqueleto do backend e padrão de testes

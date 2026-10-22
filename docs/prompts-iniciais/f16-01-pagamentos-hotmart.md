@@ -17271,7 +17271,7 @@ git switch -c feature/pagamentos
 
 ```bash
 git add backend/ web/ infra/ docs/ .github/ README.md
-git commit -m "Pagamentos: multi-gateway e Hotmart"
+git commit -m "feat(pagamento): adicionar pagamentos multi-gateway e a Hotmart"
 git push -u origin feature/pagamentos
 ```
 

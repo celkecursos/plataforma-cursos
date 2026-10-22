@@ -6200,7 +6200,7 @@ No ambiente local, pelo Swagger, com uma aula criada:
 
 ```bash
 git add backend/ infra/ .github/ docs/
-git commit -m "Upload de vídeo em partes e conversão para HLS"
+git commit -m "feat(video): adicionar upload em partes e conversão para HLS"
 git push -u origin feature/upload-video
 ```
 

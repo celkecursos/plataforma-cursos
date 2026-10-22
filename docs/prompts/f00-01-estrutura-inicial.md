@@ -90,7 +90,7 @@ vêm com o material do tutorial: copie-os para o repositório como estão.
 
 ```bash
 git add README.md .gitignore docs/
-git commit -m "Estrutura inicial e plano de implementação"
+git commit -m "docs: criar estrutura inicial e plano de implementação"
 git push -u origin main
 
 git switch -c homolog

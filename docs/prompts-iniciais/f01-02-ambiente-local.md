@@ -235,5 +235,5 @@ Se a porta 8080 (ou outra) já estiver em uso, defina `API_PORTA=8090` (ou a var
 
 ```bash
 git add infra/
-git commit -m "Ambiente local com Docker"
+git commit -m "chore(infra): criar ambiente local com Docker"
 ```

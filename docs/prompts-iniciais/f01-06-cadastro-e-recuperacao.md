@@ -4154,5 +4154,5 @@ docker compose -f infra/compose.yml ps
 
 ```bash
 git add backend/ infra/
-git commit -m "Cadastro, confirmação de e-mail e recuperação de senha"
+git commit -m "feat(auth): adicionar cadastro, confirmação de e-mail e recuperação de senha"
 ```

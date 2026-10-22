@@ -4162,7 +4162,7 @@ docker compose -f infra/compose.prod.yml -f infra/compose.e2e.yml --env-file inf
 
 ```bash
 git add backend/ web/ infra/ docs/ .github/ README.md
-git commit -m "Telas do ADM"
+git commit -m "feat(adm): adicionar as telas de gestão do ADM"
 git push -u origin feature/web-adm
 ```
 

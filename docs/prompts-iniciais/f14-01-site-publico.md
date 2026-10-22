@@ -3163,7 +3163,7 @@ docker compose -f infra/compose.prod.yml -f infra/compose.e2e.yml --env-file inf
 
 ```bash
 git add backend/ web/ infra/ docs/ .github/ README.md
-git commit -m "Site público"
+git commit -m "feat(site): gerar o site público a partir da API"
 git push -u origin feature/site
 ```
 

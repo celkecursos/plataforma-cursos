@@ -3955,7 +3955,7 @@ No ambiente local, pelo Swagger, com um curso publicado e uma turma ativa:
 
 ```bash
 git add backend/
-git commit -m "Matrícula e política única de acesso"
+git commit -m "feat(matricula): adicionar matrícula e política única de acesso"
 git push -u origin feature/matricula-acesso
 ```
 

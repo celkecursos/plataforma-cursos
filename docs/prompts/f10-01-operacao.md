@@ -2384,7 +2384,7 @@ do bucket.
 
 ```bash
 git add backend/ infra/ docs/ .github/ README.md
-git commit -m "Operação: backup, alertas e segurança"
+git commit -m "feat(infra): adicionar backup, alertas e segurança da operação"
 git push -u origin feature/operacao
 ```
 

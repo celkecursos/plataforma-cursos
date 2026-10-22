@@ -3322,7 +3322,7 @@ No ambiente local, pelo Swagger, com uma aula com vídeo pronto e um aluno matri
 
 ```bash
 git add backend/ infra/ docs/
-git commit -m "Playlist assinada, progresso e log de acesso"
+git commit -m "feat(video): adicionar playlist assinada, progresso e log de acesso"
 git push -u origin feature/entrega-video
 ```
 

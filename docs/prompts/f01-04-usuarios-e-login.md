@@ -3496,5 +3496,5 @@ docker compose -f infra/compose.yml run --rm api criar-admin admin@celke.uno "Ad
 
 ```bash
 git add backend/ infra/
-git commit -m "Usuários e login com JWT e refresh em cookie"
+git commit -m "feat(auth): adicionar usuários e login com JWT e refresh em cookie"
 ```

@@ -2775,7 +2775,7 @@ No ambiente local, pelo Swagger:
 
 ```bash
 git add backend/ infra/ docs/
-git commit -m "Perfil e termos"
+git commit -m "feat(perfil): adicionar perfil e termos"
 git push -u origin feature/perfil-termos
 ```
 

@@ -5090,7 +5090,7 @@ No ambiente local (`docker compose -f infra/compose.yml up -d --build --wait`), 
 
 ```bash
 git add backend/
-git commit -m "Cursos, turmas, módulos, aulas e catálogo"
+git commit -m "feat(curso): adicionar cursos, turmas, módulos, aulas e catálogo"
 git push -u origin feature/cursos
 ```
 

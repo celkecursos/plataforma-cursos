@@ -182,6 +182,9 @@ Regras:
 ```
 plataforma-cursos/
 ├── CLAUDE.md                    regras gerais do repositório
+├── .claude/                     orientações para agentes de IA: rules, skills (commits, especificação),
+│                                agentes e comandos do pipeline SDD (/sdd → /gerar-tasks → /implementar-tasks)
+├── .sdd/                        specs e tasks geradas pelo pipeline SDD (quando usado)
 ├── backend/
 │   ├── CLAUDE.md                regras do projeto Java (código e testes)
 │   ├── .claude/skills/          criar-teste-unitario, criar-teste-integracao, criar-teste-e2e
@@ -229,7 +232,8 @@ plataforma-cursos/
 │   └── scripts/                 gerar-env.sh, gerar-env-servidor.sh, preparar-vps.sh, deploy.sh, backup...
 ├── docs/
 │   ├── plano-implementacao.md
-│   └── prompts/                 prompts para recriar o projeto em sequência
+│   ├── prompts/                 um prompt por fase (especificação e verificação)
+│   └── prompts-iniciais/        sequência completa para criar o projeto do zero
 └── .github/workflows/
     └── pipeline.yml
 ```
@@ -258,6 +262,9 @@ Definição de pronto de **todo** PR:
 - [x] Criar repositório `celkecursos/plataforma-cursos` no GitHub
 - [x] Primeiro commit na `main` (README, `.gitignore`, `docs/`)
 - [x] Criar `homolog` a partir da `main`
+- [x] Orientações para agentes de IA em `.claude/`: rules por caminho (segurança, fronts, testes, prompts),
+  commits em Conventional Commits sem coautoria de IA (`/gc`, `/pc`), `/nova-branch`, `/abrir-pr`,
+  `/revisar-dod` e o pipeline SDD com portões humanos
 - [ ] Regras de proteção em `main` e `homolog`: só PR, checks obrigatórios (ativar quando o pipeline existir)
 - [ ] Environments `homolog` e `production` com seus secrets
 - [ ] Confirmar os subdomínios livres em `celke.uno`
@@ -731,7 +738,7 @@ capítulo.
 
 ### Cap. 2 — Repositório, branches e fluxo de trabalho
 
-**Fase:** 0 · **Prompt:** [f00-01](prompts/f00-01-estrutura-inicial.md)
+**Fase:** 0 · **Prompts:** [f00-01](prompts/f00-01-estrutura-inicial.md), [f00-02](prompts/f00-02-orientacoes-para-ia.md)
 
 - **Objetivo:** deixar o repositório pronto para o fluxo de PRs com testes e deploy.
 - **Conteúdo:**
@@ -740,6 +747,9 @@ capítulo.
   - A `main` recebe código só da `homolog`; alteração reprovada na homologação é desfeita com `git revert`; depois de um hotfix, merge da `main` de volta na `homolog`.
   - Exclusão automática da branch após o merge; environments `homolog` e `production` no GitHub.
   - Como os prompts recriam o projeto passo a passo.
+  - Orientações para agentes de IA versionadas em `.claude/`: rules que carregam pelo caminho tocado,
+    mensagens de commit em Conventional Commits sem coautoria de IA (`/gc` e `/pc`), `/nova-branch`,
+    `/abrir-pr`, `/revisar-dod` e o pipeline SDD (spec → tasks → código) com três portões humanos.
 - **Entrega:** `main` e `homolog` no GitHub e a branch `feature/base-projeto` criada.
 
 ### Cap. 3 — Esqueleto do backend e padrão de testes
@@ -1328,7 +1338,7 @@ configurado), vazio.
 
 ```bash
 git add README.md .gitignore docs/
-git commit -m "Estrutura inicial e plano de implementação"
+git commit -m "docs: criar estrutura inicial e plano de implementação"
 git push -u origin main
 
 git switch -c homolog
