@@ -1,5 +1,6 @@
 package br.com.celke.cursos.pagamento.domain;
 
+import br.com.celke.cursos.shared.auditoria.DadoSensivel;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -40,8 +41,10 @@ public class Gateway {
     private String configuracao;
 
     /** IV + texto cifrado (AES-256-GCM) do JSON com os campos secretos; nulo sem segredos. */
+    @DadoSensivel
     private byte[] segredos;
 
+    @DadoSensivel
     @Column(name = "webhook_token", nullable = false, length = 64, updatable = false)
     private String webhookToken;
 

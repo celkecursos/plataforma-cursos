@@ -28,3 +28,4 @@ Ao final de cada prompt, confira a seção **Verificação** dele antes de segui
 | 18 | [Perfil e termos](f09-01-perfil-e-termos.md) | 9 | `feature/perfil-termos` |
 | 19 | [Operação: backup, alertas e segurança](f10-01-operacao.md) | 10 | `feature/operacao` |
 | 20 | [Pagamentos: multi-gateway e Hotmart](f16-01-pagamentos-hotmart.md) | 16 | `feature/pagamentos` |
+| 21 | [Auditoria das ações e logs persistentes](f17-01-auditoria-e-logs.md) | 17 | `feature/auditoria` |

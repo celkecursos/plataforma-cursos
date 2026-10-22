@@ -1,5 +1,6 @@
 package br.com.celke.cursos.video.domain;
 
+import br.com.celke.cursos.shared.auditoria.SemAuditoria;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -10,6 +11,7 @@ import java.time.Instant;
 
 /** Abertura do vídeo de uma aula por um usuário (log de acesso, com retenção limitada). */
 @Entity
+@SemAuditoria
 @Table(name = "acessos_video")
 public class AcessoVideo {
 

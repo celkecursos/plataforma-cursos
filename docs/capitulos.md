@@ -23,6 +23,7 @@ capítulo.
 | 8. Frontend com `@celke/ui` | 32–36 | 11–14 |
 | 9. Migração do legado (opcional) | 37 | 15 |
 | 10. Vendas e pagamentos | 38–40 | 16 |
+| 11. Auditoria e logs | 41 | 17 |
 
 ---
 
@@ -600,3 +601,24 @@ Fica antes do frontend porque precisa estar pronta antes de entrarem dados reais
   - Como adicionar outro meio de pagamento (Mercado Pago, Stripe...) só com um valor no enum e um bean novo.
 - **Testes:** Vitest da página de retorno e do formulário; Playwright do admin cadastrando a Hotmart (validação e credencial errada), da compra interceptando o `pay.hotmart.com`, do boleto, do reembolso e do evento ignorado reprocessado.
 - **Entrega:** compra de ponta a ponta na homologação com a Hotmart de teste.
+
+---
+
+## Parte 11 — Auditoria e logs
+
+### Cap. 41 — Trilha de auditoria e logs persistentes
+
+**Fase:** 17
+
+- **Objetivo:** saber quem fez o quê nos dados, de onde e quando, e guardar o log técnico por meses.
+- **Conteúdo:**
+  - Por que não Hibernate Envers, JaVers ou Spring Data Auditing: uma tabela por entidade, outra camada de modelo ou só "quem alterou por último"; aqui, uma tabela única com ação, origem e IP.
+  - Ouvinte dos eventos do Hibernate (`PostInsert`, `PostUpdate`, `PostDelete`) que grava na mesma transação, com só os campos que mudaram na alteração.
+  - Contexto da ação: usuário do token, rota com as variáveis, IP, navegador, id da requisição; job da fila pelo MDC; "sistema" nos agendamentos.
+  - `@DadoSensivel` (hash de senha, segredos, tokens como `***`) e `@SemAuditoria` (progresso, logs, tokens de sessão).
+  - Só inclusão garantida pelo banco (gatilho que recusa `UPDATE` e `DELETE`) e a retenção como única exceção.
+  - Tela de consulta no ADM com filtros e o antes/depois lado a lado.
+  - Logs da API e do worker em arquivo num volume, com rotação diária no horário de Brasília, compressão e limite por idade e por tamanho; como ler na VPS.
+- **Segurança:** a trilha não guarda segredos; o ADM só lê; nem a própria aplicação consegue alterar ou apagar fora da retenção.
+- **Testes:** unitários da conversão de valores e do contexto; integração com ADM, aluno, worker, segredo oculto, operação recusada sem rastro, gatilho e retenção; Playwright da tela.
+- **Entrega:** a alteração de um curso aparece na auditoria com o antes e o depois; os logs ficam no volume depois de um deploy.

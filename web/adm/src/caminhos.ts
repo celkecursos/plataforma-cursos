@@ -6,6 +6,7 @@ export const CAMINHOS = {
   meiosPagamento: '/pagamentos',
   pedidos: '/pagamentos/pedidos',
   eventos: '/pagamentos/eventos',
+  auditoria: '/auditoria',
 } as const;
 
 export const caminhoPedido = (pedidoId: number | string) => `/pagamentos/pedidos/${pedidoId}`;

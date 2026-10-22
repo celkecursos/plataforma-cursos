@@ -1,5 +1,6 @@
 package br.com.celke.cursos.progresso.domain;
 
+import br.com.celke.cursos.shared.auditoria.SemAuditoria;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -10,6 +11,7 @@ import java.time.Instant;
 
 /** Progresso de um aluno numa aula. Guarda só os ids, sem relacionamento JPA com outros módulos. */
 @Entity
+@SemAuditoria
 @Table(name = "progresso_aulas")
 public class ProgressoAula {
 
