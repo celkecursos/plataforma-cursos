@@ -22,13 +22,13 @@ import org.junit.jupiter.api.Test;
 
 /**
  * Jornada: o aluno matriculado abre o vídeo da aula pela API (playlist assinada), baixa um segmento
- * direto do Garage pelo Caddy, a URL do segmento vence (a stack de e2e usa margem de 5 s) e o progresso
+ * direto do Garage pelo Caddy, a URL do segmento vence e é recusada (a stack de e2e usa margem de 5 s) e o progresso
  * marcado na aula aparece no percentual da turma.
  */
 class EntregaVideoE2E {
 
     @Test
-    @DisplayName("playlist assinada → segmento baixa → depois de vencer, 403; progresso refletido na turma")
+    @DisplayName("playlist assinada → segmento baixa → depois de vencer, recusado; progresso refletido na turma")
     void assistirEProgredir() {
         Adm adm = Adm.doSeed();
         String slug = Dados.stamp();
@@ -88,11 +88,14 @@ class EntregaVideoE2E {
                 .asByteArray();
         assertThat(bytes[0]).isEqualTo((byte) 0x47);
 
-        // 6. ...e para de baixar quando a validade (3 s de vídeo + 5 s de margem) vence
-        await("URL do segmento vencida")
+        // 6. ...e para de baixar quando a validade (3 s de vídeo + 5 s de margem) vence. O Garage recusa
+        // com 400 "Date is too old" (a AWS responderia 403): a jornada aceita as duas recusas do S3
+        Response vencida = await("URL do segmento vencida")
                 .atMost(Duration.ofSeconds(40))
                 .pollInterval(Duration.ofSeconds(2))
-                .until(() -> Midia.requisicao().get(Midia.caminho(segmento)).statusCode() == 403);
+                .until(() -> Midia.requisicao().get(Midia.caminho(segmento)), r -> r.statusCode() != 200);
+        assertThat(vencida.statusCode()).isIn(400, 403);
+        assertThat(vencida.asString()).containsAnyOf("Date is too old", "Request has expired");
 
         // 7. Progresso: posição e aula vista aparecem na turma
         aluno(token)
