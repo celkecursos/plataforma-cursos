@@ -546,6 +546,21 @@ Capítulo 37.
 - [ ] Senhas `$2y$` do Laravel aceitas no primeiro login e re-hash
 - [ ] Reprocessar vídeos existentes no S3 para HLS
 
+
+### Fase 16 — `feature/pagamentos`
+
+Prompt: [`docs/prompts/f16-01-pagamentos-hotmart.md`](prompts/f16-01-pagamentos-hotmart.md).
+
+- [ ] Módulo `pagamento` com a porta `GatewayPagamento` (um bean por meio de pagamento) e o status de pedido único para todos
+- [ ] Meio de pagamento configurado pelo painel (formulário a partir dos campos do gateway, segredos com AES-GCM, um ativo por vez)
+- [ ] Hotmart com o **webhook 2.0.0** (`X-HOTMART-HOTTOK`, JSON com `id` por evento); o projeto antigo usa o 1.0.0, que não é recomendado
+- [ ] Checkout por redirecionamento com o código do pedido no `xcod`; página de retorno que acompanha o status
+- [ ] Notificações idempotentes, processadas pela fila, tolerantes a fora de ordem; matrícula criada, mantida ou cancelada conforme o status
+- [ ] Conta do comprador sem senha, com link de criar senha (nunca senha por e-mail)
+- [ ] Reconciliação pela API de vendas (preparada, ligada por configuração)
+- [ ] Painel: meios de pagamento, ofertas por turma, pedidos e eventos recebidos (reprocessar)
+- [ ] Testes unitários, de integração, e2e e Playwright com caminho feliz e infeliz
+
 ---
 
 ## 5. Mapa fase → capítulos do tutorial
