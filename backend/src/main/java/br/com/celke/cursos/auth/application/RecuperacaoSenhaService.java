@@ -5,6 +5,7 @@ import br.com.celke.cursos.shared.email.EmailService;
 import br.com.celke.cursos.usuario.application.UsuarioService;
 import br.com.celke.cursos.usuario.domain.Usuario;
 import java.util.Map;
+import java.util.Optional;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -52,6 +53,21 @@ public class RecuperacaoSenhaService {
         usuarioService.confirmarEmail(usuario);
         refreshTokenService.revogarTodas(usuario.getId());
     }
+
+    /**
+     * Link de "criar senha" para a conta criada por uma compra (o mesmo token da recuperação, com a
+     * mesma validade). Vazio se a conta já recebeu o máximo de links na última hora.
+     */
+    @Transactional
+    public Optional<LinkSenha> linkCriarSenha(Long usuarioId) {
+        return tokens.emitir(usuarioId, TipoToken.RECUPERACAO_SENHA)
+                .map(token -> new LinkSenha(
+                        props.urlAluno() + "/redefinir-senha?token=" + token + "&origem=pagamento",
+                        Validade.texto(tokens.validade(TipoToken.RECUPERACAO_SENHA))));
+    }
+
+    /** Link de criar senha e a validade escrita para o e-mail ("1 hora"). */
+    public record LinkSenha(String url, String validade) {}
 
     private void enviarLink(Usuario usuario) {
         tokens.emitir(usuario.getId(), TipoToken.RECUPERACAO_SENHA)

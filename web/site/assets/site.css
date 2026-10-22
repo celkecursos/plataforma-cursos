@@ -366,3 +366,31 @@ h3 {
 .s-texto {
   overflow-wrap: anywhere;
 }
+
+/* Ofertas do curso: preço e botão de compra */
+.s-ofertas {
+  list-style: none;
+  margin: 16px 0 8px;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+}
+
+.s-oferta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
+  padding: 12px 16px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+}
+
+.s-oferta-titulo {
+  flex: 1 1 140px;
+}
+
+.s-oferta-preco {
+  font-size: 1.25rem;
+}

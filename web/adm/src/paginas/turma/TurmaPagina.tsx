@@ -9,13 +9,14 @@ import { ConfiguracaoTurmaAba } from './ConfiguracaoTurmaAba.tsx';
 import { ConteudoAba } from './ConteudoAba.tsx';
 import { ForumAba } from './ForumAba.tsx';
 import { MatriculasAba } from './MatriculasAba.tsx';
+import { VendaAba } from './VendaAba.tsx';
 
 export interface ContextoTurma {
   curso: Curso;
   turma: Turma;
 }
 
-/** Uma turma: conteúdo, matrículas, fórum e configurações. A API não tem GET da turma: vem da lista do curso. */
+/** Uma turma: conteúdo, matrículas, venda, fórum e configurações. A API não tem GET da turma: vem da lista do curso. */
 export function TurmaPagina() {
   const { cursoId, turmaId } = useParams();
   const navigate = useNavigate();
@@ -62,6 +63,9 @@ export function TurmaPagina() {
         </Aba>
         <Aba valor="matriculas" rotulo="Matrículas" icone="users">
           <MatriculasAba turma={turma} />
+        </Aba>
+        <Aba valor="venda" rotulo="Venda" icone="tag">
+          <VendaAba turma={turma} />
         </Aba>
         <Aba valor="forum" rotulo="Fórum" icone="message-square">
           <ForumAba turma={turma} />

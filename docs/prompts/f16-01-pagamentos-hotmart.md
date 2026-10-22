@@ -47,9 +47,14 @@ Depois, na Hotmart (Ferramentas → Webhook), crie uma configuração **versão 
 homologação e use **"Enviar teste"** de cada evento. Guarde os corpos recebidos (sem dados pessoais reais)
 em `backend/src/test/resources/pagamentos/hotmart/<EVENTO>.json`: eles são as fixtures dos testes. Se
 algum campo diferir deste prompt, vale o corpo real; ajuste o prompt e registre a diferença no
-`docs/pagamentos.md`.
+`docs/pagamentos.md`. Enquanto não houver corpos reais, monte as fixtures a partir do exemplo da
+documentação, com dados fictícios (comprador `comprador.teste@example.com`, CPF `12345678909`,
+transação `HP17715690036014`, produto `4774438`, oferta `k2pasun0`, `xcod` = `XCOD_DO_PEDIDO`, que os
+testes trocam pelo código do pedido), uma por evento de compra, mais `SUBSCRIPTION_CANCELLATION` e
+`PURCHASE_APPROVED_AFILIADO` (sem `buyer`, sem `price`, `creation_date` em texto), e um `LEIAME.md` na
+pasta explicando que devem ser trocadas pelos corpos reais.
 
-O que já se sabe da 2.0.0 (conferido em outubro de 2026):
+O que já se sabe da 2.0.0 (confira de novo antes de implementar):
 
 - **Eventos de compra** (mesmo formato de corpo): `PURCHASE_APPROVED`, `PURCHASE_COMPLETE` (fim da
   garantia), `PURCHASE_CANCELED`, `PURCHASE_REFUNDED`, `PURCHASE_CHARGEBACK`, `PURCHASE_BILLET_PRINTED`,
@@ -97,6 +102,9 @@ matrícula continua sendo do módulo `matricula`: o `pagamento` só a chama pelo
 public interface GatewayPagamento {
     TipoGateway tipo();
 
+    /** Nome mostrado no painel (ex.: "Hotmart"). */
+    String nome();
+
     /** Campos que o painel mostra para configurar (o front monta o formulário a partir daqui). */
     List<CampoConfiguracao> camposConfiguracao();
 
@@ -122,40 +130,68 @@ public interface GatewayPagamento {
 
 - `TipoGateway`: `HOTMART` agora; `PAGSEGURO`, `MERCADO_PAGO` etc. entram depois só com um valor novo e
   um bean novo.
-- `CampoConfiguracao(chave, rotulo, tipo, secreto, obrigatorio, dica)`. Para a Hotmart: `hottok`
-  (secreto), `clientId`, `clientSecret` (secreto), `basic` (secreto), `ambiente` (`SANDBOX`/`PRODUCAO`) e
-  `urlCheckoutBase` (padrão `https://pay.hotmart.com`).
+- `CampoConfiguracao(chave, rotulo, tipo, secreto, obrigatorio, dica, padrao, opcoes)`, com `tipo`
+  `TEXTO`, `URL` ou `SELECAO` (valores em `opcoes`); campo em branco fica com o `padrao`. Para a Hotmart,
+  nesta ordem: `hottok` (secreto, obrigatório), `ambiente` (`PRODUCAO`/`SANDBOX`, padrão `PRODUCAO`),
+  `urlCheckoutBase` (URL, padrão `https://pay.hotmart.com`), `clientId`, `clientSecret` (secreto) e
+  `basic` (secreto) — os três últimos opcionais, mas informados juntos.
 - `Checkout`: `Redirecionamento(url)` ou `Embutido(Map<String, Object> dados)`; o front trata os dois.
 - `EventoPagamento` (normalizado, independente do meio): `idExterno`, `tipoOriginal`, `ocorridoEm`,
   `transacao`, `statusPedido` (abaixo), `codigoPedido` (do `xcod`), `produtoExterno`, `ofertaExterna`,
   `comprador` (e-mail, nome; documento só mascarado), `valor` e `moeda`, `formaPagamento`, `assinatura`
   (código do assinante e status, quando houver).
 - `GatewaysRegistrados`: junta os beans por `TipoGateway` (falha ao subir se houver dois do mesmo tipo).
+- `ConfiguracaoGatewayService`: valida os valores contra `camposConfiguracao` (obrigatório, opção,
+  endereço `http(s)://` com host, até 500 caracteres, chave desconhecida), devolvendo 400 com a lista
+  `erros` em `valores.<chave>`; separa os comuns (JSON) dos secretos (JSON cifrado) e monta a
+  `ConfiguracaoGateway` decifrada. Sem `PAGAMENTOS_CHAVE`, gravar segredo responde 409.
+- Hotmart em `pagamento/infra/hotmart`: `InterpretadorHotmart` (o corpo 2.0.0 para `EventoPagamento`;
+  valor em reais para centavos com arredondamento meio para cima; corpo que não é JSON, sem `id`, sem
+  `event` ou de versão diferente de `2.x` lança `NotificacaoInvalidaException`), `ClienteApiHotmart`
+  (token e histórico de vendas, com `RestClient` e tempo máximo configurável) e `GatewayHotmart`, montados
+  num `@Configuration` com as propriedades `app.pagamentos.hotmart` (`url-token`, `url-api`,
+  `url-api-sandbox`, `timeout`).
 
 #### 1.2 Banco (`V15__criar_pagamentos.sql`)
 
-- **`gateways_pagamento`**: `id`, `tipo`, `nome`, `ativo`, `configuracao` (jsonb, campos não secretos),
-  `segredos` (bytea, **AES-256-GCM** com a chave `PAGAMENTOS_CHAVE` do ambiente, IV por registro),
-  `webhook_token` (aleatório, entra na URL do webhook), `criado_em`, `atualizado_em`. **Índice único
-  parcial**: só um gateway `ativo` para novos checkouts. Gateway desativado continua recebendo
-  notificações (compras antigas ainda mudam de status).
-- **`ofertas`**: `id`, `turma_id`, `gateway_id`, `produto_externo` (id do produto na Hotmart),
-  `oferta_externa` (código da oferta), `titulo`, `preco_centavos`, `moeda`, `dias_acesso` (nulo = sem
-  prazo), `ativa`, `criado_em`. Único em (`gateway_id`, `produto_externo`, `oferta_externa`).
+- `usuarios.senha_hash` passa a aceitar nulo (conta criada pela compra). O login de conta sem senha
+  confere o hash fictício e falha como senha errada; a troca de senha no perfil não aceita "senha atual".
+- **`gateways_pagamento`**: `id`, `tipo` (sem CHECK: meio novo entra só com código), `nome`, `ativo`,
+  `configuracao` (jsonb, campos não secretos), `segredos` (bytea, **AES-256-GCM** com a chave
+  `PAGAMENTOS_CHAVE` do ambiente, IV aleatório de 12 bytes na frente, o `webhook_token` como dado
+  associado), `webhook_token` (aleatório, entra na URL do webhook, único), `criado_em`, `atualizado_em`.
+  **Índice único parcial**: só um gateway `ativo` para novos checkouts. Gateway desativado continua
+  recebendo notificações (compras antigas ainda mudam de status).
+- **`ofertas`**: `id`, `turma_id`, `gateway_id`, `produto_externo` (id do produto na Hotmart, como vem em
+  `data.product.id`), `oferta_externa` (código da oferta), `codigo_checkout` (o código do produto no
+  link `pay.hotmart.com/<código>`, quando diferente do id; nulo usa o id), `titulo`, `preco_centavos`,
+  `moeda`, `dias_acesso` (nulo = sem prazo), `ativa`, `criado_em`, `atualizado_em`. Único em
+  (`gateway_id`, `produto_externo`, `oferta_externa`).
 - **`pedidos`**: `id`, `codigo` (público, aleatório, 22 caracteres URL-safe), `oferta_id`, `gateway_id`,
-  `usuario_id` (nulo até a conta existir), `email`, `status`, `transacao_externa`, `valor_centavos`,
-  `moeda`, `forma_pagamento`, `matricula_id`, `origem` (`CHECKOUT` ou `EXTERNO`, venda que chegou sem
-  `xcod`), `criado_em`, `atualizado_em`. Único em (`gateway_id`, `transacao_externa`).
+  `usuario_id` (nulo até a conta existir), `email`, `nome` (do comprador, para criar a conta),
+  `status`, `transacao_externa`, `valor_centavos`, `moeda`, `forma_pagamento`, `matricula_id`, `origem`
+  (`CHECKOUT` ou `EXTERNO`, venda que chegou sem `xcod`), `ultimo_evento_em` (quando ocorreu o evento da
+  última mudança), `criado_em`, `atualizado_em`. Único em (`gateway_id`, `transacao_externa`).
 - **`pedido_historico`**: `pedido_id`, `de`, `para`, `evento_id`, `motivo`, `em`.
 - **`eventos_pagamento`**: `id`, `gateway_id`, `id_externo`, `tipo_original`, `recebido_em`,
-  `ocorrido_em`, `transacao`, `payload` (jsonb, com documento e telefone mascarados), `status`
-  (`RECEBIDO`, `PROCESSADO`, `IGNORADO`, `ERRO`), `erro`, `pedido_id`. **Único em (`gateway_id`,
-  `id_externo`)**: é a idempotência.
+  `ocorrido_em`, `transacao`, `payload` (jsonb, o corpo com documento, telefone e IP mascarados — campo
+  reconhecido pelo nome, para qualquer meio; corpo que não é JSON vai como string JSON), `dados` (jsonb,
+  o `EventoPagamento` normalizado que o worker lê), `status` (`RECEBIDO`, `PROCESSADO`, `IGNORADO`,
+  `ERRO`), `erro` (também o motivo do ignorado), `pedido_id`, `processado_em`. **Único em
+  (`gateway_id`, `id_externo`)**: é a idempotência. O JPA só lê `payload` e `dados`; a inclusão e a
+  retenção são SQL (`JdbcClient`).
+- **`pedido_historico`** fica depois de `eventos_pagamento` (aponta para o evento).
 - `FormaPagamento` da matrícula ganha `OUTRO`, e `Matricula` ganha `pedido_id` (nulo nas manuais). A
   matrícula feita pelo pagamento guarda `transacao` = transação externa, como já faz a manual.
 
-Chave nova no `.env` dos ambientes: `PAGAMENTOS_CHAVE` (32 bytes em base64; `gerar-env-servidor.sh` e
-`e2e.env` geram/definem). Sem a chave, a API sobe, mas a tela de gateways avisa e não salva segredos.
+Chave nova no `.env` dos ambientes: `PAGAMENTOS_CHAVE` (32 bytes em base64; `gerar-env.sh` e
+`gerar-env-servidor.sh` geram, `e2e.env` traz uma fixa, `.env.example` documenta). Sem a chave, a API
+sobe, mas a tela de gateways avisa e não salva segredos; chave fora de Base64 ou sem 32 bytes impede a
+subida. `PAGAMENTOS_RECONCILIACAO` (padrão `false`) liga a reconciliação nos servidores. Propriedades
+em `app.pagamentos` (`PagamentosProperties`): `chave`, `webhook-tamanho-maximo` (256KB),
+`webhook-requisicoes-por-ip-por-minuto` (600), `retencao-payload` (P180D), `disputa-suspende` (false),
+`atraso-suspende-apos` (sem valor: nunca) e `reconciliacao` (`ativa`, `pendente-apos` PT24H,
+`sem-evento-apos` P3D, `janela` P60D).
 
 #### 1.3 Status do pedido e o que acontece com a matrícula
 
@@ -176,17 +212,33 @@ Status interno, igual para todos os meios de pagamento:
 
 Regras:
 
+- **Transições permitidas** (para ← de): `AGUARDANDO_PAGAMENTO` ← `CRIADO`; `APROVADO` ← `CRIADO`,
+  `AGUARDANDO_PAGAMENTO`, `EXPIRADO`, `ATRASADO`, `EM_DISPUTA`; `CONCLUIDO` ← `CRIADO`,
+  `AGUARDANDO_PAGAMENTO`, `APROVADO`, `ATRASADO`, `EM_DISPUTA`; `EM_DISPUTA` ← `APROVADO`, `CONCLUIDO`,
+  `ATRASADO`; `ATRASADO` ← `APROVADO`, `CONCLUIDO`; `REEMBOLSADO` ← todos menos `CHARGEBACK`;
+  `CHARGEBACK` ← todos; `CANCELADO` ← `CRIADO`, `AGUARDANDO_PAGAMENTO`, `APROVADO`, `CONCLUIDO`,
+  `EM_DISPUTA`, `ATRASADO`; `EXPIRADO` ← `CRIADO`, `AGUARDANDO_PAGAMENTO`. O mesmo status não muda nada.
+  `CONCLUIDO` também concede (a aprovação pode ter se perdido; conceder é idempotente).
 - **Fora de ordem**: a Hotmart pode mandar eventos fora de ordem e reenviar antigos. Não deixe um evento
   mais antigo (`ocorrido_em` menor que o da última transição) desfazer um mais novo, e use precedência
   (ex.: `APROVADO` depois de `REEMBOLSADO` não reabre o acesso; um `REEMBOLSADO` sempre vale). A tabela de
   transições permitidas fica num lugar só (`TransicoesPedido`), com teste para cada linha.
-- **Matrícula**: período `inicio` = aprovação; `fim` = `inicio + dias_acesso` (ou sem prazo).
+- **Matrícula** (`MatriculaPagamentoService` no módulo `matricula`, idempotente): período `inicio` =
+  aprovação (o `ocorrido_em`, nunca no futuro); `fim` = `inicio + dias_acesso` (ou sem prazo).
   `formaPagamento` vem de `payment.type` (`CREDIT_CARD` → `CARTAO`, `PIX` → `PIX`, `BILLET` → `BOLETO`,
-  outros → `OUTRO`). Se o aluno já tem matrícula ativa na turma, estende o período em vez de duplicar.
+  outros → `OUTRO`). A matrícula do pedido ainda ativa não muda; se o aluno já tem matrícula ativa na
+  turma, estende o período (a partir do fim atual, ou da aprovação se já venceu) em vez de duplicar; a
+  matrícula do pedido cancelada (disputa resolvida) é reativada com o mesmo período. Transação já
+  lançada à mão pelo ADM fica fora da matrícula nova (o índice único não deixa repetir).
+- **Suspensões configuráveis**: com `disputa-suspende`, `EM_DISPUTA` cancela a matrícula e a aprovação
+  depois a reativa; com `atraso-suspende-apos`, um job diário cancela a matrícula dos pedidos `ATRASADO`
+  há mais que o prazo (registra no histórico; o pedido continua `ATRASADO`).
 - **Conta do comprador**: se o e-mail não tem conta, cria um usuário `ALUNO` **sem senha** e com o
   e-mail confirmado (o pagamento confirmou o e-mail), e envia "Sua matrícula foi confirmada" com o link
-  de criar senha (token de `RECUPERACAO_SENHA`, mesma validade). Se já tem conta, envia só a confirmação.
-  Nunca senha por e-mail.
+  de criar senha (token de `RECUPERACAO_SENHA`, mesma validade, link
+  `{FRONT_ALUNO_URL}/redefinir-senha?token=...&origem=pagamento`, emitido pelo `RecuperacaoSenhaService`).
+  Se a conta já tem senha, envia só a confirmação (com o link do curso). O e-mail sai quando o acesso foi
+  aberto, reaberto ou estendido agora (nunca duas vezes para o mesmo evento). Nunca senha por e-mail.
 - **Avisos** (e-mail para `ALERTA_EMAIL`, como o worker da fase 10): chargeback, disputa e evento em `ERRO`.
 
 #### 1.4 Receber a notificação: `POST /api/pagamentos/webhooks/{webhookToken}`
@@ -194,35 +246,48 @@ Regras:
 O `webhookToken` identifica o gateway (a URL que o admin cola na Hotmart aparece pronta no painel) e não
 substitui a autenticação do meio de pagamento.
 
-1. Limite de tamanho (256 KB) e de requisições por IP, como as outras rotas públicas.
+1. Limite de tamanho (256 KB: `Content-Length` e leitura do corpo cru, 413) e de requisições por IP
+   (filtro próprio antes da segurança, 600 por minuto: o meio de pagamento manda rajadas do mesmo IP e
+   um 429 o faria reenviar).
 2. Acha o gateway pelo token (não achou: 404). Chama `autenticar` (Hotmart: `X-HOTMART-HOTTOK` contra o
    hottok salvo, em tempo constante). Falhou: **401** e log de aviso, sem gravar nada.
 3. `interpretar` e grava cada evento em `eventos_pagamento` com `INSERT ... ON CONFLICT DO NOTHING`. Já
    existia: responde **200** (`duplicado`). Corpo que não interpreta (JSON inválido, sem `id`): grava como
-   `ERRO` com o corpo cru e responde **200** (reenviar não resolve; o admin vê no painel).
-4. Enfileira o job `pagamento.processar-evento` (`FilaService`) e responde **200** na hora. Só responde
+   `ERRO`, tipo `INVALIDO`, id externo `invalido:<sha256 do corpo>`, com o corpo cru, avisa o admin e
+   responde **200** (reenviar não resolve; o admin vê no painel). A resposta é
+   `{"resultado": "recebido" | "duplicado" | "erro"}`.
+4. Enfileira o job `pagamento.processar-evento` (`FilaService`, na mesma transação da gravação) e
+   responde **200** na hora. Só responde
    **500** se não conseguiu gravar (banco fora): aí o reenvio da Hotmart ajuda.
 
 O processamento (worker), numa transação por evento e com trava no pedido (`SELECT ... FOR UPDATE`):
 
-1. Acha o pedido: pelo `codigoPedido` (`xcod`); senão pela transação já conhecida; senão cria um pedido
+1. Acha o pedido: pelo `codigoPedido` (`xcod`), se a transação dele for a mesma (ou ainda não houver);
+   senão pela transação já conhecida; senão cria um pedido
    `EXTERNO` a partir da oferta (`produto_externo` + `oferta_externa`) e do e-mail do comprador (venda por
    afiliado ou por link direto da Hotmart). Oferta não cadastrada: evento `IGNORADO`, motivo
-   "oferta não cadastrada".
+   "Oferta não cadastrada (produto X, oferta Y)."; sem o e-mail do comprador, `IGNORADO`. Evento que não
+   muda o pedido (status interno nulo): `IGNORADO`; transição não permitida ou evento antigo:
+   `IGNORADO` com o motivo, ligado ao pedido.
 2. Aplica a transição (1.3), grava o histórico, executa o efeito na matrícula e nos e-mails, marca o
    evento `PROCESSADO`. Exceção: o job falha e a fila tenta de novo com backoff; esgotou, evento `ERRO` e
    aviso ao admin.
 
 #### 1.5 Comprar: checkout
 
-- `GET /api/cursos/{slug}` (catálogo público) passa a trazer as ofertas ativas da turma atual no
-  gateway ativo (id, título, preço, moeda). O site gera o botão "Comprar" a partir disso.
+- `GET /api/cursos/{slug}` (catálogo público) passa a trazer `ofertas`: as ativas da turma atual no
+  gateway ativo (id, título, `precoCentavos`, moeda), da mais barata à mais cara. O módulo `curso` não
+  conhece pagamento: declara a porta `OfertasCatalogo` em `curso/application`, implementada pelo módulo
+  `pagamento`. O site gera o botão "Comprar" a partir disso.
 - `POST /api/pagamentos/checkout` `{ ofertaId }` (aluno logado; sem login, o front manda para entrar ou
-  criar conta e volta). Cria o pedido `CRIADO` com o e-mail da conta e chama `iniciarCheckout`.
+  criar conta e volta). Oferta inativa ou inexistente 404; gateway da oferta inativo 409 "Esta oferta não
+  está à venda no momento."; turma que não está ativa ou curso não publicado 409. Cria o pedido `CRIADO`
+  com o e-mail e o nome da conta (histórico "Checkout iniciado") e chama `iniciarCheckout`. Resposta
+  201 `{ pedido, tipo: "REDIRECIONAMENTO" | "EMBUTIDO", url, dados }`.
   - **Hotmart**: `Redirecionamento` para
-    `{urlCheckoutBase}/{codigo do produto}?off={oferta}&email={email}&name={nome}&xcod={pedido.codigo}&sck=plataforma`
-    (com `URLEncoder`; confira na documentação de parâmetros do checkout os nomes aceitos para preencher
-    e-mail e nome).
+    `{urlCheckoutBase}/{codigo_checkout ou produto}?off={oferta}&email={email}&name={nome}&xcod={pedido.codigo}&sck=plataforma`
+    (caminho com `UriUtils.encodePathSegment`, parâmetros com `URLEncoder`; sem nome, sem `name`;
+    confira na documentação de parâmetros do checkout os nomes aceitos para preencher e-mail e nome).
   - Na Hotmart, a "página de obrigado" do produto aponta para
     `{FRONT_ALUNO_URL}/pagamento/retorno?pedido={codigo}` (documente no `docs/pagamentos.md`).
 - `GET /api/pagamentos/pedidos/{codigo}`: situação do pedido para a página de retorno (status, curso,
@@ -234,22 +299,46 @@ Job diário `pagamento.reconciliar` para gateways com `CONSULTA_API`: pedidos `C
 `AGUARDANDO_PAGAMENTO` há mais de 24 h e transações sem evento há mais de 3 dias são consultados
 (`consultar`). Se o status mudou, gera um `EventoPagamento` sintético (`idExterno` = `reconciliacao:...`)
 pelo mesmo caminho do webhook. Hotmart: OAuth *client credentials* com o token em cache até 5 minutos
-antes de vencer, e histórico de vendas filtrado por `transaction`. Desligado por padrão
-(`app.pagamentos.reconciliacao.ativa`), para não depender das credenciais da API no primeiro momento.
+antes de vencer (cabeçalho `Basic` aceito com ou sem o prefixo), e histórico de vendas filtrado por
+`transaction` — primeiro sem status, depois status a status (`REFUNDED`, `CHARGEBACK`, `CANCELLED`,
+`EXPIRED`, `DISPUTE`, `OVERDUE`, `WAITING_PAYMENT`, `PRINTED_BILLET`) até achar; `tracking.external_code`
+é o `xcod`. Só pedidos com transação, até 200 por consulta, sem mudança há menos de 60 dias. Desligado
+por padrão (`app.pagamentos.reconciliacao.ativa`), para não depender das credenciais da API no primeiro
+momento. Os agendamentos (reconciliação 5h, suspensão por atraso 5h15, retenção domingo 4h45, fuso de
+São Paulo) rodam só no worker.
 
 #### 1.7 Painel (API do ADM, `ADMIN`)
 
-- `GET/POST/PUT /api/adm/pagamentos/gateways`, `POST .../{id}/teste`, `POST .../{id}/ativacao`.
-  `GET /api/adm/pagamentos/tipos` devolve os tipos disponíveis com `camposConfiguracao()`. **Segredos
-  nunca voltam**: a resposta traz só "configurado" e os 4 últimos caracteres; campo secreto vazio no PUT
-  mantém o valor atual.
-- `GET/POST/PUT /api/adm/turmas/{id}/ofertas`, `PATCH /api/adm/ofertas/{id}/status`.
+- `GET/POST /api/adm/pagamentos/gateways`, `GET/PUT .../{id}`, `POST .../{id}/teste`,
+  `POST .../{id}/ativacao` (desativa os outros antes, numa atualização em lote, por causa do índice
+  único) e `DELETE .../{id}/ativacao`. `GET /api/adm/pagamentos/tipos` devolve
+  `{ cifraDisponivel, tipos: [{ tipo, nome, campos, capacidades }] }`. A resposta do gateway traz
+  `valores` (comuns), `segredos` (por chave: `configurado` e `final4`), `segredosLegiveis` (falso se a
+  chave falta ou mudou) e `webhookUrl` (`{FRONT_ALUNO_URL}/api/pagamentos/webhooks/{token}`). **Segredos
+  nunca voltam**; campo secreto vazio no PUT mantém o valor atual.
+- `GET/POST /api/adm/turmas/{id}/ofertas` (sem `gatewayId`, no gateway ativo; sem nenhum ativo, 409),
+  `PUT /api/adm/ofertas/{id}` (o gateway não muda), `PATCH /api/adm/ofertas/{id}/status` `{ ativa }`.
+  Produto + oferta repetidos no mesmo gateway: 409.
 - `GET /api/adm/pagamentos/pedidos` (filtros: status, gateway, e-mail, período), `GET .../{id}` com
   histórico e eventos.
-- `GET /api/adm/pagamentos/eventos` (filtro por status) e `POST .../{id}/reprocessamento` para eventos em
-  `ERRO` ou `IGNORADO` (ex.: a oferta foi cadastrada depois).
-- Retenção: eventos `PROCESSADO`/`IGNORADO` com mais de 180 dias têm o `payload` apagado por um job
-  semanal (o resto da linha fica para auditoria).
+- `GET /api/adm/pagamentos/eventos` (filtro por status), `GET .../{id}` (com o `payload`) e
+  `POST .../{id}/reprocessamento` para eventos em `ERRO` ou `IGNORADO` (ex.: a oferta foi cadastrada
+  depois); outros status 409; sem `dados` (não interpretado ou apagado pela retenção) 409.
+- Avisos (`AvisosPagamento`, mesmo `ALERTA_EMAIL` e template `alerta-operacao` dos alertas do worker):
+  chargeback, disputa e evento em `ERRO` (corpo inválido ou desistência do job).
+- Retenção: eventos `PROCESSADO`/`IGNORADO` com mais de 180 dias têm o `payload` e os `dados` apagados
+  por um job semanal (o resto da linha fica para auditoria).
+- Rotas públicas no `SecurityConfig`: `POST /api/pagamentos/webhooks/*` e `GET /api/pagamentos/pedidos/*`.
+
+#### 1.8 Infra
+
+- Na homologação (restrita por IP no Caddy), o snippet `(homolog)` deixa passar só o caminho
+  `/api/pagamentos/webhooks/*`, para a Hotmart de teste notificar.
+- `compose.prod.yml` e `compose.yml` repassam `PAGAMENTOS_CHAVE` (e o prod, `PAGAMENTOS_RECONCILIACAO`
+  como `APP_PAGAMENTOS_RECONCILIACAO_ATIVA`); no `compose.e2e.yml`, a API usa
+  `APP_PAGAMENTOS_HOTMART_URL_TOKEN=http://mailpit:8025/hotmart-indisponivel` (o "Testar" recebe uma
+  recusa sem sair para a internet). No `application-test.yaml`, chave de teste e `url-token` em
+  `http://localhost:1/...`.
 
 ### 2. Frontend
 
@@ -265,22 +354,28 @@ antes de vencer, e histórico de vendas filtrado por `transaction`. Desligado po
 
 **Aluno**:
 
-- `/comprar/:ofertaId`: exige login (volta depois de entrar ou criar conta), chama o checkout e
-  redireciona (ou mostra o formulário embutido, para um futuro meio de pagamento que use).
-- `/pagamento/retorno?pedido=`: consulta o pedido a cada 3 s por até 2 minutos: "Pagamento confirmado"
-  (botão para o curso), "Aguardando pagamento" (boleto/PIX: "você recebe um e-mail quando confirmar") ou
-  "Pagamento não aprovado".
+- `/comprar/:ofertaId`: exige login (a entrada repassa o `voltar` para o cadastro e o cadastro de volta
+  para a entrada), chama o checkout uma vez por visita e redireciona (ou mostra o aviso do formulário
+  embutido, para um futuro meio de pagamento que use).
+- `/pagamento/retorno?pedido=` (ou `?xcod=`, como a Hotmart repassa): consulta o pedido a cada 3 s por
+  até 2 minutos: "Pagamento confirmado" (botão para o curso), "Aguardando pagamento" (boleto/PIX: "você
+  recebe um e-mail quando confirmar") ou "Pagamento não aprovado".
 - A página de definir senha reaproveita a de redefinir (texto "Crie sua senha" quando vier do pagamento).
 
 **Site**: na página do curso, o preço e o botão "Comprar" de cada oferta ativa (link para
-`{aluno}/comprar/{ofertaId}`); sem oferta, continua "Quero fazer este curso".
+`{aluno}/comprar/{ofertaId}`) e as ofertas nos dados estruturados (`Offer`); sem oferta, continua
+"Quero fazer este curso".
 
 ### 3. Testes
 
-- **Unitários**: `TransicoesPedido` (todas as linhas da tabela, fora de ordem, precedência do
-  reembolso); interpretação de cada fixture da Hotmart (campos opcionais ausentes, status desconhecido,
+- **Unitários**: `TransicoesPedido` (todas as linhas da tabela e todas as combinações, fora de ordem,
+  precedência do reembolso, efeitos, disputa que suspende); interpretação de cada fixture da Hotmart (campos opcionais ausentes, status desconhecido,
   data em número e em texto); hottok em tempo constante; montagem da URL do checkout (codificação);
-  cifra dos segredos (ida e volta, IV diferente a cada gravação, chave errada falha).
+  cifra dos segredos (ida e volta, IV diferente a cada gravação, chave errada falha); validação da
+  configuração; cliente da API da Hotmart com `MockRestServiceServer` (token em cache, recusa, histórico);
+  processamento do evento e reconciliação com dependências simuladas; matrícula pelo pagamento
+  (criar, estender, reativar, cancelar); DTOs. No front (Vitest): validação do formulário do gateway,
+  formatação do corpo e da moeda, e a página de retorno (consulta a cada 3 s, para em 2 minutos, `xcod`).
 - **Integração** (Testcontainers): webhook com hottok certo grava e enfileira; mesmo `id` duas vezes
   processa uma vez; hottok errado 401 sem gravar; token de URL inexistente 404; oferta desconhecida 200 e
   `IGNORADO`; aprovado cria conta sem senha, matrícula e e-mail com link de criar senha; reembolso e
@@ -310,7 +405,8 @@ antes de vencer, e histórico de vendas filtrado por `transaction`. Desligado po
   4. nada no núcleo, no painel ou no front muda (o formulário vem de `camposConfiguracao`; o checkout
      embutido já é tratado).
 - `docs/plano-implementacao.md`: Fase 16 marcada; `docs/vps.md`: `PAGAMENTOS_CHAVE` no `.env` dos
-  ambientes e a URL do webhook da homologação na Hotmart de teste.
+  ambientes (inclusive nos que já existem), a atualização do Caddy e a URL do webhook da homologação na
+  Hotmart de teste; `docs/operacao.md`: os avisos de pagamento em `ALERTA_EMAIL`.
 
 ## Verificação
 

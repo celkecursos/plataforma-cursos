@@ -10,6 +10,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import java.time.Duration;
 import java.time.Instant;
 import org.springframework.http.HttpStatus;
 
@@ -48,6 +49,10 @@ public class Matricula {
     @Column(length = 100)
     private String transacao;
 
+    /** Pedido que gerou a matrícula; nulo nas lançadas pelo ADM. */
+    @Column(name = "pedido_id")
+    private Long pedidoId;
+
     @Column(name = "arquivada_em")
     private Instant arquivadaEm;
 
@@ -82,6 +87,21 @@ public class Matricula {
         this.atualizadoEm = agora;
     }
 
+    /** Matrícula gerada por um pagamento: guarda o pedido que a criou. */
+    public static Matricula dePagamento(
+            Long usuarioId,
+            Long turmaId,
+            Instant inicio,
+            Instant fim,
+            FormaPagamento formaPagamento,
+            String transacao,
+            Long pedidoId,
+            Instant agora) {
+        Matricula matricula = new Matricula(usuarioId, turmaId, inicio, fim, formaPagamento, transacao, agora);
+        matricula.pedidoId = pedidoId;
+        return matricula;
+    }
+
     /** Situação no instante informado: o fim é inclusivo (vale até o último segundo). */
     public SituacaoMatricula situacao(Instant agora) {
         if (status == StatusMatricula.CANCELADA) {
@@ -112,6 +132,34 @@ public class Matricula {
         exigirAtiva();
         this.status = StatusMatricula.CANCELADA;
         this.canceladaEm = agora;
+        this.atualizadoEm = agora;
+    }
+
+    /**
+     * Devolve o acesso de uma matrícula cancelada por um pagamento (ex.: disputa resolvida a favor):
+     * volta a valer com o mesmo período.
+     */
+    public void reativar(Instant agora) {
+        if (status == StatusMatricula.ATIVA) {
+            return;
+        }
+        this.status = StatusMatricula.ATIVA;
+        this.canceladaEm = null;
+        this.atualizadoEm = agora;
+    }
+
+    /**
+     * Estende o acesso por mais {@code dias} a partir do fim atual (ou de {@code aPartirDe}, se já
+     * passou). Sem prazo ({@code dias} nulo) ou matrícula que já não vence: fica sem prazo.
+     */
+    public void estender(Integer dias, Instant aPartirDe, Instant agora) {
+        exigirAtiva();
+        if (dias == null || fim == null) {
+            this.fim = null;
+        } else {
+            Instant base = fim.isAfter(aPartirDe) ? fim : aPartirDe;
+            this.fim = base.plus(Duration.ofDays(dias));
+        }
         this.atualizadoEm = agora;
     }
 
@@ -176,6 +224,10 @@ public class Matricula {
 
     public String getTransacao() {
         return transacao;
+    }
+
+    public Long getPedidoId() {
+        return pedidoId;
     }
 
     public Instant getArquivadaEm() {

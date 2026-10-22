@@ -136,6 +136,29 @@ app:
     mensagens-por-janela: 20
     janela: PT1H
     anexos-por-mensagem: 3
+  pagamentos:
+    # Chave AES-256 dos segredos dos meios de pagamento: 32 bytes em Base64 (openssl rand -base64 32).
+    # Em branco, a API sobe, mas o painel não grava credenciais
+    chave: ${PAGAMENTOS_CHAVE:}
+    webhook-tamanho-maximo: 256KB
+    webhook-requisicoes-por-ip-por-minuto: 600
+    # Corpo dos eventos processados ou ignorados é apagado depois disso (o resto fica para auditoria)
+    retencao-payload: P180D
+    # Disputa aberta mantém o acesso; true tira o acesso até a disputa terminar
+    disputa-suspende: false
+    # Cobrança atrasada mantém o acesso; com app.pagamentos.atraso-suspende-apos (ex.: P7D), o acesso
+    # é tirado depois desse prazo
+    reconciliacao:
+      # Consulta diária na API do meio de pagamento (precisa das credenciais da API)
+      ativa: false
+      pendente-apos: PT24H
+      sem-evento-apos: P3D
+      janela: P60D
+    hotmart:
+      url-token: https://api-sec-vlc.hotmart.com/security/oauth/token
+      url-api: https://developers.hotmart.com/payments/api/v1
+      url-api-sandbox: https://sandbox.hotmart.com/payments/api/v1
+      timeout: PT10S
   alertas:
     # Destinatário dos alertas do worker (jobs com erro, disco); em branco, desligados
     email: ${ALERTA_EMAIL:}

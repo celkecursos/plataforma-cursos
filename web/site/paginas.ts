@@ -8,9 +8,19 @@ export interface CursoCatalogo {
   capaUrl: string | null;
 }
 
+/** Opção à venda da turma atual (no meio de pagamento ativo). */
+export interface OfertaCatalogo {
+  id: number;
+  titulo: string;
+  precoCentavos: number;
+  moeda: string;
+}
+
 export interface CursoDetalhe extends CursoCatalogo {
   descricao: string | null;
   modulos: { titulo: string; aulas: { id: number; titulo: string; gratuita: boolean }[] }[];
+  /** Vazia: nada à venda agora (o botão leva ao cadastro). */
+  ofertas: OfertaCatalogo[];
 }
 
 export interface Termo {
@@ -185,6 +195,34 @@ export function paginaCatalogo(ctx: Contexto, cursos: CursoCatalogo[]): string {
   });
 }
 
+export function preco(oferta: OfertaCatalogo): string {
+  return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: oferta.moeda }).format(
+    oferta.precoCentavos / 100,
+  );
+}
+
+/** Preço e "Comprar" de cada oferta; sem oferta, o convite para criar a conta. */
+function acoesCurso(ctx: Contexto, curso: CursoDetalhe): Html {
+  const ofertas = curso.ofertas ?? [];
+  if (ofertas.length === 0) {
+    return html`<p class="s-acoes">
+      <a class="s-botao" href="${ctx.alunoUrl}/cadastro">Quero fazer este curso</a>
+      <a class="s-botao s-botao-contorno" href="${ctx.alunoUrl}/entrar">Já sou aluno</a>
+    </p>`;
+  }
+  return html`<ul class="s-ofertas" role="list">
+      ${ofertas.map(
+        (o) =>
+          html`<li class="s-oferta">
+            <span class="s-oferta-titulo">${o.titulo}</span>
+            <strong class="s-oferta-preco">${preco(o)}</strong>
+            <a class="s-botao" href="${ctx.alunoUrl}/comprar/${o.id}">Comprar</a>
+          </li>`,
+      )}
+    </ul>
+    <p class="s-detalhe">Já é aluno? <a href="${ctx.alunoUrl}/entrar">Entre na sua conta</a>.</p>`;
+}
+
 export function paginaCurso(ctx: Contexto, curso: CursoDetalhe): string {
   const totalAulas = curso.modulos.reduce((total, m) => total + m.aulas.length, 0);
   const caminho = `/cursos/${curso.slug}/`;
@@ -200,6 +238,17 @@ export function paginaCurso(ctx: Contexto, curso: CursoDetalhe): string {
       description: curso.resumo,
       url: ctx.siteUrl + caminho,
       provider: { '@type': 'Organization', name: NOME, sameAs: ctx.siteUrl },
+      ...((curso.ofertas ?? []).length > 0
+        ? {
+            offers: curso.ofertas.map((o) => ({
+              '@type': 'Offer',
+              name: o.titulo,
+              price: (o.precoCentavos / 100).toFixed(2),
+              priceCurrency: o.moeda,
+              url: `${ctx.alunoUrl}/comprar/${o.id}`,
+            })),
+          }
+        : {}),
     },
     corpo: html`<article class="s-largura s-secao">
       <nav aria-label="Trilha" class="s-trilha">
@@ -210,10 +259,7 @@ export function paginaCurso(ctx: Contexto, curso: CursoDetalhe): string {
           <h1>${curso.titulo}</h1>
           <p class="s-heroi-texto">${curso.resumo}</p>
           <p class="s-detalhe">${curso.modulos.length} módulos · ${totalAulas} aulas</p>
-          <p class="s-acoes">
-            <a class="s-botao" href="${ctx.alunoUrl}/cadastro">Quero fazer este curso</a>
-            <a class="s-botao s-botao-contorno" href="${ctx.alunoUrl}/entrar">Já sou aluno</a>
-          </p>
+          ${acoesCurso(ctx, curso)}
         </div>
         ${curso.capaUrl ? html`<img class="s-curso-capa" src="${curso.capaUrl}" alt="Capa do curso ${curso.titulo}" width="640" height="360" />` : ''}
       </div>

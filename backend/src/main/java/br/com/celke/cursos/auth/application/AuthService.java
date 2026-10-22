@@ -60,8 +60,10 @@ public class AuthService {
             throw e;
         }
         Optional<Usuario> encontrado = usuarioService.buscarPorEmail(email);
-        String hash = encontrado.map(Usuario::getSenhaHash).orElse(hashFicticio);
-        boolean senhaConfere = passwordEncoder.matches(senha, hash);
+        // Conta sem senha (criada por uma compra) confere o hash fictício e falha como senha errada
+        boolean possuiSenha = encontrado.filter(Usuario::possuiSenha).isPresent();
+        String hash = possuiSenha ? encontrado.get().getSenhaHash() : hashFicticio;
+        boolean senhaConfere = passwordEncoder.matches(senha, hash) && possuiSenha;
         ResultadoLogin resultado = resultado(encontrado, senhaConfere);
         auditoriaLoginService.registrar(email, encontrado.orElse(null), resultado, origem);
         if (resultado == ResultadoLogin.EMAIL_NAO_CONFIRMADO) {

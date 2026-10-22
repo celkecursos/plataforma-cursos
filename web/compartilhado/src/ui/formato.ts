@@ -11,6 +11,14 @@ export function dataHora(valor: string | null | undefined): string {
   return valor ? DATA_HORA.format(new Date(valor)) : '—';
 }
 
+/** Valor em centavos na moeda informada ("R$ 197,00"). */
+export function moeda(centavos: number | null | undefined, codigo = 'BRL'): string {
+  if (centavos == null) return '—';
+  return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: codigo }).format(
+    centavos / 100,
+  );
+}
+
 export function bytes(valor: number | null | undefined): string {
   if (valor == null) return '—';
   const unidades = ['B', 'KB', 'MB', 'GB'];

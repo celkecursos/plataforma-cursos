@@ -3,7 +3,12 @@ export const CAMINHOS = {
   inicio: '/',
   cursos: '/cursos',
   termos: '/termos',
+  meiosPagamento: '/pagamentos',
+  pedidos: '/pagamentos/pedidos',
+  eventos: '/pagamentos/eventos',
 } as const;
+
+export const caminhoPedido = (pedidoId: number | string) => `/pagamentos/pedidos/${pedidoId}`;
 
 export const caminhoCurso = (cursoId: number | string) => `/cursos/${cursoId}`;
 

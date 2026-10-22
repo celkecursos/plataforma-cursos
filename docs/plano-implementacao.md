@@ -549,17 +549,20 @@ Capítulo 37.
 
 ### Fase 16 — `feature/pagamentos`
 
-Prompt: [`docs/prompts/f16-01-pagamentos-hotmart.md`](prompts/f16-01-pagamentos-hotmart.md).
+Prompt: [`docs/prompts/f16-01-pagamentos-hotmart.md`](prompts/f16-01-pagamentos-hotmart.md). Operação e
+configuração da Hotmart: [`docs/pagamentos.md`](pagamentos.md).
 
-- [ ] Módulo `pagamento` com a porta `GatewayPagamento` (um bean por meio de pagamento) e o status de pedido único para todos
-- [ ] Meio de pagamento configurado pelo painel (formulário a partir dos campos do gateway, segredos com AES-GCM, um ativo por vez)
-- [ ] Hotmart com o **webhook 2.0.0** (`X-HOTMART-HOTTOK`, JSON com `id` por evento); o projeto antigo usa o 1.0.0, que não é recomendado
-- [ ] Checkout por redirecionamento com o código do pedido no `xcod`; página de retorno que acompanha o status
-- [ ] Notificações idempotentes, processadas pela fila, tolerantes a fora de ordem; matrícula criada, mantida ou cancelada conforme o status
-- [ ] Conta do comprador sem senha, com link de criar senha (nunca senha por e-mail)
-- [ ] Reconciliação pela API de vendas (preparada, ligada por configuração)
-- [ ] Painel: meios de pagamento, ofertas por turma, pedidos e eventos recebidos (reprocessar)
-- [ ] Testes unitários, de integração, e2e e Playwright com caminho feliz e infeliz
+- [x] Módulo `pagamento` com a porta `GatewayPagamento` (um bean por meio de pagamento) e o status de pedido único para todos
+- [x] Meio de pagamento configurado pelo painel (formulário a partir dos campos do gateway, segredos com AES-GCM, um ativo por vez)
+- [x] Hotmart com o **webhook 2.0.0** (`X-HOTMART-HOTTOK`, JSON com `id` por evento); o projeto antigo usa o 1.0.0, que não é recomendado
+- [x] Checkout por redirecionamento com o código do pedido no `xcod`; página de retorno que acompanha o status
+- [x] Notificações idempotentes, processadas pela fila, tolerantes a fora de ordem; matrícula criada, mantida ou cancelada conforme o status
+- [x] Conta do comprador sem senha, com link de criar senha (nunca senha por e-mail)
+- [x] Reconciliação pela API de vendas (preparada, ligada por configuração)
+- [x] Painel: meios de pagamento, ofertas por turma, pedidos e eventos recebidos (reprocessar)
+- [x] Testes unitários, de integração, e2e e Playwright com caminho feliz e infeliz
+- [x] `PAGAMENTOS_CHAVE` nos `.env` dos ambientes; homologação (restrita por IP) aceita só o caminho do webhook de fora
+- [ ] Na homologação: "Enviar teste" da Hotmart de cada evento, fixtures trocadas pelos corpos reais
 
 ---
 
@@ -586,3 +589,4 @@ O conteúdo de cada capítulo está em [capitulos.md](capitulos.md).
 | 13 | `feature/web-aluno` | 35 |
 | 14 | `feature/site` | 36 |
 | 15 | `feature/migracao-legado` | 37 |
+| 16 | `feature/pagamentos` | 38–40 |

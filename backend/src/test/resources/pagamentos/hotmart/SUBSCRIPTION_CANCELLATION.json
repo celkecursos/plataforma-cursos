@@ -1,0 +1,31 @@
+{
+  "id": "6c4e6a5b-0000-4000-8000-000000000201",
+  "creation_date": 1761140002000,
+  "event": "SUBSCRIPTION_CANCELLATION",
+  "version": "2.0.0",
+  "data": {
+    "date_next_charge": 1763818400000,
+    "product": {
+      "id": 4774438,
+      "name": "Curso de Teste"
+    },
+    "actual_recurrence_value": 97.0,
+    "subscriber": {
+      "code": "I9OT62C3",
+      "name": "Comprador de Teste",
+      "email": "comprador.teste@example.com",
+      "phone": {
+        "dddPhone": "11",
+        "phone": "999990000"
+      }
+    },
+    "subscription": {
+      "id": 4148584,
+      "plan": {
+        "id": 123,
+        "name": "Plano mensal"
+      }
+    },
+    "cancellation_date": 1761140002000
+  }
+}

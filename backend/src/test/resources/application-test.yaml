@@ -20,6 +20,13 @@ app:
     cors-origens: http://localhost:5173
   email:
     remetente: nao-responda@teste.celke.uno
+  pagamentos:
+    # Chave só dos testes (32 bytes em Base64)
+    chave: dGVzdGUtZGEtY2hhdmUtZGUtcGFnYW1lbnRvcy0zMmI=
+    hotmart:
+      # Sem saída para a internet: o teste de credenciais falha na conexão
+      url-token: http://localhost:1/security/oauth/token
+      timeout: PT2S
   forum:
     # Limite baixo para o teste do 429 (cada teste usa um aluno próprio)
     mensagens-por-janela: 5

@@ -1,6 +1,7 @@
 package br.com.celke.cursos.curso.application;
 
 import br.com.celke.cursos.curso.application.ConteudoTurmaService.ModuloConteudo;
+import br.com.celke.cursos.curso.application.OfertasCatalogo.OfertaCatalogo;
 import br.com.celke.cursos.curso.domain.Curso;
 import br.com.celke.cursos.curso.domain.StatusCurso;
 import br.com.celke.cursos.curso.domain.StatusTurma;
@@ -25,11 +26,17 @@ public class CatalogoService {
     private final CursoRepository cursos;
     private final TurmaRepository turmas;
     private final ConteudoTurmaService conteudoTurmaService;
+    private final OfertasCatalogo ofertasCatalogo;
 
-    public CatalogoService(CursoRepository cursos, TurmaRepository turmas, ConteudoTurmaService conteudoTurmaService) {
+    public CatalogoService(
+            CursoRepository cursos,
+            TurmaRepository turmas,
+            ConteudoTurmaService conteudoTurmaService,
+            OfertasCatalogo ofertasCatalogo) {
         this.cursos = cursos;
         this.turmas = turmas;
         this.conteudoTurmaService = conteudoTurmaService;
+        this.ofertasCatalogo = ofertasCatalogo;
     }
 
     @Transactional(readOnly = true)
@@ -47,12 +54,14 @@ public class CatalogoService {
     @Transactional(readOnly = true)
     public CursoDetalhe detalhar(String slug) {
         Curso curso = buscar(slug);
-        List<ModuloConteudo> conteudo = turmas.findFirstByCursoIdAndStatusOrderByIdDesc(
-                        curso.getId(), StatusTurma.ATIVA)
-                .map(turma -> conteudoTurmaService.conteudoAtivo(turma.getId()))
-                .orElse(List.of());
-        return new CursoDetalhe(curso, conteudo);
+        return turmas.findFirstByCursoIdAndStatusOrderByIdDesc(curso.getId(), StatusTurma.ATIVA)
+                .map(turma -> new CursoDetalhe(
+                        curso,
+                        conteudoTurmaService.conteudoAtivo(turma.getId()),
+                        ofertasCatalogo.ativas(turma.getId())))
+                .orElse(new CursoDetalhe(curso, List.of(), List.of()));
     }
 
-    public record CursoDetalhe(Curso curso, List<ModuloConteudo> modulos) {}
+    /** Curso com o conteúdo e as ofertas à venda da turma ativa mais recente. */
+    public record CursoDetalhe(Curso curso, List<ModuloConteudo> modulos, List<OfertaCatalogo> ofertas) {}
 }

@@ -23,6 +23,7 @@ const curso: CursoDetalhe = {
   descricao: 'Primeiro parágrafo.\n\nSegundo parágrafo.',
   capaUrl: '/api/cursos/java-do-zero/capa',
   modulos: [{ titulo: 'Introdução', aulas: [{ id: 1, titulo: 'Boas-vindas', gratuita: true }] }],
+  ofertas: [],
 };
 
 describe('html', () => {
@@ -62,6 +63,19 @@ describe('páginas', () => {
     expect(pagina).toContain('Aula gratuita');
     expect(pagina).toContain('<p>Segundo parágrafo.</p>');
     expect(pagina).not.toContain('noindex');
+  });
+
+  it('sem oferta, convida para criar a conta; com oferta, mostra o preço e o Comprar', () => {
+    expect(paginaCurso(ctx, curso)).toContain('Quero fazer este curso');
+    const aVenda = paginaCurso(ctx, {
+      ...curso,
+      ofertas: [{ id: 7, titulo: 'À vista', precoCentavos: 19_700, moeda: 'BRL' }],
+    });
+    expect(aVenda).not.toContain('Quero fazer este curso');
+    expect(aVenda).toContain('R$\u00a0197,00');
+    expect(aVenda).toContain('href="https://aluno.celke.uno/comprar/7"');
+    expect(aVenda).toContain('"@type":"Offer"');
+    expect(aVenda).toContain('"price":"197.00"');
   });
 
   it('homologação fica fora dos buscadores', () => {
