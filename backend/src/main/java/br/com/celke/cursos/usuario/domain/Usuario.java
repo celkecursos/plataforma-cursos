@@ -47,6 +47,10 @@ public class Usuario {
     @Column(name = "email_confirmado_em")
     private Instant emailConfirmadoEm;
 
+    /** Foto de perfil no bucket ({@code fotos/<usuario>/<uuid>.jpg}); nula sem foto. */
+    @Column(name = "foto_chave", length = 200)
+    private String fotoChave;
+
     @Column(name = "criado_em", nullable = false)
     private Instant criadoEm;
 
@@ -87,6 +91,23 @@ public class Usuario {
     public void trocarHashSenha(String novoHash, Instant agora) {
         this.senhaHash = novoHash;
         this.atualizadoEm = agora;
+    }
+
+    public void renomear(String nome, Instant agora) {
+        this.nome = nome.strip();
+        this.atualizadoEm = agora;
+    }
+
+    /** Troca a foto (nula remove) e devolve a chave da anterior, a apagar do bucket. */
+    public String trocarFoto(String chave, Instant agora) {
+        String anterior = this.fotoChave;
+        this.fotoChave = chave;
+        this.atualizadoEm = agora;
+        return anterior;
+    }
+
+    public String getFotoChave() {
+        return fotoChave;
     }
 
     public Long getId() {

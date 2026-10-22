@@ -30,14 +30,41 @@ public final class Api {
                 .accept(ContentType.JSON);
     }
 
-    /** Login pela área do aluno; confere o 200 e devolve a resposta (access token e cookie). */
+    /**
+     * Login pela área do aluno; confere o 200, aceita os termos vigentes ainda pendentes (como o front faz
+     * no primeiro acesso) e devolve a resposta do login (access token e cookie).
+     */
     public static Response login(String email, String senha) {
+        Response resposta = loginSemAceite(email, senha);
+        aceitarTermos(resposta.jsonPath().getString("accessToken"));
+        return resposta;
+    }
+
+    /** Login sem tocar nos termos (jornada que confere o bloqueio por termo pendente). */
+    public static Response loginSemAceite(String email, String senha) {
         return aluno().body("{\"email\":\"%s\",\"senha\":\"%s\"}".formatted(email, senha))
                 .post("/api/auth/login")
                 .then()
                 .statusCode(200)
                 .extract()
                 .response();
+    }
+
+    /** Aceita todos os termos vigentes que o usuário do token ainda não aceitou. */
+    public static void aceitarTermos(String accessToken) {
+        var pendentes = aluno().header("Authorization", bearer(accessToken))
+                .get("/api/termos/pendentes")
+                .then()
+                .statusCode(200)
+                .extract()
+                .jsonPath()
+                .getList("id", Long.class);
+        for (Long id : pendentes) {
+            aluno().header("Authorization", bearer(accessToken))
+                    .post("/api/termos/" + id + "/aceite")
+                    .then()
+                    .statusCode(204);
+        }
     }
 
     public static String bearer(String accessToken) {

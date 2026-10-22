@@ -63,6 +63,9 @@ public class SecurityConfig {
                         // Catálogo: cursos publicados, detalhe e capa
                         .requestMatchers(HttpMethod.GET, "/api/cursos", "/api/cursos/*", "/api/cursos/*/capa")
                         .permitAll()
+                        // Termos de uso e política de privacidade vigentes (páginas do site)
+                        .requestMatchers(HttpMethod.GET, "/api/termos/vigentes")
+                        .permitAll()
                         // Validação pública do certificado pelo código (página "validar certificado" do site)
                         .requestMatchers(HttpMethod.GET, "/api/certificados/*")
                         .permitAll()
