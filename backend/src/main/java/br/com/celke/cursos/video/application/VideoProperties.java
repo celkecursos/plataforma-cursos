@@ -23,6 +23,8 @@ import org.springframework.validation.annotation.Validated;
  * @param preset preset do x264: mais lento comprime melhor e gasta mais CPU
  * @param crf qualidade constante do x264 (menor = melhor e maior)
  * @param diretorioTrabalho onde o worker baixa o original e gera o HLS (apagado no fim de cada job)
+ * @param margemPlaylist somada à duração do vídeo na validade das URLs dos segmentos (pausas, avanço)
+ * @param retencaoLogAcesso por quanto tempo o log de acesso aos vídeos fica guardado
  */
 @Validated
 @ConfigurationProperties("app.video")
@@ -34,7 +36,9 @@ public record VideoProperties(
         List<String> prefixoComando,
         @NotBlank String preset,
         @Min(18) @Max(30) int crf,
-        @NotNull Path diretorioTrabalho) {
+        @NotNull Path diretorioTrabalho,
+        @NotNull Duration margemPlaylist,
+        @NotNull Duration retencaoLogAcesso) {
 
     public VideoProperties {
         prefixoComando = prefixoComando == null

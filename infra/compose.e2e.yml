@@ -28,6 +28,8 @@ services:
       SEED_E2E_SENHA: ${SEED_E2E_SENHA:?defina SEED_E2E_SENHA}
       # Todas as jornadas saem do mesmo IP
       APP_LIMITES_REQUISICOES_POR_IP_POR_MINUTO: "300"
+      # URLs dos segmentos vencem em segundos: a jornada de entrega confere a expiração
+      APP_VIDEO_MARGEM_PLAYLIST: PT5S
 
   worker:
     image: plataforma-cursos-worker:e2e

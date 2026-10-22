@@ -127,3 +127,7 @@ app:
     preset: veryfast
     crf: 24
     diretorio-trabalho: ${java.io.tmpdir}/plataforma-cursos-videos
+    # Validade das URLs dos segmentos = duração do vídeo + margem (pausas e idas e voltas no player)
+    margem-playlist: PT2H
+    # Log de acesso aos vídeos: 6 meses (prazo do Marco Civil para registros de acesso a aplicações)
+    retencao-log-acesso: P180D

@@ -79,8 +79,11 @@ KbdInteractiveAuthentication no
 PubkeyAuthentication yes
 AllowUsers $ADMIN_USUARIO deploy
 SSH
+# No Ubuntu 24.04 o ssh sobe por socket: /run/sshd só existe com o serviço ativo, e o sshd -t exige a pasta
+mkdir -p /run/sshd
 sshd -t
-systemctl reload ssh
+# Com o socket, cada conexão nova já lê a configuração; o reload só vale se o serviço estiver ativo
+systemctl try-reload-or-restart ssh
 
 echo "==> Firewall (ufw): só 22, 80 e 443"
 # O Docker contorna o ufw nas portas que publica: por isso só o Caddy publica portas
