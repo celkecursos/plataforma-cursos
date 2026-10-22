@@ -18,3 +18,4 @@ Ao final de cada prompt, confira a seção **Verificação** dele antes de segui
 | 8 | [Testes e2e e pipeline no GitHub Actions](f01-07-e2e-e-pipeline.md) | 1.7 | `feature/base-projeto` |
 | 9 | [Preparar a VPS: produção e homologação](f01-08-vps.md) | 1.8 | `feature/base-projeto` |
 | 10 | [Deploy automático com rollback](f01-09-deploy-automatico.md) | 1.9 | `feature/base-projeto` |
+| 11 | [Cursos, turmas, módulos, aulas e catálogo](f02-01-cursos-e-catalogo.md) | 2 | `feature/cursos` |
