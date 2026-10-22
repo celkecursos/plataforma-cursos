@@ -63,6 +63,9 @@ public class SecurityConfig {
                         // Catálogo: cursos publicados, detalhe e capa
                         .requestMatchers(HttpMethod.GET, "/api/cursos", "/api/cursos/*", "/api/cursos/*/capa")
                         .permitAll()
+                        // Validação pública do certificado pelo código (página "validar certificado" do site)
+                        .requestMatchers(HttpMethod.GET, "/api/certificados/*")
+                        .permitAll()
                         // Área do ADM: o papel é exigido aqui e repetido com @PreAuthorize nos controllers
                         .requestMatchers("/api/adm/**")
                         .hasRole("ADMIN")

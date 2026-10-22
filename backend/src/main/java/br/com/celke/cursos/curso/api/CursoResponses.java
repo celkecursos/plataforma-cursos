@@ -43,10 +43,22 @@ public final class CursoResponses {
         }
     }
 
-    public record Turma(Long id, Long cursoId, String nome, StatusTurma status) {
+    public record Turma(
+            Long id,
+            Long cursoId,
+            String nome,
+            StatusTurma status,
+            int percentualConclusao,
+            Integer cargaHorariaHoras) {
 
         public static Turma de(br.com.celke.cursos.curso.domain.Turma turma) {
-            return new Turma(turma.getId(), turma.getCurso().getId(), turma.getNome(), turma.getStatus());
+            return new Turma(
+                    turma.getId(),
+                    turma.getCurso().getId(),
+                    turma.getNome(),
+                    turma.getStatus(),
+                    turma.getPercentualConclusao(),
+                    turma.getCargaHorariaHoras());
         }
     }
 

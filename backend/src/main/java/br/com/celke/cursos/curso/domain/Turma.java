@@ -33,6 +33,14 @@ public class Turma {
     @Column(nullable = false, length = 20)
     private StatusTurma status;
 
+    /** Percentual de aulas vistas que dá direito ao certificado (1 a 100). */
+    @Column(name = "percentual_conclusao", nullable = false)
+    private int percentualConclusao = 100;
+
+    /** Carga horária impressa no certificado; nula, o certificado sai sem ela. */
+    @Column(name = "carga_horaria_horas")
+    private Integer cargaHorariaHoras;
+
     @Column(name = "criado_em", nullable = false)
     private Instant criadoEm;
 
@@ -60,6 +68,19 @@ public class Turma {
         this.atualizadoEm = agora;
     }
 
+    /** Regra do certificado: percentual mínimo de aulas vistas e carga horária. */
+    public void definirCertificado(int percentualConclusao, Integer cargaHorariaHoras, Instant agora) {
+        if (percentualConclusao < 1 || percentualConclusao > 100) {
+            throw new IllegalArgumentException("O percentual de conclusão vai de 1 a 100.");
+        }
+        if (cargaHorariaHoras != null && cargaHorariaHoras < 1) {
+            throw new IllegalArgumentException("A carga horária precisa ser positiva.");
+        }
+        this.percentualConclusao = percentualConclusao;
+        this.cargaHorariaHoras = cargaHorariaHoras;
+        this.atualizadoEm = agora;
+    }
+
     public Long getId() {
         return id;
     }
@@ -74,5 +95,13 @@ public class Turma {
 
     public StatusTurma getStatus() {
         return status;
+    }
+
+    public int getPercentualConclusao() {
+        return percentualConclusao;
+    }
+
+    public Integer getCargaHorariaHoras() {
+        return cargaHorariaHoras;
     }
 }
