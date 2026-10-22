@@ -73,6 +73,14 @@ public class TurmaAdmService {
         }
     }
 
+    /** Regra de conclusão e carga horária do certificado da turma. */
+    @Transactional
+    public Turma definirCertificado(Long id, int percentualConclusao, Integer cargaHorariaHoras) {
+        Turma turma = buscar(id);
+        turma.definirCertificado(percentualConclusao, cargaHorariaHoras, clock.instant());
+        return turma;
+    }
+
     private Turma buscar(Long id) {
         return turmas.findById(id).orElseThrow(TurmaAdmService::naoEncontrada);
     }

@@ -6,6 +6,8 @@ import br.com.celke.cursos.curso.domain.Slug;
 import br.com.celke.cursos.curso.domain.StatusConteudo;
 import br.com.celke.cursos.curso.domain.StatusCurso;
 import br.com.celke.cursos.curso.domain.StatusTurma;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
@@ -40,6 +42,11 @@ public final class CursoRequests {
     public record Turma(@NotBlank @Size(max = 120) String nome) {}
 
     public record AlterarStatusTurma(@NotNull StatusTurma status) {}
+
+    /** Sem carga horária, o certificado sai sem ela. */
+    public record CertificadoTurma(
+            @Min(1) @Max(100) int percentualConclusao,
+            @Positive @Max(10_000) Integer cargaHorariaHoras) {}
 
     public record Modulo(@NotBlank @Size(max = 150) String titulo) {}
 

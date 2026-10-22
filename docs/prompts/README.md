@@ -24,3 +24,4 @@ Ao final de cada prompt, confira a seção **Verificação** dele antes de segui
 | 14 | [Playlist assinada, progresso e log de acesso](f05-01-playlist-e-progresso.md) | 5 | `feature/entrega-video` |
 | 15 | [Arquivos de apoio](f06-01-arquivos-de-apoio.md) | 6 | `feature/arquivos-apoio` |
 | 16 | [Fórum por aula e por turma](f07-01-forum.md) | 7 | `feature/forum` |
+| 17 | [Certificado em PDF](f08-01-certificado.md) | 8 | `feature/certificado` |

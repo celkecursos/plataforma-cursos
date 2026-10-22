@@ -57,6 +57,15 @@ public class TurmaAdmController {
         return Turma.de(turmaAdmService.alterarStatus(id, request.status()));
     }
 
+    @PutMapping("/turmas/{id}/certificado")
+    @Operation(
+            summary = "Regra do certificado",
+            description = "Percentual de aulas vistas que dá direito ao certificado (1 a 100) e carga horária.")
+    public Turma definirCertificado(@PathVariable Long id, @Valid @RequestBody CursoRequests.CertificadoTurma request) {
+        return Turma.de(
+                turmaAdmService.definirCertificado(id, request.percentualConclusao(), request.cargaHorariaHoras()));
+    }
+
     @DeleteMapping("/turmas/{id}")
     @Operation(summary = "Excluir turma", description = "Só sem módulos; turma com conteúdo é encerrada.")
     public ResponseEntity<Void> excluir(@PathVariable Long id) {

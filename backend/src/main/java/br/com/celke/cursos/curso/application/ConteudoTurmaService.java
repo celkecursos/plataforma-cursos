@@ -72,6 +72,13 @@ public class ConteudoTurmaService {
                 .toList();
     }
 
+    /** Regra do certificado da turma (percentual mínimo de aulas vistas e carga horária). */
+    @Transactional(readOnly = true)
+    public Optional<RegraCertificado> regraCertificado(Long turmaId) {
+        return turmas.findById(turmaId)
+                .map(t -> new RegraCertificado(t.getPercentualConclusao(), t.getCargaHorariaHoras()));
+    }
+
     /** O módulo existe, em qualquer status (gestão dos arquivos pelo ADM). */
     @Transactional(readOnly = true)
     public boolean moduloExiste(Long moduloId) {
@@ -141,6 +148,8 @@ public class ConteudoTurmaService {
     public record AulaConteudo(Long id, String titulo, boolean gratuita) {}
 
     public record ModuloContexto(Long id, String titulo, Long turmaId) {}
+
+    public record RegraCertificado(int percentualConclusao, Integer cargaHorariaHoras) {}
 
     public record AulaContexto(
             Long id,
