@@ -67,3 +67,101 @@
   gap: 16px;
   grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
 }
+
+/* Telas de gestão (ADM) */
+.pc-pilha {
+  display: grid;
+  gap: 16px;
+}
+
+.pc-linha {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+}
+
+.pc-linha-fim {
+  justify-content: flex-end;
+}
+
+.pc-filtros {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.pc-grade-detalhes {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  align-items: start;
+}
+
+.pc-dica {
+  color: var(--t2);
+  font-size: var(--fs-corpo-2);
+  margin: 0;
+}
+
+.pc-subtitulo {
+  font-size: var(--fs-corpo);
+  margin: 8px 0 0;
+}
+
+.pc-texto-longo {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  margin: 0;
+}
+
+.pc-texto-longo :where(p, ul, ol, h1, h2, h3) {
+  white-space: normal;
+}
+
+.pc-capa {
+  max-width: min(360px, 100%);
+  border-radius: var(--r-card);
+}
+
+.pc-lista-aulas {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding-left: 20px;
+}
+
+.pc-lista-aulas li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+}
+
+.pc-aula-titulo {
+  background: none;
+  border: 0;
+  padding: 0;
+  font: inherit;
+  cursor: pointer;
+  text-align: left;
+}
+
+.pc-arquivos {
+  display: grid;
+  gap: 10px;
+  border-top: 1px solid var(--border);
+  padding-top: 12px;
+}
+
+.pc-resposta {
+  border: 1px solid var(--border);
+  border-radius: var(--r-card);
+  padding: 12px 14px;
+  display: grid;
+  gap: 8px;
+}
+
+.pc-resposta-oculta {
+  opacity: 0.6;
+}

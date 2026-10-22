@@ -6,6 +6,8 @@ import {
   GraduationCap,
   LayoutDashboard,
   Pencil,
+  Pin,
+  PinOff,
   Upload,
   Users,
 } from 'lucide-react';
@@ -18,6 +20,8 @@ registrarIcones({
   'graduation-cap': GraduationCap,
   'layout-dashboard': LayoutDashboard,
   pencil: Pencil,
+  pin: Pin,
+  'pin-off': PinOff,
   upload: Upload,
   users: Users,
 });
