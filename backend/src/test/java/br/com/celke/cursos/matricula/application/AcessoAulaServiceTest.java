@@ -10,6 +10,7 @@ import static org.mockito.Mockito.when;
 
 import br.com.celke.cursos.curso.application.ConteudoTurmaService;
 import br.com.celke.cursos.curso.application.ConteudoTurmaService.AulaContexto;
+import br.com.celke.cursos.curso.application.ConteudoTurmaService.TurmaResumo;
 import br.com.celke.cursos.curso.domain.StatusCurso;
 import br.com.celke.cursos.curso.domain.StatusTurma;
 import br.com.celke.cursos.matricula.domain.AcessoAulaPolicy;
@@ -91,6 +92,43 @@ class AcessoAulaServiceTest {
         assertThatThrownBy(() -> service.exigirAcesso(7L, 9L))
                 .isInstanceOf(NaoEncontradoException.class)
                 .hasMessage("Aula não encontrada.");
+        verify(matriculas, never()).findByUsuarioIdAndTurmaIdAndStatus(any(), any(), any());
+    }
+
+    private static TurmaResumo turma() {
+        return new TurmaResumo(5L, "Turma", StatusTurma.ATIVA, 1L, "Java", "java", StatusCurso.PUBLICADO, null);
+    }
+
+    @Test
+    @DisplayName("turma: matrícula vigente libera e devolve o resumo")
+    void turmaComMatricula() {
+        when(conteudoTurmaService.turma(5L)).thenReturn(Optional.of(turma()));
+        when(matriculas.findByUsuarioIdAndTurmaIdAndStatus(7L, 5L, StatusMatricula.ATIVA))
+                .thenReturn(Optional.of(matricula(1, 7, 5, AGORA.minusSeconds(60), null)));
+
+        assertThat(service.exigirAcessoTurma(7L, 5L)).isEqualTo(turma());
+    }
+
+    @Test
+    @DisplayName("turma: sem matrícula vigente responde 403, mesmo com aula gratuita na turma")
+    void turmaSemMatricula() {
+        when(conteudoTurmaService.turma(5L)).thenReturn(Optional.of(turma()));
+        when(matriculas.findByUsuarioIdAndTurmaIdAndStatus(7L, 5L, StatusMatricula.ATIVA))
+                .thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> service.exigirAcessoTurma(7L, 5L))
+                .isInstanceOf(AcessoNegadoException.class)
+                .hasMessage("Você não tem acesso a esta turma. Verifique o período da sua matrícula.");
+    }
+
+    @Test
+    @DisplayName("turma inexistente responde 404")
+    void turmaInexistente() {
+        when(conteudoTurmaService.turma(9L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> service.exigirAcessoTurma(7L, 9L))
+                .isInstanceOf(NaoEncontradoException.class)
+                .hasMessage("Turma não encontrada.");
         verify(matriculas, never()).findByUsuarioIdAndTurmaIdAndStatus(any(), any(), any());
     }
 }

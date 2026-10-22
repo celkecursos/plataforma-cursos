@@ -2,6 +2,7 @@ package br.com.celke.cursos.matricula.application;
 
 import br.com.celke.cursos.curso.application.ConteudoTurmaService;
 import br.com.celke.cursos.curso.application.ConteudoTurmaService.AulaContexto;
+import br.com.celke.cursos.curso.application.ConteudoTurmaService.TurmaResumo;
 import br.com.celke.cursos.matricula.domain.AcessoAulaPolicy;
 import br.com.celke.cursos.matricula.domain.StatusMatricula;
 import br.com.celke.cursos.matricula.infra.MatriculaRepository;
@@ -12,7 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Porta de entrada da {@link AcessoAulaPolicy} para os outros módulos: toda rota de aula, vídeo,
- * arquivo, fórum ou progresso chama {@link #exigirAcesso} antes de responder.
+ * arquivo, fórum ou progresso chama {@link #exigirAcesso} (ou {@link #exigirAcessoTurma}) antes de responder.
  */
 @Service
 public class AcessoAulaService {
@@ -44,5 +45,23 @@ public class AcessoAulaService {
             throw new AcessoNegadoException("Você não tem acesso a esta aula. Verifique o período da sua matrícula.");
         }
         return aula;
+    }
+
+    /**
+     * Devolve a turma se o usuário tem matrícula vigente nela (conteúdo completo: lista de aulas,
+     * progresso, certificado). Turma inexistente responde 404; sem matrícula vigente, 403.
+     */
+    @Transactional(readOnly = true)
+    public TurmaResumo exigirAcessoTurma(Long usuarioId, Long turmaId) {
+        TurmaResumo turma = conteudoTurmaService
+                .turma(turmaId)
+                .orElseThrow(() -> new NaoEncontradoException("Turma não encontrada."));
+        var matricula = matriculas
+                .findByUsuarioIdAndTurmaIdAndStatus(usuarioId, turmaId, StatusMatricula.ATIVA)
+                .orElse(null);
+        if (!policy.podeAcessarTurma(matricula)) {
+            throw new AcessoNegadoException("Você não tem acesso a esta turma. Verifique o período da sua matrícula.");
+        }
+        return turma;
     }
 }

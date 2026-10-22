@@ -63,7 +63,16 @@ class EnvioVideoServiceTest {
     @BeforeEach
     void criar() {
         var props = new VideoProperties(
-                DataSize.ofGigabytes(5), VALIDADE, "ffmpeg", "ffprobe", null, "veryfast", 24, Path.of("/tmp/videos"));
+                DataSize.ofGigabytes(5),
+                VALIDADE,
+                "ffmpeg",
+                "ffprobe",
+                null,
+                "veryfast",
+                24,
+                Path.of("/tmp/videos"),
+                Duration.ofHours(2),
+                Duration.ofDays(180));
         service = new EnvioVideoService(videoAdmService, storage, props, Clock.fixed(AGORA, ZoneOffset.UTC));
     }
 
