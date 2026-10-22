@@ -1,5 +1,6 @@
 package br.com.celke.cursos.shared.erro;
 
+import java.util.Map;
 import org.springframework.http.HttpStatus;
 
 /**
@@ -17,5 +18,10 @@ public class RegraNegocioException extends RuntimeException {
 
     public HttpStatus getStatus() {
         return status;
+    }
+
+    /** Campos extras do ProblemDetail (ex.: os termos pendentes); vazio por padrão. */
+    public Map<String, Object> propriedades() {
+        return Map.of();
     }
 }

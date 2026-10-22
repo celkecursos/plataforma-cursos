@@ -66,6 +66,27 @@ public class UsuarioService {
         repository.save(usuario);
     }
 
+    /** A senha informada é a atual do usuário (troca de senha no perfil). */
+    public boolean senhaConfere(Usuario usuario, String senha) {
+        return senha != null && passwordEncoder.matches(senha, usuario.getSenhaHash());
+    }
+
+    @Transactional
+    public Usuario renomear(Long usuarioId, String nome) {
+        Usuario usuario = repository.findById(usuarioId).orElseThrow();
+        usuario.renomear(nome, clock.instant());
+        return repository.save(usuario);
+    }
+
+    /** Troca a foto de perfil (nula remove); devolve a chave da anterior. */
+    @Transactional
+    public Optional<String> trocarFoto(Long usuarioId, String chave) {
+        Usuario usuario = repository.findById(usuarioId).orElseThrow();
+        String anterior = usuario.trocarFoto(chave, clock.instant());
+        repository.save(usuario);
+        return Optional.ofNullable(anterior);
+    }
+
     @Transactional(readOnly = true)
     public Optional<Usuario> buscarPorEmail(String email) {
         return repository.findByEmail(Usuario.normalizarEmail(email));

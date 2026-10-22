@@ -1,5 +1,6 @@
 package br.com.celke.cursos.forum.domain;
 
+import br.com.celke.cursos.shared.texto.MarkdownSeguro;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;

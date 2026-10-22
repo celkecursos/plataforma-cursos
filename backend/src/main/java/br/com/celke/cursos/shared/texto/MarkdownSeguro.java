@@ -1,4 +1,4 @@
-package br.com.celke.cursos.forum.domain;
+package br.com.celke.cursos.shared.texto;
 
 import org.commonmark.parser.Parser;
 import org.commonmark.renderer.html.HtmlRenderer;
@@ -7,7 +7,7 @@ import org.owasp.html.PolicyFactory;
 import org.owasp.html.Sanitizers;
 
 /**
- * Converte o Markdown do fórum em HTML seguro, em duas camadas: o commonmark escapa todo HTML escrito
+ * Converte o Markdown (fórum, termos) em HTML seguro, em duas camadas: o commonmark escapa todo HTML escrito
  * pelo usuário e descarta links com esquema perigoso ({@code javascript:}); o sanitizador OWASP deixa
  * passar só uma lista fechada de elementos (texto, listas, citações, código, links e tabelas), sem
  * atributos de evento nem estilo. Links ganham {@code rel="nofollow noopener noreferrer"}.

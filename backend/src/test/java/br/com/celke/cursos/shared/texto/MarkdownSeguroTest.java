@@ -1,4 +1,4 @@
-package br.com.celke.cursos.forum.domain;
+package br.com.celke.cursos.shared.texto;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
