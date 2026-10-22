@@ -111,7 +111,7 @@ requisições por IP.
 | `E2E_ADM_URL`     | `http://adm.localhost:8088`    | ADM                                       |
 | `E2E_SITE_URL`    | `http://cursos.localhost:8088` | site público                              |
 | `E2E_MAILPIT_URL` | `http://localhost:8026`        | e-mails (links de confirmação e de senha) |
-| `E2E_SENHA_SEED`  | `123456A#b123`            | senha das contas do seed                  |
+| `E2E_SENHA_SEED`  | `123456A#b123`                 | senha das contas do seed                  |
 | `E2E_SLOWMO`      | `0`                            | câmera lenta, em ms entre ações           |
 
 ## Contas e sessão
