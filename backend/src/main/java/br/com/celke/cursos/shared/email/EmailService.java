@@ -15,7 +15,7 @@ import org.springframework.stereotype.Service;
 @EnableConfigurationProperties(EmailProperties.class)
 public class EmailService {
 
-    static final String TIPO_JOB = "EMAIL";
+    public static final String TIPO_JOB = "EMAIL";
 
     /** Só letras minúsculas, números e hífen: o nome do template nunca vira um caminho arbitrário. */
     static final Pattern NOME_TEMPLATE = Pattern.compile("[a-z0-9-]+");

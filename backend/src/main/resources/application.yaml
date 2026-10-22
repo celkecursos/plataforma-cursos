@@ -136,3 +136,9 @@ app:
     mensagens-por-janela: 20
     janela: PT1H
     anexos-por-mensagem: 3
+  alertas:
+    # Destinatário dos alertas do worker (jobs com erro, disco); em branco, desligados
+    email: ${ALERTA_EMAIL:}
+    disco-minimo-percentual: 15
+    diretorio-disco: /
+    repeticao-disco: PT6H

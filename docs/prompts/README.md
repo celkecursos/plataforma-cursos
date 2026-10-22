@@ -26,3 +26,4 @@ Ao final de cada prompt, confira a seção **Verificação** dele antes de segui
 | 16 | [Fórum por aula e por turma](f07-01-forum.md) | 7 | `feature/forum` |
 | 17 | [Certificado em PDF](f08-01-certificado.md) | 8 | `feature/certificado` |
 | 18 | [Perfil e termos](f09-01-perfil-e-termos.md) | 9 | `feature/perfil-termos` |
+| 19 | [Operação: backup, alertas e segurança](f10-01-operacao.md) | 10 | `feature/operacao` |

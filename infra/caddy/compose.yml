@@ -29,6 +29,11 @@ services:
     networks:
       - producao
       - homolog
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
     deploy:
       resources:
         limits:

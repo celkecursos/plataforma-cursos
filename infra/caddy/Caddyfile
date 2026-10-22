@@ -12,6 +12,8 @@
 	header {
 		X-Content-Type-Options nosniff
 		Referrer-Policy strict-origin-when-cross-origin
+		# Respostas só podem ser carregadas por páginas do mesmo site (aluno, adm e mídia são subdomínios dele)
+		Cross-Origin-Resource-Policy same-site
 		Strict-Transport-Security "max-age=31536000"
 		-Server
 	}

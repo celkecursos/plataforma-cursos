@@ -21,6 +21,7 @@ class ProxyE2E {
 
         resposta.header("X-Content-Type-Options", "nosniff")
                 .header("Referrer-Policy", "strict-origin-when-cross-origin")
+                .header("Cross-Origin-Resource-Policy", "same-site")
                 .header("Strict-Transport-Security", "max-age=31536000");
         assertThat(resposta.extract().header("Server")).isNull();
     }

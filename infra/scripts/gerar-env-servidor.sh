@@ -58,6 +58,9 @@ SMTP_PASSWORD=
 SMTP_AUTH=true
 SMTP_STARTTLS=true
 EMAIL_REMETENTE=nao-responda@celke.uno
+
+# Alertas do worker (jobs com erro, disco quase cheio); em branco, desligados
+ALERTA_EMAIL=
 ENV
 
 chmod 600 "$DESTINO"

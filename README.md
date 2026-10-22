@@ -21,5 +21,7 @@ como tutorial.
 ## Documentação
 
 - [Plano de implementação](docs/plano-implementacao.md)
+- [Roteiro da VPS](docs/vps.md)
+- [Operação: backup, alertas e segurança](docs/operacao.md)
 - [Roteiro do tutorial (capítulos)](docs/capitulos.md)
 - [Prompts para recriar o projeto passo a passo](docs/prompts/README.md)
