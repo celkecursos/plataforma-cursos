@@ -113,7 +113,7 @@ notificação há mais de 3 dias (até 60 dias sem mudança). Se o status mudou,
 (`reconciliacao:<transação>:<status>`) que segue o mesmo caminho do webhook. Confira host e parâmetros
 na documentação da Hotmart antes de ligar.
 
-## Diferenças em relação ao webhook 1.0.0 (projeto antigo)
+## Diferenças em relação ao webhook 1.0.0
 
 | | 1.0.0 (não usar) | 2.0.0 (usado aqui) |
 |---|---|---|

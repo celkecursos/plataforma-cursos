@@ -17,8 +17,8 @@ import org.springframework.stereotype.Component;
 @Profile("e2e")
 public class SeedE2e implements ApplicationRunner {
 
-    public static final String ADMIN_EMAIL = "admin.e2e@teste.celke.uno";
-    public static final String ALUNO_EMAIL = "aluno.e2e@teste.celke.uno";
+    public static final String ADMIN_EMAIL = "admin@celke.com.br";
+    public static final String ALUNO_EMAIL = "aluno@celke.com.br";
 
     private final UsuarioService usuarioService;
     private final String senha;

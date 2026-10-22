@@ -16,7 +16,9 @@
     "e2e": "playwright test",
     "e2e:headed": "playwright test --headed",
     "e2e:ui": "playwright test --ui",
+    "e2e:debug": "playwright test --debug",
     "e2e:report": "playwright show-report",
+    "e2e:trace": "playwright show-trace",
     "lighthouse": "node e2e/lighthouse.ts"
   },
   "dependencies": {

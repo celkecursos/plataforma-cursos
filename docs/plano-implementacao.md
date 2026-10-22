@@ -10,15 +10,6 @@ na ordem do índice, eles recriam o projeto do zero.
 **Ordem de trabalho:** primeiro todo o backend (com infraestrutura, CI e deploy), depois o frontend,
 quando o `@celke/ui` já estiver publicado no npm.
 
-Referências analisadas:
-
-- `petardo-com/cesar-nicolau-szpak-055290` — base de Docker/Spring (com problemas de segurança a corrigir)
-- `petardo-com/layout-proprio-biblioteca` — `@celke/ui`
-- `petardo-clms/celke-administrativo-v8-clms` — regras da área do aluno
-- `petardo-clms/celke-administrativo-v8-adm` — modelo de dados e gestão
-- `petardo-clms/celke-administrativo-v8-import-video-vimeo` — parâmetros de compressão ffmpeg
-- `petardo-clms/celke-administrativo-v8-site` — conteúdo do site (layout será refeito)
-
 ---
 
 ## 1. Decisões
@@ -26,7 +17,7 @@ Referências analisadas:
 | Tema | Decisão |
 |---|---|
 | Java | **Java 25 LTS** |
-| Backend | **Spring Boot 4.1.x** (última correção disponível ao criar o projeto); organizado por funcionalidade; profiles `api` e `worker` no mesmo código. Atualizar para 4.2 numa branch `fix/` quando sair (previsto para novembro de 2026). O 3.5 da referência perdeu o suporte gratuito em 30/06/2026 |
+| Backend | **Spring Boot 4.1.x** (última correção disponível ao criar o projeto); organizado por funcionalidade; profiles `api` e `worker` no mesmo código. Atualizar para 4.2 numa branch `fix/` quando sair |
 | Banco | **PostgreSQL 18** + Flyway |
 | Fila | Tabela no PostgreSQL com `SELECT ... FOR UPDATE SKIP LOCKED` (sem Redis/RabbitMQ) |
 | S3 na VPS | **Garage** (`dxflrs/garage:v2.4.1`), modo `--single-node`. Escolhido por ser leve, ter configuração curta e suportar tudo que o projeto usa (veja abaixo). O MinIO comunitário parou de publicar imagens Docker e entrou em modo de manutenção |
@@ -554,7 +545,7 @@ configuração da Hotmart: [`docs/pagamentos.md`](pagamentos.md).
 
 - [x] Módulo `pagamento` com a porta `GatewayPagamento` (um bean por meio de pagamento) e o status de pedido único para todos
 - [x] Meio de pagamento configurado pelo painel (formulário a partir dos campos do gateway, segredos com AES-GCM, um ativo por vez)
-- [x] Hotmart com o **webhook 2.0.0** (`X-HOTMART-HOTTOK`, JSON com `id` por evento); o projeto antigo usa o 1.0.0, que não é recomendado
+- [x] Hotmart com o **webhook 2.0.0** (`X-HOTMART-HOTTOK`, JSON com `id` por evento); a versão 1.0.0 não é mais recomendada
 - [x] Checkout por redirecionamento com o código do pedido no `xcod`; página de retorno que acompanha o status
 - [x] Notificações idempotentes, processadas pela fila, tolerantes a fora de ordem; matrícula criada, mantida ou cancelada conforme o status
 - [x] Conta do comprador sem senha, com link de criar senha (nunca senha por e-mail)

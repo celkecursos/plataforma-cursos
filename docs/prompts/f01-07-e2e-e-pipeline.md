@@ -902,7 +902,7 @@ SMTP_AUTH=false
 SMTP_STARTTLS=false
 EMAIL_REMETENTE=nao-responda@teste.celke.uno
 
-SEED_E2E_SENHA=senha-do-seed-e2e
+SEED_E2E_SENHA='123456A#b123'
 `````
 
 `backend/src/main/java/br/com/celke/cursos/usuario/application/SeedE2e.java`:
@@ -927,8 +927,8 @@ import org.springframework.stereotype.Component;
 @Profile("e2e")
 public class SeedE2e implements ApplicationRunner {
 
-    public static final String ADMIN_EMAIL = "admin.e2e@teste.celke.uno";
-    public static final String ALUNO_EMAIL = "aluno.e2e@teste.celke.uno";
+    public static final String ADMIN_EMAIL = "admin@celke.com.br";
+    public static final String ALUNO_EMAIL = "aluno@celke.com.br";
 
     private final UsuarioService usuarioService;
     private final String senha;
@@ -974,13 +974,13 @@ public final class E2eConfig {
 
     public static final String MAILPIT = System.getProperty("e2e.mailpit", "http://localhost:8026");
 
-    public static final String SENHA_SEED = System.getProperty("e2e.senha-seed", "senha-do-seed-e2e");
+    public static final String SENHA_SEED = System.getProperty("e2e.senha-seed", "123456A#b123");
 
     public static final String HOST_ALUNO = "aluno.localhost";
     public static final String HOST_ADM = "adm.localhost";
 
-    public static final String ADMIN_SEED = "admin.e2e@teste.celke.uno";
-    public static final String ALUNO_SEED = "aluno.e2e@teste.celke.uno";
+    public static final String ADMIN_SEED = "admin@celke.com.br";
+    public static final String ALUNO_SEED = "aluno@celke.com.br";
 
     private E2eConfig() {}
 
