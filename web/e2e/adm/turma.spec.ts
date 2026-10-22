@@ -74,6 +74,8 @@ test.describe('Fórum', () => {
     await adm.post(`/api/adm/turmas/${curso.turmaId}/matriculas`, {
       email,
       formaPagamento: 'CORTESIA',
+      // Começa ontem: o relógio da VM do Docker (Windows) às vezes volta alguns segundos
+      inicio: new Date(Date.now() - 86_400_000).toISOString(),
     });
     const aluno = await clienteAluno(request, email, SENHA_NOVA);
     const titulo = `Dúvida ${stamp()}`;

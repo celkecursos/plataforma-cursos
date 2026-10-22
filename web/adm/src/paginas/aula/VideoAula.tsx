@@ -14,8 +14,8 @@ import { enviarEmPartes } from '@compartilhado/api/envio.ts';
 import { ErroApi, mensagemDeErro } from '@compartilhado/api/erros.ts';
 import { useCarregar } from '@compartilhado/api/useCarregar.ts';
 import { bytes, dataHora, duracao } from '@compartilhado/ui/formato.ts';
-import { EscolherArquivo } from '../../componentes/EscolherArquivo.tsx';
-import { useAcao } from '../../componentes/useAcao.ts';
+import { EscolherArquivo } from '@compartilhado/ui/EscolherArquivo.tsx';
+import { useAcao } from '@compartilhado/ui/useAcao.ts';
 import { STATUS_VIDEO, type EnvioVideo, type Video } from '../../tipos.ts';
 
 /** Formatos aceitos pela API (FormatoVideo). */

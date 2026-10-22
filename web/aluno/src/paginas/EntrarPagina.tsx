@@ -19,7 +19,11 @@ export function EntrarPagina() {
       marca={MARCA}
       identificador="email"
       titulo="Entre na sua conta"
-      descricao="Acesse seus cursos, aulas e certificados."
+      descricao={
+        parametros.get('senha') === 'alterada'
+          ? 'Senha alterada. Entre com a nova senha.'
+          : 'Acesse seus cursos, aulas e certificados.'
+      }
       apresentacao={{
         chamada: 'Plataforma de Cursos',
         titulo: 'Aprenda no seu ritmo',

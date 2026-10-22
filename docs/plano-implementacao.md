@@ -519,11 +519,11 @@ Capítulo 34.
 
 Capítulo 35.
 
-- [ ] Dashboard (`CardCurso`), cursos arquivados e expirados
-- [ ] Turma com módulos, aulas e progresso
-- [ ] Aula: `PlayerVideo`, `ListaAulas`, anterior/próxima, vista/revisar, arquivos, fórum
-- [ ] Certificados e perfil (dados, senha, foto)
-- [ ] e2e: login → turma → aula → vídeo toca → marca como vista → progresso atualizado
+- [x] Meus cursos em abas (ativos, arquivados, expirados), arquivar/desarquivar
+- [x] Turma com módulos, aulas, arquivos do módulo e progresso (vistas e revisar)
+- [x] Aula: player HLS (hls.js; token só nas playlists da API) com retomada e envio da posição, anterior/próxima, vista/revisar, arquivos, fórum da aula (pergunta e resposta; anexo de imagem fica para depois)
+- [x] Certificado (situação, emissão com o nome completo, PDF), lista de certificados e perfil (nome, foto, senha)
+- [x] e2e (Playwright, caminho feliz e infeliz): login → turma → aula → vídeo toca até o fim → vista → progresso da turma; retomada, revisar, navegação, download do arquivo, fórum, certificado (bloqueado → emitido → validado), perfil; sem matrícula, matrícula futura, arquivar
 
 ### Fase 14 — `feature/site`
 

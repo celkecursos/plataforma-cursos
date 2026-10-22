@@ -20,7 +20,7 @@ import type { Pagina } from '@compartilhado/api/tipos.ts';
 import { useCarregar } from '@compartilhado/api/useCarregar.ts';
 import { data, diaLocal, fimDoDia, inicioDoDia } from '@compartilhado/ui/formato.ts';
 import { erroEmail } from '@compartilhado/ui/validacao.ts';
-import { useAcao } from '../../componentes/useAcao.ts';
+import { useAcao } from '@compartilhado/ui/useAcao.ts';
 import {
   FORMAS_PAGAMENTO,
   opcoes,

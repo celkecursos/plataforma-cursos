@@ -39,6 +39,11 @@ export class ClienteApi {
     return this.token !== null;
   }
 
+  /** Token atual, para quem pede à API sem passar por aqui (o player, nas playlists do vídeo). */
+  get tokenAcesso(): string | null {
+    return this.token;
+  }
+
   get<T>(caminho: string, opcoes?: OpcoesRequisicao): Promise<T> {
     return this.requisitar<T>('GET', caminho, opcoes);
   }

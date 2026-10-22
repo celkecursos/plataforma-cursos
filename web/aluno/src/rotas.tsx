@@ -6,7 +6,12 @@ import { CadastroPagina } from './paginas/CadastroPagina.tsx';
 import { ConfirmarEmailPagina } from './paginas/ConfirmarEmailPagina.tsx';
 import { EntrarPagina } from './paginas/EntrarPagina.tsx';
 import { MeusCursosPagina } from './paginas/MeusCursosPagina.tsx';
+import { AulaPagina } from './paginas/aula/AulaPagina.tsx';
+import { CertificadosPagina } from './paginas/CertificadosPagina.tsx';
 import { NaoEncontradaPagina } from './paginas/NaoEncontradaPagina.tsx';
+import { PerfilPagina } from './paginas/perfil/PerfilPagina.tsx';
+import { TopicoPagina } from './paginas/forum/TopicoPagina.tsx';
+import { TurmaPagina } from './paginas/turma/TurmaPagina.tsx';
 import { RecuperarSenhaPagina } from './paginas/RecuperarSenhaPagina.tsx';
 import { RedefinirSenhaPagina } from './paginas/RedefinirSenhaPagina.tsx';
 
@@ -22,7 +27,14 @@ export const roteador = createBrowserRouter([
         <LayoutAluno />
       </RotaPrivada>
     ),
-    children: [{ index: true, element: <MeusCursosPagina /> }],
+    children: [
+      { index: true, element: <MeusCursosPagina /> },
+      { path: 'turmas/:turmaId', element: <TurmaPagina /> },
+      { path: 'turmas/:turmaId/aulas/:aulaId', element: <AulaPagina /> },
+      { path: 'turmas/:turmaId/forum/:topicoId', element: <TopicoPagina /> },
+      { path: CAMINHOS.certificados, element: <CertificadosPagina /> },
+      { path: CAMINHOS.perfil, element: <PerfilPagina /> },
+    ],
   },
   { path: '*', element: <NaoEncontradaPagina /> },
 ]);

@@ -14,8 +14,8 @@ import { api } from '@compartilhado/api/cliente.ts';
 import { enviarParaUrl } from '@compartilhado/api/envio.ts';
 import { dataHora } from '@compartilhado/ui/formato.ts';
 import { CAMINHOS } from '../../caminhos.ts';
-import { EscolherArquivo } from '../../componentes/EscolherArquivo.tsx';
-import { useAcao } from '../../componentes/useAcao.ts';
+import { EscolherArquivo } from '@compartilhado/ui/EscolherArquivo.tsx';
+import { useAcao } from '@compartilhado/ui/useAcao.ts';
 import {
   opcoes,
   STATUS_CURSO,
