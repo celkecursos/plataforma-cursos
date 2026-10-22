@@ -1,0 +1,5 @@
+# Arquivos que vão para a VPS (scripts, Caddyfile, .env, compose, garage.toml) sempre com LF, mesmo
+# no checkout do Windows: com CRLF o bash falha ("$'\r': command not found") e os valores do .env
+# ganham um \r no fim.
+infra/** text eol=lf
+*.sh text eol=lf
