@@ -13,7 +13,8 @@ Toda tarefa só está concluída quando passa:
 ./mvnw verify -Pe2e        # e2e, com a stack de e2e no ar (como subir: skill criar-teste-e2e)
 ```
 
-O `verify` precisa do Docker rodando (Testcontainers).
+O `verify` precisa do Docker rodando (Testcontainers) e do `ffmpeg`/`ffprobe` no PATH (a
+transcodificação de vídeo é testada de verdade; o pipeline instala o ffmpeg no runner).
 
 ## Estrutura
 

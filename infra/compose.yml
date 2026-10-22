@@ -105,6 +105,9 @@ services:
     build:
       context: ../backend
       target: worker
+    # No deploy, o job em andamento tem 30 s para terminar; uma conversão interrompida volta para a fila
+    # quando o lease vence (o worker o renova a cada minuto enquanto converte)
+    stop_grace_period: 30s
     environment:
       <<: *app
     depends_on:

@@ -109,6 +109,62 @@ class ProcessadorFilaTest {
     }
 
     @Test
+    @DisplayName("falha comum antes da última tentativa não avisa o manipulador")
+    void falhaComumNaoDesiste() throws Exception {
+        Job job = job(4);
+        when(fila.reservar(Set.of("EMAIL"), AGORA)).thenReturn(Optional.of(job));
+        doThrow(new IllegalStateException("fora do ar")).when(manipulador).processar(job);
+
+        processador.processarProximo();
+
+        verify(manipulador, never()).desistir(any(), anyString());
+    }
+
+    @Test
+    @DisplayName("falha comum na última tentativa avisa o manipulador da desistência")
+    void falhaNaUltimaTentativaDesiste() throws Exception {
+        Job job = job(5);
+        when(fila.reservar(Set.of("EMAIL"), AGORA)).thenReturn(Optional.of(job));
+        doThrow(new IllegalStateException("fora do ar")).when(manipulador).processar(job);
+
+        processador.processarProximo();
+
+        verify(fila).falhar(job, "java.lang.IllegalStateException: fora do ar", AGORA);
+        verify(manipulador).desistir(job, "java.lang.IllegalStateException: fora do ar");
+    }
+
+    @Test
+    @DisplayName("erro permanente e tentativas excedidas avisam o manipulador")
+    void desistencias() throws Exception {
+        Job permanente = job(1);
+        Job excedido = job(6);
+        when(fila.reservar(Set.of("EMAIL"), AGORA))
+                .thenReturn(Optional.of(permanente))
+                .thenReturn(Optional.of(excedido));
+        doThrow(new ErroPermanenteException("Arquivo inválido."))
+                .when(manipulador)
+                .processar(permanente);
+
+        processador.processarProximo();
+        processador.processarProximo();
+
+        verify(manipulador).desistir(permanente, "Arquivo inválido.");
+        verify(manipulador).desistir(excedido, "Tentativas esgotadas (o processamento foi interrompido).");
+    }
+
+    @Test
+    @DisplayName("falha do manipulador ao registrar a desistência não desfaz o estado da fila")
+    void falhaAoDesistir() throws Exception {
+        Job job = job(6);
+        when(fila.reservar(Set.of("EMAIL"), AGORA)).thenReturn(Optional.of(job));
+        doThrow(new IllegalStateException("banco fora do ar")).when(manipulador).desistir(eq(job), anyString());
+
+        assertThat(processador.processarProximo()).isTrue();
+
+        verify(fila).falharDefinitivo(eq(job), anyString(), eq(AGORA));
+    }
+
+    @Test
     @DisplayName("job na última tentativa permitida ainda é processado")
     void ultimaTentativaPermitida() throws Exception {
         Job job = job(5);

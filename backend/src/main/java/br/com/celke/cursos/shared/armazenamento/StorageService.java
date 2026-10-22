@@ -1,16 +1,19 @@
 package br.com.celke.cursos.shared.armazenamento;
 
 import java.net.URL;
+import java.nio.file.Path;
 import java.time.Duration;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.stereotype.Service;
 import software.amazon.awssdk.core.sync.RequestBody;
+import software.amazon.awssdk.core.sync.ResponseTransformer;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.CompletedPart;
 import software.amazon.awssdk.services.s3.model.HeadObjectResponse;
 import software.amazon.awssdk.services.s3.model.NoSuchKeyException;
+import software.amazon.awssdk.services.s3.model.ObjectIdentifier;
 import software.amazon.awssdk.services.s3.model.S3Exception;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
 
@@ -97,6 +100,38 @@ public class StorageService {
     /** Conteúdo de um arquivo pequeno (imagem a processar); use {@link #info} antes para conferir o tamanho. */
     public byte[] baixar(String chave) {
         return s3.getObjectAsBytes(r -> r.bucket(bucket).key(chave)).asByteArray();
+    }
+
+    /** Primeiros bytes de um arquivo (conferência da assinatura de um vídeo sem baixá-lo inteiro). */
+    public byte[] baixarInicio(String chave, int bytes) {
+        return s3.getObjectAsBytes(r -> r.bucket(bucket).key(chave).range("bytes=0-" + (bytes - 1)))
+                .asByteArray();
+    }
+
+    /** Baixa um arquivo grande direto para o disco; o destino não pode existir. */
+    public void baixarParaArquivo(String chave, Path destino) {
+        s3.getObject(r -> r.bucket(bucket).key(chave), ResponseTransformer.toFile(destino));
+    }
+
+    /** Envia um arquivo do disco (ex.: segmentos HLS gerados pelo worker). */
+    public void gravarArquivo(String chave, Path origem, String contentType) {
+        s3.putObject(r -> r.bucket(bucket).key(chave).contentType(contentType), RequestBody.fromFile(origem));
+    }
+
+    /** Exclui todos os arquivos sob um prefixo (terminado em {@code /}), em lotes de até mil. */
+    public void excluirPrefixo(String prefixo) {
+        if (prefixo == null || !prefixo.endsWith("/") || prefixo.length() < 2) {
+            throw new IllegalArgumentException("Prefixo inválido para exclusão: " + prefixo);
+        }
+        s3.listObjectsV2Paginator(r -> r.bucket(bucket).prefix(prefixo)).stream()
+                .filter(pagina -> !pagina.contents().isEmpty())
+                .forEach(pagina -> s3.deleteObjects(r -> r.bucket(bucket)
+                        .delete(d -> d.objects(pagina.contents().stream()
+                                        .map(o -> ObjectIdentifier.builder()
+                                                .key(o.key())
+                                                .build())
+                                        .toList())
+                                .quiet(true))));
     }
 
     /** Grava um arquivo gerado pela própria aplicação (ex.: imagem processada). */

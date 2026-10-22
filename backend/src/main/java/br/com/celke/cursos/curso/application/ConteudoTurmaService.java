@@ -72,6 +72,12 @@ public class ConteudoTurmaService {
                 .toList();
     }
 
+    /** A aula existe, em qualquer status (gestão do vídeo e dos arquivos pelo ADM). */
+    @Transactional(readOnly = true)
+    public boolean aulaExiste(Long aulaId) {
+        return aulas.existsById(aulaId);
+    }
+
     /** Aula ativa de módulo ativo, com o que a política de acesso precisa; vazio se não existe ou está inativa. */
     @Transactional(readOnly = true)
     public Optional<AulaContexto> aulaAtiva(Long aulaId) {

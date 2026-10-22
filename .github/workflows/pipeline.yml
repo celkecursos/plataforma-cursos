@@ -39,6 +39,10 @@ jobs:
           java-version: "25"
           cache: maven
 
+      # A transcodificação de vídeo é testada com o ffmpeg de verdade
+      - name: Instalar ffmpeg
+        run: sudo apt-get update -q && sudo apt-get install -y -q --no-install-recommends ffmpeg
+
       # Unitários, integração (Testcontainers), cobertura mínima e formatação
       - name: Verificar
         run: ./mvnw -B verify

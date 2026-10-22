@@ -6,9 +6,11 @@ import br.com.celke.cursos.curso.domain.Ordenacao;
 import br.com.celke.cursos.curso.domain.StatusConteudo;
 import br.com.celke.cursos.curso.infra.AulaRepository;
 import br.com.celke.cursos.curso.infra.ModuloRepository;
+import br.com.celke.cursos.shared.erro.ConflitoException;
 import br.com.celke.cursos.shared.erro.NaoEncontradoException;
 import java.time.Clock;
 import java.util.List;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -70,14 +72,19 @@ public class AulaAdmService {
                 .toList();
     }
 
-    /** Exclui a aula e refaz a sequência das que ficam. */
+    /** Exclui a aula (só sem vídeo) e refaz a sequência das que ficam. */
     @Transactional
     public void excluir(Long id) {
         Aula aula = buscar(id);
         Long moduloId = aula.getModulo().getId();
         modulos.travar(moduloId);
-        aulas.delete(aula);
-        aulas.flush();
+        try {
+            aulas.delete(aula);
+            aulas.flush();
+        } catch (DataIntegrityViolationException e) {
+            // A chave estrangeira do vídeo impede a exclusão
+            throw new ConflitoException("A aula tem vídeo. Remova o vídeo ou inative a aula.");
+        }
         Ordenacao.compactar(aulas.findByModuloIdOrderByOrdem(moduloId));
     }
 

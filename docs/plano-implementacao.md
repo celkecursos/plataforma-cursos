@@ -365,17 +365,20 @@ decidido num ponto só.
 
 Objetivo: o vídeo enviado vira HLS comprimido. Capítulos 19 a 21.
 
-- [ ] Migration `videos` (status, duração, tamanho original e final, chaves S3, erro)
-- [ ] Presign de upload multipart para `uploads/`; validação de tipo e tamanho antes de assinar
-- [ ] Confirmação do upload: API confere tamanho e assinatura real do arquivo; enfileira job
-- [ ] Worker: `ffprobe` → ffmpeg via `ProcessBuilder` (lista de argumentos)
-  - H.264 CRF 23–26, `maxrate`, AAC 128k, segmentos de 6 s, 720p + 1080p (sem aumentar a resolução de origem)
-  - thumbnail; envio para `videos/`; apaga o original após sucesso
-- [ ] Job volta para a fila se o worker parar no meio (`stop_grace_period` + lease com expiração)
-- [ ] Endpoints do ADM: status de processamento, reprocessar, tamanho antes/depois
-- [ ] Medir tempo de processamento por minuto de vídeo na VPS e registrar no tutorial
-- [ ] Testes: transcodificação de vídeo de 3 s; arquivo com extensão falsa rejeitado
-- [ ] e2e de API: upload multipart de vídeo curto → status "pronto"
+- [x] Migration `V8` `videos`: um vídeo por aula (FK `RESTRICT`: aula com vídeo responde 409 na exclusão), status `AGUARDANDO_ENVIO`/`PENDENTE`/`PROCESSANDO`/`PRONTO`/`ERRO`, chaves do original e do HLS, tamanho original e final, duração, resolução, variantes, tempo de processamento e erro. O HLS publicado só muda quando a conversão do envio novo termina
+- [x] Envio em partes (`POST /api/adm/aulas/{id}/video/envio`): MP4, MOV, MKV ou WebM até 5 GB, validados antes de assinar; partes de 16 MiB (maiores acima de 10.000 partes), uma URL pré-assinada por parte em `uploads/videos/<aula>/<uuid>`; envio anterior ainda aberto é abortado
+- [x] Conclusão (`.../envio/conclusao` com os ETags): junta as partes, confere o tamanho real igual ao informado e a assinatura do início do arquivo (`ftyp` ou EBML); recusado é apagado e o vídeo fica com erro; aceito vai para a fila na mesma transação
+- [x] Worker (`TranscodificacaoManipulador`): `ffprobe` → ffmpeg via `ProcessBuilder` (lista de argumentos, `nice -n 10`), numa passada só
+  - H.264 CRF 24 (`veryfast`), `maxrate` 2800k/5000k, AAC 128k, segmentos de 6 s, 720p + 1080p sem aumentar a resolução de origem (abaixo de 720p, uma variante na altura original)
+  - thumbnail; envio para `videos/<aula>/<job>/`; apaga o original e o HLS anterior só depois de publicar
+- [x] Lease renovado a cada minuto durante a conversão; worker que cai deixa o lease vencer e o job volta para a fila (refaz o prefixo do job do zero); `stop_grace_period: 30s`. Arquivo inválido é erro permanente; desistência da fila (`ManipuladorJob.desistir`) deixa o vídeo com erro
+- [x] Endpoints do ADM: status com tamanho antes/depois, redução percentual, variantes, segundos de processamento por minuto de vídeo e thumbnail; reprocessar (só com erro e com o original ainda no bucket); remover o vídeo e os arquivos (fora do processamento)
+- [ ] Medir tempo de processamento por minuto de vídeo na VPS e registrar no tutorial (o ADM já mostra a medida: `segundosProcessamentoPorMinuto`)
+- [x] Testes: unitários (formatos e assinaturas, divisão em partes, variantes, argumentos do ffmpeg, saída do ffprobe, entidade, serviços, fila), integração com o Garage e o ffmpeg reais (transcodificação do vídeo de 3 s, troca, extensão falsa, vídeo corrompido e reprocessamento, matriz de papéis); o pipeline instala o ffmpeg
+- [x] e2e `VideoE2E`: upload em partes pelo Caddy direto ao Garage → worker → status "pronto" com a thumbnail no host de mídia
+
+**Pronto quando:** o ADM envia o vídeo de uma aula direto ao armazenamento e, sem passar o arquivo pela
+API, ele vira HLS em 720p/1080p com o tamanho antes e depois registrado.
 
 ---
 
