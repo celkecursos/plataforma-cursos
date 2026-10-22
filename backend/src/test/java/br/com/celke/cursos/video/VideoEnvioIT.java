@@ -189,7 +189,7 @@ class VideoEnvioIT extends IntegrationTest {
                 .hasStatus(HttpStatus.CONFLICT)
                 .bodyJson()
                 .extractingPath("$.detail")
-                .isEqualTo("A aula tem vídeo. Remova o vídeo ou inative a aula.");
+                .isEqualTo("A aula tem vídeo ou arquivos de apoio. Remova-os ou inative a aula.");
 
         // Troca: o HLS anterior continua até o novo ficar pronto e então é apagado
         assertThat(enviar(original, "video/mp4")).hasStatus(HttpStatus.ACCEPTED);

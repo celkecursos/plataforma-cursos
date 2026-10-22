@@ -72,7 +72,7 @@ public class AulaAdmService {
                 .toList();
     }
 
-    /** Exclui a aula (só sem vídeo) e refaz a sequência das que ficam. */
+    /** Exclui a aula (só sem vídeo e sem arquivos) e refaz a sequência das que ficam. */
     @Transactional
     public void excluir(Long id) {
         Aula aula = buscar(id);
@@ -82,8 +82,8 @@ public class AulaAdmService {
             aulas.delete(aula);
             aulas.flush();
         } catch (DataIntegrityViolationException e) {
-            // A chave estrangeira do vídeo impede a exclusão
-            throw new ConflitoException("A aula tem vídeo. Remova o vídeo ou inative a aula.");
+            // As chaves estrangeiras do vídeo e dos arquivos de apoio impedem a exclusão
+            throw new ConflitoException("A aula tem vídeo ou arquivos de apoio. Remova-os ou inative a aula.");
         }
         Ordenacao.compactar(aulas.findByModuloIdOrderByOrdem(moduloId));
     }

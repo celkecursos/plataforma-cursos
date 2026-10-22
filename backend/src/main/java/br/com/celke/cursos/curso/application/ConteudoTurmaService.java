@@ -72,6 +72,21 @@ public class ConteudoTurmaService {
                 .toList();
     }
 
+    /** O módulo existe, em qualquer status (gestão dos arquivos pelo ADM). */
+    @Transactional(readOnly = true)
+    public boolean moduloExiste(Long moduloId) {
+        return modulos.existsById(moduloId);
+    }
+
+    /** Módulo ativo com a turma dele (arquivos do módulo); vazio se não existe ou está inativo. */
+    @Transactional(readOnly = true)
+    public Optional<ModuloContexto> moduloAtivo(Long moduloId) {
+        return modulos.findById(moduloId)
+                .filter(modulo -> modulo.getStatus() == StatusConteudo.ATIVO)
+                .map(modulo -> new ModuloContexto(
+                        modulo.getId(), modulo.getTitulo(), modulo.getTurma().getId()));
+    }
+
     /** A aula existe, em qualquer status (gestão do vídeo e dos arquivos pelo ADM). */
     @Transactional(readOnly = true)
     public boolean aulaExiste(Long aulaId) {
@@ -124,6 +139,8 @@ public class ConteudoTurmaService {
     public record ModuloConteudo(Long id, String titulo, List<AulaConteudo> aulas) {}
 
     public record AulaConteudo(Long id, String titulo, boolean gratuita) {}
+
+    public record ModuloContexto(Long id, String titulo, Long turmaId) {}
 
     public record AulaContexto(
             Long id,

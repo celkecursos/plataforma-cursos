@@ -4,6 +4,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import br.com.celke.cursos.support.IntegrationTest;
 import br.com.celke.cursos.support.UsuariosSeed;
+import com.jayway.jsonpath.JsonPath;
+import java.util.ArrayList;
+import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -59,26 +62,12 @@ class CursoCrudIT extends IntegrationTest {
                         .formatted(stamp));
 
         adm.publicar(id);
-        assertThat(adm.enviar("GET", "/api/adm/cursos?status=PUBLICADO&size=100", null))
-                .hasStatusOk()
-                .bodyJson()
-                .extractingPath("$.itens[*].slug")
-                .asArray()
-                .contains(stamp);
+        // Outras classes também criam cursos: a busca percorre todas as páginas do filtro
+        assertThat(campo("PUBLICADO", "slug")).contains(stamp);
         String rascunho = stamp();
         adm.criarCurso("IT Rascunho " + rascunho, rascunho);
-        var rascunhos = adm.enviar("GET", "/api/adm/cursos?status=RASCUNHO&size=100", null);
-        assertThat(rascunhos)
-                .bodyJson()
-                .extractingPath("$.itens[*].slug")
-                .asArray()
-                .contains(rascunho)
-                .doesNotContain(stamp);
-        assertThat(rascunhos)
-                .bodyJson()
-                .extractingPath("$.itens[*].status")
-                .asArray()
-                .containsOnly("RASCUNHO");
+        assertThat(campo("RASCUNHO", "slug")).contains(rascunho).doesNotContain(stamp);
+        assertThat(campo("RASCUNHO", "status")).containsOnly("RASCUNHO");
 
         assertThat(adm.enviar("DELETE", "/api/adm/cursos/" + id, null)).hasStatus(HttpStatus.NO_CONTENT);
         assertThat(adm.enviar("GET", "/api/adm/cursos/" + id, null))
@@ -87,6 +76,21 @@ class CursoCrudIT extends IntegrationTest {
                 .isLenientlyEqualTo(
                         "{\"status\":404,\"detail\":\"Curso não encontrado.\",\"instance\":\"/api/adm/cursos/%d\"}"
                                 .formatted(id));
+    }
+
+    /** Valor do campo em todos os cursos do status, percorrendo as páginas da listagem. */
+    private List<String> campo(String status, String campo) {
+        List<String> valores = new ArrayList<>();
+        for (int pagina = 0; ; pagina++) {
+            var resposta =
+                    adm.enviar("GET", "/api/adm/cursos?status=%s&size=100&page=%d".formatted(status, pagina), null);
+            assertThat(resposta).hasStatusOk();
+            String corpo = CursoITHelper.corpo(resposta);
+            valores.addAll(JsonPath.read(corpo, "$.itens[*]." + campo));
+            if (pagina + 1 >= JsonPath.<Integer>read(corpo, "$.totalPaginas")) {
+                return valores;
+            }
+        }
     }
 
     @Test
