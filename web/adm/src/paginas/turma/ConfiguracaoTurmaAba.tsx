@@ -2,7 +2,7 @@ import { Alerta, Botao, Card, CampoInteiro, CampoSelect, useConfirmacao } from '
 import { useState } from 'react';
 import { api } from '@compartilhado/api/cliente.ts';
 import { ErroApi } from '@compartilhado/api/erros.ts';
-import { useAcao } from '../../componentes/useAcao.ts';
+import { useAcao } from '@compartilhado/ui/useAcao.ts';
 import { opcoes, STATUS_TURMA, type StatusTurma, type Turma } from '../../tipos.ts';
 
 interface Props {

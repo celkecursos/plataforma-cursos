@@ -5,7 +5,7 @@ import { api } from '@compartilhado/api/cliente.ts';
 import { useCarregar } from '@compartilhado/api/useCarregar.ts';
 import { caminhoTurma } from '../../caminhos.ts';
 import { DialogoTexto } from '../../componentes/DialogoTexto.tsx';
-import { useAcao } from '../../componentes/useAcao.ts';
+import { useAcao } from '@compartilhado/ui/useAcao.ts';
 import { STATUS_TURMA, type Curso, type Turma } from '../../tipos.ts';
 
 export function TurmasAba({ curso }: { curso: Curso }) {

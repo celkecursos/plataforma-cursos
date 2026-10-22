@@ -19,7 +19,7 @@ import { useCarregar } from '@compartilhado/api/useCarregar.ts';
 import { erroObrigatorio } from '@compartilhado/ui/validacao.ts';
 import { caminhoTurma } from '../../caminhos.ts';
 import { ArquivosApoio } from '../../componentes/ArquivosApoio.tsx';
-import { useAcao } from '../../componentes/useAcao.ts';
+import { useAcao } from '@compartilhado/ui/useAcao.ts';
 import { STATUS_CONTEUDO, type Aula } from '../../tipos.ts';
 import { VideoAula } from './VideoAula.tsx';
 

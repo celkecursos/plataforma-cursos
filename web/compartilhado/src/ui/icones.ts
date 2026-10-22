@@ -2,6 +2,7 @@ import { registrarIcones } from '@celke/kole-react';
 import {
   Award,
   BookOpen,
+  Bookmark,
   CirclePlay,
   GraduationCap,
   LayoutDashboard,
@@ -16,6 +17,7 @@ import {
 registrarIcones({
   award: Award,
   'book-open': BookOpen,
+  bookmark: Bookmark,
   'circle-play': CirclePlay,
   'graduation-cap': GraduationCap,
   'layout-dashboard': LayoutDashboard,

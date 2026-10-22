@@ -13,8 +13,8 @@ import { enviarParaUrl } from '@compartilhado/api/envio.ts';
 import { useCarregar } from '@compartilhado/api/useCarregar.ts';
 import { bytes } from '@compartilhado/ui/formato.ts';
 import type { ArquivoApoio, EnvioSimples } from '../tipos.ts';
-import { EscolherArquivo } from './EscolherArquivo.tsx';
-import { useAcao } from './useAcao.ts';
+import { EscolherArquivo } from '@compartilhado/ui/EscolherArquivo.tsx';
+import { useAcao } from '@compartilhado/ui/useAcao.ts';
 
 /** Formatos aceitos pela API (FormatoArquivo). */
 const ACEITOS = 'application/pdf,application/zip,text/plain,.pdf,.zip,.txt';

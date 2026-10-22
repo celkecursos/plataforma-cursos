@@ -16,7 +16,7 @@ import { useCarregar } from '@compartilhado/api/useCarregar.ts';
 import { caminhoAula } from '../../caminhos.ts';
 import { ArquivosApoio } from '../../componentes/ArquivosApoio.tsx';
 import { DialogoTexto } from '../../componentes/DialogoTexto.tsx';
-import { useAcao } from '../../componentes/useAcao.ts';
+import { useAcao } from '@compartilhado/ui/useAcao.ts';
 import { STATUS_CONTEUDO, type Aula, type Curso, type Modulo, type Turma } from '../../tipos.ts';
 
 /** Ids na nova ordem, com o item da posição `de` trocado com o vizinho. */

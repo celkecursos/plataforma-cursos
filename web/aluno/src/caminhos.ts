@@ -6,4 +6,14 @@ export const CAMINHOS = {
   recuperarSenha: '/recuperar-senha',
   redefinirSenha: '/redefinir-senha',
   inicio: '/',
+  certificados: '/certificados',
+  perfil: '/perfil',
 } as const;
+
+export const caminhoTurma = (turmaId: number | string) => `/turmas/${turmaId}`;
+
+export const caminhoAula = (turmaId: number | string, aulaId: number | string) =>
+  `/turmas/${turmaId}/aulas/${aulaId}`;
+
+export const caminhoTopico = (turmaId: number | string, topicoId: number | string) =>
+  `/turmas/${turmaId}/forum/${topicoId}`;

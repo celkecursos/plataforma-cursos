@@ -6,9 +6,9 @@ import { ADMIN_SEED, ALUNO_SEED, SENHA_SEED } from './config.ts';
  * então uma sessão gravada (storageState) só serviria para um teste. O login vai pela API do próprio
  * contexto do navegador, que guarda o cookie HttpOnly; ao abrir a página, o app renova e entra.
  */
-async function entrarPelaApi(page: Page, email: string): Promise<void> {
+export async function entrarPelaApi(page: Page, email: string, senha = SENHA_SEED): Promise<void> {
   const resposta = await page.request.post('/api/auth/login', {
-    data: { email, senha: SENHA_SEED },
+    data: { email, senha },
   });
   if (!resposta.ok()) throw new Error(`Login de ${email} recusado: ${resposta.status()}`);
 }

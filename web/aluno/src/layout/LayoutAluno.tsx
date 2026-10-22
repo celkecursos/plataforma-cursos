@@ -6,7 +6,13 @@ import { MARCA } from '../marca.ts';
 import { GuardaTermos } from './GuardaTermos.tsx';
 
 const NAV: SecaoNav[] = [
-  { itens: [{ rotulo: 'Meus cursos', icone: 'graduation-cap', rota: CAMINHOS.inicio }] },
+  {
+    itens: [
+      { rotulo: 'Meus cursos', icone: 'graduation-cap', rota: CAMINHOS.inicio },
+      { rotulo: 'Certificados', icone: 'award', rota: CAMINHOS.certificados },
+      { rotulo: 'Meu perfil', icone: 'user', rota: CAMINHOS.perfil },
+    ],
+  },
 ];
 
 /** Moldura da área logada do aluno: menu, usuário e, antes do conteúdo, o aceite dos termos vigentes. */
@@ -33,8 +39,12 @@ export function LayoutAluno() {
         </Link>
       )}
       usuario={{ nome, cargo: 'Aluno' }}
-      menuUsuario={[{ id: 'sair', rotulo: 'Sair', icone: 'log-out', destrutivo: true }]}
+      menuUsuario={[
+        { id: 'perfil', rotulo: 'Meu perfil', icone: 'user' },
+        { id: 'sair', rotulo: 'Sair', icone: 'log-out', destrutivo: true },
+      ]}
       aoEscolherMenuUsuario={(id) => {
+        if (id === 'perfil') navigate(CAMINHOS.perfil);
         if (id === 'sair') void sair().then(() => navigate(CAMINHOS.entrar, { replace: true }));
       }}
     >

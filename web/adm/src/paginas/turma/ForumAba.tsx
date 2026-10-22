@@ -15,7 +15,7 @@ import { ErroApi, mensagemDeErro } from '@compartilhado/api/erros.ts';
 import type { Pagina } from '@compartilhado/api/tipos.ts';
 import { useCarregar } from '@compartilhado/api/useCarregar.ts';
 import { dataHora } from '@compartilhado/ui/formato.ts';
-import { useAcao } from '../../componentes/useAcao.ts';
+import { useAcao } from '@compartilhado/ui/useAcao.ts';
 import type { Topico, TopicoResumo, Turma } from '../../tipos.ts';
 
 const TAMANHO = 20;

@@ -1,4 +1,4 @@
-import type { APIRequestContext } from '@playwright/test';
+import { expect, type APIRequestContext } from '@playwright/test';
 import { ADMIN_SEED, ADM_URL, ALUNO_URL, SENHA_SEED } from './config.ts';
 import { stamp } from './dados.ts';
 
@@ -74,4 +74,35 @@ export async function montarCurso(adm: ClienteApi): Promise<CursoMontado> {
     titulo: 'Aula 1',
   });
   return { cursoId: curso.id, titulo, turmaId: turma.id, moduloId: modulo.id, aulaId: aula.id };
+}
+
+/** Envia o vídeo da aula pelo mesmo caminho do ADM (partes direto ao armazenamento) e espera ficar pronto. */
+export async function enviarVideo(
+  request: APIRequestContext,
+  adm: ClienteApi,
+  aulaId: number,
+  video: Buffer,
+): Promise<void> {
+  const rota = `/api/adm/aulas/${aulaId}/video`;
+  const envio = await adm.post<{ tamanhoParte: number; partes: { numero: number; url: string }[] }>(
+    `${rota}/envio`,
+    { nomeArquivo: 'aula.mp4', contentType: 'video/mp4', tamanho: video.length },
+  );
+  const partes = [];
+  for (const { numero, url } of envio.partes) {
+    const inicio = (numero - 1) * envio.tamanhoParte;
+    const resposta = await request.put(url, {
+      data: video.subarray(inicio, inicio + envio.tamanhoParte),
+    });
+    if (!resposta.ok()) throw new Error(`Parte ${numero} recusada: ${resposta.status()}`);
+    partes.push({ numero, etag: resposta.headers()['etag'] });
+  }
+  await adm.post(`${rota}/envio/conclusao`, { partes });
+  await expect
+    .poll(async () => (await adm.get<{ status: string }>(rota)).status, {
+      message: 'vídeo convertido pelo worker',
+      timeout: 120_000,
+      intervals: [1_000],
+    })
+    .toBe('PRONTO');
 }
