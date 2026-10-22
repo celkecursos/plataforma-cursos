@@ -136,7 +136,7 @@ plataforma-cursos/
 │   ├── compartilhado/           cliente HTTP, sessão, rotas protegidas, validação
 │   ├── aluno/
 │   ├── adm/
-│   ├── site/                    (Fase 14)
+│   ├── site/                    gerador do site público (Node, sem dependências)
 │   ├── e2e/                     Playwright contra a stack de e2e
 │   ├── Dockerfile               build dos fronts + Caddy interno (aluno :8081, ADM :8082)
 │   └── Caddyfile
@@ -529,11 +529,11 @@ Capítulo 35.
 
 Capítulo 36.
 
-- [ ] Layout novo com os tokens do `@celke/ui`
-- [ ] Pré-renderização estática (uma página HTML por rota) em `cursos.celke.uno`
-- [ ] Home, catálogo, página do curso (dados da API no build), validar certificado, termos, privacidade
-- [ ] SEO: meta tags, Open Graph, sitemap, `robots.txt`
-- [ ] Meta de Lighthouse definida e verificada no CI
+- [x] Layout novo com os tokens da `@celke/kole-react` (HTML estático, sem JavaScript de layout)
+- [x] Pré-renderização estática (uma página HTML por rota) em `cursos.celke.uno`: o container `site` gera ao subir e a cada `SITE_INTERVALO` (padrão 5 min) a partir da API do próprio ambiente, com troca atômica da versão; a mesma imagem serve homologação e produção
+- [x] Home, catálogo, página do curso, validar certificado, termos, privacidade, 404
+- [x] SEO: meta tags, canônico, Open Graph, dados estruturados (Course), sitemap, `robots.txt` (homologação fora dos buscadores)
+- [x] Meta de Lighthouse no CI (desktop): desempenho ≥ 90, acessibilidade ≥ 95, boas práticas ≥ 95, SEO ≥ 90 em todas as páginas
 
 ---
 

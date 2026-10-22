@@ -16,3 +16,9 @@
 	import homolog
 	import midia homolog
 }
+
+{$HOMOLOG_HOST_SITE} {
+	import seguranca
+	import homolog
+	import site homolog
+}

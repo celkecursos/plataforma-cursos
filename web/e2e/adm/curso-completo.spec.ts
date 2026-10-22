@@ -29,7 +29,11 @@ test('admin cria um curso completo e envia o vídeo da aula até ficar pronto', 
 
   // Capa: o navegador envia direto ao armazenamento pela URL pré-assinada
   await page.getByLabel('Enviar capa').setInputFiles(PNG);
-  await expect(page.getByRole('img', { name: `Capa de ${titulo}` })).toBeVisible();
+  const capa = page.getByRole('img', { name: `Capa de ${titulo}` });
+  await expect(capa).toBeVisible();
+  await expect
+    .poll(() => capa.evaluate((img: HTMLImageElement) => img.naturalWidth))
+    .toBeGreaterThan(0);
 
   // Turma, módulo e aula
   await page.getByRole('tab', { name: 'Turmas' }).click();

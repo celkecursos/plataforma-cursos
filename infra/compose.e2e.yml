@@ -19,11 +19,24 @@ services:
         condition: service_healthy
       web:
         condition: service_healthy
+      site:
+        condition: service_healthy
 
   web:
     image: plataforma-cursos-web:e2e
     build:
       context: ../web
+      target: web
+
+  site:
+    image: plataforma-cursos-site:e2e
+    build:
+      context: ../web
+      target: site
+    environment:
+      SITE_URL: http://cursos.localhost:8088
+      # Curso publicado pelo teste aparece em segundos
+      SITE_INTERVALO: "3"
 
   api:
     image: plataforma-cursos-api:e2e

@@ -1,5 +1,5 @@
 import { defineConfig, devices } from '@playwright/test';
-import { ADM_URL, ALUNO_URL } from './e2e/support/config.ts';
+import { ADM_URL, ALUNO_URL, SITE_URL } from './e2e/support/config.ts';
 
 /**
  * Testes e2e dos fronts: navegador real contra a stack de e2e (infra/compose.e2e.yml), com os apps
@@ -44,5 +44,6 @@ export default defineConfig({
   projects: [
     { name: 'aluno', testDir: './e2e/aluno', use: { baseURL: ALUNO_URL } },
     { name: 'adm', testDir: './e2e/adm', use: { baseURL: ADM_URL } },
+    { name: 'site', testDir: './e2e/site', use: { baseURL: SITE_URL } },
   ],
 });
