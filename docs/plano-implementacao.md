@@ -179,8 +179,8 @@ Definição de pronto de **todo** PR:
 ### Fase 0 — Preparação (sem branch)
 
 - [x] Criar repositório `celkecursos/plataforma-cursos` no GitHub
-- [ ] Primeiro commit na `main` (README, `.gitignore`, `docs/`)
-- [ ] Criar `homolog` a partir da `main`
+- [x] Primeiro commit na `main` (README, `.gitignore`, `docs/`)
+- [x] Criar `homolog` a partir da `main`
 - [ ] Regras de proteção em `main` e `homolog`: só PR, checks obrigatórios (ativar quando o pipeline existir)
 - [ ] Environments `homolog` e `production` com seus secrets
 - [ ] Confirmar os subdomínios livres em `celke.uno`
@@ -402,9 +402,13 @@ bucket, e retoma de onde parou com o progresso refletido na turma.
 
 Capítulo 25.
 
-- [ ] Arquivos por aula (código-fonte) e por módulo; upload pelo ADM
-- [ ] Download por URL pré-assinada curta, sempre pela policy
-- [ ] Testes e e2e de download permitido e bloqueado
+- [x] Migration `V11` `arquivos_apoio`: de uma aula **ou** de um módulo (`CHECK` com `num_nonnulls`), título, nome de download, chave, tipo e tamanho; aula ou módulo com arquivos responde 409 na exclusão
+- [x] Envio pelo ADM em duas etapas, como a capa: `POST /api/adm/{aulas|modulos}/{id}/arquivos/envio` (ZIP, PDF ou TXT até 200 MB) → PUT direto no Garage → `POST /api/adm/{aulas|modulos}/{id}/arquivos` confere a chave gerada para o mesmo dono, o tamanho real e o conteúdo (assinatura do ZIP e do PDF; texto sem byte nulo) e move de `uploads/` (que expira) para `arquivos/`; recusado é apagado. Nome de download limpo (sem caminho, acento ou aspas) e com a extensão do formato real. `DELETE /api/adm/arquivos/{id}` remove do bucket
+- [x] Aluno (`/api/aluno`): lista da aula (mesmo acesso da aula, gratuita inclusive) e do módulo (matrícula vigente na turma; módulo inativo responde 404) e `GET /arquivos/{id}/download` com URL pré-assinada de 5 minutos que baixa como anexo (`Content-Disposition` com o nome do arquivo); a chave do bucket nunca sai na resposta
+- [x] Testes: unitários (formatos, nomes, serviços), integração (matriz de papéis do ADM, matriz de acesso ao conteúdo na aula e no módulo, conteúdo falso, chave de outra aula, exclusões bloqueadas) e e2e `ArquivoE2E` (envio pelo Caddy direto ao Garage; download bloqueado sem matrícula e liberado com matrícula)
+
+**Pronto quando:** o aluno matriculado baixa o arquivo da aula ou do módulo por uma URL curta, e sem
+matrícula recebe 403.
 
 ---
 

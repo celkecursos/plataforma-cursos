@@ -11,6 +11,7 @@ import br.com.celke.cursos.shared.erro.ConflitoException;
 import br.com.celke.cursos.shared.erro.NaoEncontradoException;
 import java.time.Clock;
 import java.util.List;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -82,8 +83,13 @@ public class ModuloAdmService {
         if (aulas.existsByModuloId(id)) {
             throw new ConflitoException("O módulo tem aulas. Exclua as aulas ou inative o módulo.");
         }
-        modulos.delete(modulo);
-        modulos.flush();
+        try {
+            modulos.delete(modulo);
+            modulos.flush();
+        } catch (DataIntegrityViolationException e) {
+            // A chave estrangeira dos arquivos de apoio impede a exclusão
+            throw new ConflitoException("O módulo tem arquivos de apoio. Remova os arquivos ou inative o módulo.");
+        }
         Ordenacao.compactar(modulos.findByTurmaIdOrderByOrdem(turmaId));
     }
 

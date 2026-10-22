@@ -50,6 +50,26 @@ public class StorageService {
                 .url();
     }
 
+    /**
+     * URL para baixar um arquivo como anexo, com o nome informado (cabeçalho {@code Content-Disposition}
+     * da resposta, definido na assinatura).
+     */
+    public URL urlDownload(String chave, Duration validade, String nomeArquivo) {
+        String disposicao = "attachment; filename=\"%s\"".formatted(nomeArquivo.replace("\"", ""));
+        return presigner
+                .presignGetObject(p -> p.signatureDuration(validade)
+                        .getObjectRequest(o -> o.bucket(bucket).key(chave).responseContentDisposition(disposicao)))
+                .url();
+    }
+
+    /** Copia um arquivo dentro do bucket (ex.: de {@code uploads/}, que expira, para o lugar definitivo). */
+    public void copiar(String origem, String destino) {
+        s3.copyObject(r -> r.sourceBucket(bucket)
+                .sourceKey(origem)
+                .destinationBucket(bucket)
+                .destinationKey(destino));
+    }
+
     /** Inicia um upload em partes e devolve o id do upload. */
     public String iniciarMultipart(String chave, String contentType) {
         return s3.createMultipartUpload(r -> r.bucket(bucket).key(chave).contentType(contentType))

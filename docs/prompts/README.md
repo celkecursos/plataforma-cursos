@@ -22,3 +22,4 @@ Ao final de cada prompt, confira a seção **Verificação** dele antes de segui
 | 12 | [Matrícula e política única de acesso](f03-01-matricula-e-acesso.md) | 3 | `feature/matricula-acesso` |
 | 13 | [Upload de vídeo e conversão para HLS](f04-01-upload-de-video.md) | 4 | `feature/upload-video` |
 | 14 | [Playlist assinada, progresso e log de acesso](f05-01-playlist-e-progresso.md) | 5 | `feature/entrega-video` |
+| 15 | [Arquivos de apoio](f06-01-arquivos-de-apoio.md) | 6 | `feature/arquivos-apoio` |
