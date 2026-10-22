@@ -79,7 +79,7 @@ test-results/
 
 O repositório já existe no GitHub e está clonado (ou iniciado com `git init -b main` e o `origin`
 configurado). Os arquivos `docs/plano-implementacao.md`, `docs/capitulos.md` e a pasta `docs/prompts/`
-são copiados do projeto de referência do tutorial.
+vêm com o material do tutorial: copie-os para o repositório como estão.
 
 ## Verificação
 

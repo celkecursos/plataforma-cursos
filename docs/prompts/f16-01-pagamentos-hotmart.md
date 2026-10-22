@@ -18,10 +18,10 @@ Siga o `backend/CLAUDE.md` e os padrões do `web/` (fases 11 a 14). Não faça c
 
 ### 0. Confirmar a documentação da Hotmart (antes de escrever código)
 
-O projeto antigo (`celke-v8/celke-administrativo-v8-adm`, `HrosheHotmartController`) usa o **webhook
-1.0.0**, que não é mais o recomendado. Use o **webhook 2.0.0**. As diferenças que importam:
+A Hotmart tem duas versões de webhook: a **1.0.0**, que não é mais a recomendada, e a **2.0.0**. Use a
+**2.0.0**. As diferenças que importam:
 
-| | Webhook 1.0.0 (projeto antigo, não usar) | Webhook 2.0.0 (usar) |
+| | Webhook 1.0.0 (não usar) | Webhook 2.0.0 (usar) |
 |---|---|---|
 | Corpo | campos soltos (`prod`, `status`, `email`, `transaction`, `xcod`...) | JSON `{ id, creation_date, event, version, data }` |
 | Autenticação | `hottok` no corpo | cabeçalho `X-HOTMART-HOTTOK` |
@@ -81,7 +81,7 @@ O que já se sabe da 2.0.0 (confira de novo antes de implementar):
   `transaction_status`; sem filtro de status, só vêm `APPROVED` e `COMPLETE`; paginação por
   `page_token`). Confirme host e parâmetros na documentação antes de usar.
 
-O que **não** repetir do projeto antigo:
+Armadilhas comuns nessa integração, que **não** devem aparecer aqui:
 
 - Gerar senha aleatória e mandar por e-mail. Aqui a conta nasce sem senha e o aluno recebe o link de
   "criar senha" (o mesmo token da recuperação de senha).

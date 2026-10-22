@@ -11,13 +11,13 @@ public final class E2eConfig {
 
     public static final String MAILPIT = System.getProperty("e2e.mailpit", "http://localhost:8026");
 
-    public static final String SENHA_SEED = System.getProperty("e2e.senha-seed", "senha-do-seed-e2e");
+    public static final String SENHA_SEED = System.getProperty("e2e.senha-seed", "123456A#b123");
 
     public static final String HOST_ALUNO = "aluno.localhost";
     public static final String HOST_ADM = "adm.localhost";
 
-    public static final String ADMIN_SEED = "admin.e2e@teste.celke.uno";
-    public static final String ALUNO_SEED = "aluno.e2e@teste.celke.uno";
+    public static final String ADMIN_SEED = "admin@celke.com.br";
+    public static final String ALUNO_SEED = "aluno@celke.com.br";
 
     private E2eConfig() {}
 
