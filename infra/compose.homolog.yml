@@ -21,6 +21,11 @@ services:
           cpus: "0.5"
           memory: 768M
 
+  # Homologação fica fora dos buscadores
+  site:
+    environment:
+      SITE_INDEXAVEL: "false"
+
   postgres:
     deploy:
       resources:

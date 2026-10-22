@@ -1,5 +1,5 @@
-# Stack de um ambiente dos servidores (produção ou homologação): API, worker, fronts (web),
-# PostgreSQL e Garage.
+# Stack de um ambiente dos servidores (produção ou homologação): API, worker, fronts (web), gerador
+# do site público (site), PostgreSQL e Garage.
 # Imagens publicadas no GHCR com a tag do commit (TAG); nenhuma porta publicada. O Caddy (projeto
 # próprio, em caddy/) chega à API, aos fronts e ao Garage pela rede plataforma-cursos-<AMBIENTE>,
 # pelos apelidos <AMBIENTE>-api, <AMBIENTE>-web e <AMBIENTE>-garage. Todas as variáveis vêm do .env do ambiente.
@@ -103,6 +103,8 @@ services:
     environment:
       # Origem dos vídeos e arquivos na Content-Security-Policy dos fronts
       MIDIA_ORIGEM: ${S3_ENDPOINT_PUBLICO:?defina S3_ENDPOINT_PUBLICO}
+    volumes:
+      - site:/srv/site:ro
     networks:
       default:
         aliases:
@@ -111,6 +113,28 @@ services:
       resources:
         limits:
           memory: 64M
+
+  # Gera o site público (cursos.*) a partir da API ao subir e a cada SITE_INTERVALO segundos
+  site:
+    logging: *logging
+    image: ${IMAGEM_SITE:-ghcr.io/celkecursos/plataforma-cursos-site}:${TAG:?defina TAG}
+    restart: unless-stopped
+    environment:
+      API_URL: http://api:8080
+      FRONT_ALUNO_URL: ${FRONT_ALUNO_URL:?defina FRONT_ALUNO_URL}
+      # Em branco, deriva do FRONT_ALUNO_URL (aluno.celke.uno → cursos.celke.uno)
+      SITE_URL: ${SITE_URL:-}
+      SITE_INDEXAVEL: ${SITE_INDEXAVEL:-true}
+      SITE_INTERVALO: ${SITE_INTERVALO:-300}
+    volumes:
+      - site:/site
+    depends_on:
+      api:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          memory: 128M
 
   postgres:
     logging: *logging
@@ -167,3 +191,4 @@ networks:
 volumes:
   postgres:
   garage:
+  site:

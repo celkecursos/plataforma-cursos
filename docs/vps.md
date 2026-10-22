@@ -32,12 +32,16 @@ produção), pelo script `/usr/local/bin/plataforma-cursos-deploy`.
 Só o Caddy publica portas. Ele chega à API, aos fronts e ao Garage de cada ambiente pela rede do
 ambiente, pelos apelidos `producao-api`, `producao-web`, `producao-garage`, `homolog-api`, `homolog-web`
 e `homolog-garage`. Em `aluno` e `adm`, `/api/*` e o health check vão para a API; o resto vai para o
-container `web` (área do aluno na porta 8081, ADM na 8082).
+container `web` (área do aluno na porta 8081, ADM na 8082). Em `cursos`, só as leituras públicas da
+API (catálogo, termos vigentes, validação de certificado) vão para ela; o resto é o site público, que o
+container `site` gera a partir da API ao subir e a cada 5 minutos (`SITE_INTERVALO`), servido pelo
+`web` na porta 8083.
 
 | Host | Ambiente | Acesso |
 |---|---|---|
 | `aluno.celke.uno` | produção | público |
 | `adm.celke.uno` | produção | só `ADM_IPS` |
+| `cursos.celke.uno` | produção | público (site gerado a partir da API) |
 | `media.celke.uno` | produção | público (URLs assinadas) |
 | `homolog-aluno.celke.uno`, `homolog-adm.celke.uno`, `homolog-media.celke.uno` | homologação | só `HOMOLOG_IPS`, `noindex`, com Swagger |
 
@@ -54,9 +58,11 @@ Crie registros **A** apontando para o IP da VPS (só subdomínios; o domínio pr
 outras aplicações):
 
 ```
+cursos          A   <ip-da-vps>
 aluno           A   <ip-da-vps>
 adm             A   <ip-da-vps>
 media           A   <ip-da-vps>
+homolog-cursos  A   <ip-da-vps>
 homolog-aluno   A   <ip-da-vps>
 homolog-adm     A   <ip-da-vps>
 homolog-media   A   <ip-da-vps>
@@ -296,6 +302,11 @@ e, como `deploy`:
 cd /opt/plataforma-cursos
 docker compose -f caddy/compose.yml --env-file caddy/.env --project-directory caddy up -d --force-recreate
 ```
+
+**Site público (Fase 14):** além do DNS de `cursos` e `homolog-cursos` (etapa 2), o `caddy/.env`
+precisa de `PRODUCAO_HOST_SITE` e `HOMOLOG_HOST_SITE` (veja `infra/caddy/.env.example`). O endereço
+público do site vem de `SITE_URL` no `.env` do ambiente; em branco, é derivado de `FRONT_ALUNO_URL`
+(`aluno.` → `cursos.`). A homologação sai com `noindex` e `robots.txt` bloqueando tudo.
 
 Quando a mudança do Caddy depende de um container novo (como na Fase 11, que passou a mandar as
 páginas para o `web`), atualize o Caddy **depois** do deploy dos dois ambientes com esse container: antes

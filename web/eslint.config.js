@@ -21,7 +21,14 @@ export default tseslint.config(
     },
   },
   {
-    files: ['compartilhado/src/api/**', 'e2e/**', '**/*.test.{ts,tsx}'],
+    // O gerador do site roda no Node, fora do app: busca a API direto
+    files: ['compartilhado/src/api/**', 'e2e/**', 'site/**', '**/*.test.{ts,tsx}'],
     rules: { 'no-restricted-globals': 'off' },
+  },
+  {
+    // Script do site que roda no navegador (validar certificado)
+    files: ['site/assets/**/*.js'],
+    extends: [js.configs.recommended],
+    languageOptions: { ecmaVersion: 2023, sourceType: 'script', globals: globals.browser },
   },
 );

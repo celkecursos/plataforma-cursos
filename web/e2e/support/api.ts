@@ -6,6 +6,7 @@ import { stamp } from './dados.ts';
 export interface ClienteApi {
   get<T>(rota: string): Promise<T>;
   post<T>(rota: string, corpo?: unknown): Promise<T>;
+  put<T>(rota: string, corpo: unknown): Promise<T>;
   patch<T>(rota: string, corpo: unknown): Promise<T>;
 }
 
@@ -34,6 +35,8 @@ export async function clienteApi(
     get: async (rota) => conferir('GET', rota, await request.get(`${base}${rota}`, { headers })),
     post: async (rota, corpo) =>
       conferir('POST', rota, await request.post(`${base}${rota}`, { headers, data: corpo ?? {} })),
+    put: async (rota, corpo) =>
+      conferir('PUT', rota, await request.put(`${base}${rota}`, { headers, data: corpo })),
     patch: async (rota, corpo) =>
       conferir('PATCH', rota, await request.patch(`${base}${rota}`, { headers, data: corpo })),
   };

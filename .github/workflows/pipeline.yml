@@ -140,11 +140,22 @@ jobs:
         uses: docker/build-push-action@v7
         with:
           context: web
+          target: web
           tags: plataforma-cursos-web:e2e
           load: true
           labels: org.opencontainers.image.source=https://github.com/${{ github.repository }}
           cache-from: type=gha,scope=web
           cache-to: type=gha,mode=max,scope=web
+
+      - name: Imagem do gerador do site
+        uses: docker/build-push-action@v7
+        with:
+          context: web
+          target: site
+          tags: plataforma-cursos-site:e2e
+          load: true
+          labels: org.opencontainers.image.source=https://github.com/${{ github.repository }}
+          cache-from: type=gha,scope=web
 
       # Vulnerabilidades críticas com correção disponível nas imagens (sistema e dependências Java)
       - name: Varredura da imagem da API (Trivy)
@@ -171,6 +182,14 @@ jobs:
           ignore-unfixed: true
           exit-code: "1"
 
+      - name: Varredura da imagem do site (Trivy)
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: plataforma-cursos-site:e2e
+          severity: CRITICAL
+          ignore-unfixed: true
+          exit-code: "1"
+
       - name: Subir a stack de e2e
         run: $COMPOSE_E2E up -d --no-build --wait
 
@@ -193,6 +212,11 @@ jobs:
           npx playwright install --with-deps chromium
           npm run e2e
 
+      # Meta de Lighthouse do site público (desempenho, acessibilidade, boas práticas e SEO)
+      - name: Lighthouse do site
+        working-directory: web
+        run: npm run lighthouse
+
       # Só depois do merge, e só se o e2e passou: as imagens publicadas são exatamente as testadas
       - name: Publicar imagens no GHCR
         if: github.event_name == 'push'
@@ -200,7 +224,7 @@ jobs:
           REGISTRO: ghcr.io/${{ github.repository_owner }}
         run: |
           echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
-          for imagem in api worker web; do
+          for imagem in api worker web site; do
             docker tag "plataforma-cursos-$imagem:e2e" "$REGISTRO/plataforma-cursos-$imagem:$GITHUB_SHA"
             docker push "$REGISTRO/plataforma-cursos-$imagem:$GITHUB_SHA"
           done

@@ -53,6 +53,26 @@
 	}
 }
 
+# Site público (cursos.*): só as leituras públicas da API (catálogo, capas, termos vigentes e
+# validação de certificado) chegam a ela; o resto é o site gerado, servido pelo container web.
+# Argumento: o ambiente.
+(site) {
+	@api {
+		method GET HEAD
+		path /api/cursos /api/cursos/* /api/termos/vigentes /api/certificados/*
+	}
+	handle @api {
+		reverse_proxy {args[0]}-api:8080 {
+			lb_try_duration 30s
+		}
+	}
+	handle {
+		reverse_proxy {args[0]}-web:8083 {
+			lb_try_duration 30s
+		}
+	}
+}
+
 # Arquivos do bucket por URL pré-assinada (o host faz parte da assinatura e é repassado como veio)
 (midia) {
 	reverse_proxy {args[0]}-garage:3900

@@ -14,3 +14,8 @@
 	import seguranca
 	import midia producao
 }
+
+{$PRODUCAO_HOST_SITE} {
+	import seguranca
+	import site producao
+}
