@@ -4989,7 +4989,7 @@ docker compose -f infra/compose.prod.yml -f infra/compose.e2e.yml --env-file inf
 
 ```bash
 git add backend/ web/ infra/ docs/ .github/ README.md
-git commit -m "Área do aluno"
+git commit -m "feat(aluno): adicionar a área do aluno"
 git push -u origin feature/web-aluno
 ```
 

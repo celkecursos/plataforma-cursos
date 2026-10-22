@@ -3779,7 +3779,7 @@ docker compose -f infra/compose.prod.yml -f infra/compose.e2e.yml --env-file inf
 
 ```bash
 git add backend/ web/ infra/ docs/ .github/ README.md
-git commit -m "Base dos fronts (aluno e ADM)"
+git commit -m "feat(web): criar a base dos fronts do aluno e do ADM"
 git push -u origin feature/web-base
 ```
 

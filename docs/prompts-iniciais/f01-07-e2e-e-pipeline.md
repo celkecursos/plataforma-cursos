@@ -1521,7 +1521,7 @@ Dentro de `backend/`:
 
 ```bash
 git add .github/ backend/ infra/
-git commit -m "Testes e2e e pipeline no GitHub Actions"
+git commit -m "ci: adicionar testes e2e e pipeline no GitHub Actions"
 ```
 
 Com o pipeline verde, em Settings → Rules do repositório, crie uma regra para `homolog` e `main`:

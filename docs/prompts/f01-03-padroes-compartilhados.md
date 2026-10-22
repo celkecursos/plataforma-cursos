@@ -3252,5 +3252,5 @@ docker compose -f infra/compose.yml logs api | grep -E "CORS|expiram"
 
 ```bash
 git add backend/ infra/
-git commit -m "Padrões compartilhados: erros, logs, armazenamento, fila e e-mail"
+git commit -m "feat(shared): adicionar erros, logs, armazenamento, fila e e-mail"
 ```

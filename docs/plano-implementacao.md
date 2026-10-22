@@ -100,6 +100,9 @@ Regras:
 ```
 plataforma-cursos/
 ├── CLAUDE.md                    regras gerais do repositório
+├── .claude/                     orientações para agentes de IA: rules, skills (commits, especificação),
+│                                agentes e comandos do pipeline SDD (/sdd → /gerar-tasks → /implementar-tasks)
+├── .sdd/                        specs e tasks geradas pelo pipeline SDD (quando usado)
 ├── backend/
 │   ├── CLAUDE.md                regras do projeto Java (código e testes)
 │   ├── .claude/skills/          criar-teste-unitario, criar-teste-integracao, criar-teste-e2e
@@ -147,7 +150,8 @@ plataforma-cursos/
 │   └── scripts/                 gerar-env.sh, gerar-env-servidor.sh, preparar-vps.sh, deploy.sh, backup...
 ├── docs/
 │   ├── plano-implementacao.md
-│   └── prompts/                 prompts para recriar o projeto em sequência
+│   ├── prompts/                 um prompt por fase (especificação e verificação)
+│   └── prompts-iniciais/        sequência completa para criar o projeto do zero
 └── .github/workflows/
     └── pipeline.yml
 ```
@@ -176,6 +180,9 @@ Definição de pronto de **todo** PR:
 - [x] Criar repositório `celkecursos/plataforma-cursos` no GitHub
 - [x] Primeiro commit na `main` (README, `.gitignore`, `docs/`)
 - [x] Criar `homolog` a partir da `main`
+- [x] Orientações para agentes de IA em `.claude/`: rules por caminho (segurança, fronts, testes, prompts),
+  commits em Conventional Commits sem coautoria de IA (`/gc`, `/pc`), `/nova-branch`, `/abrir-pr`,
+  `/revisar-dod` e o pipeline SDD com portões humanos
 - [ ] Regras de proteção em `main` e `homolog`: só PR, checks obrigatórios (ativar quando o pipeline existir)
 - [ ] Environments `homolog` e `production` com seus secrets
 - [ ] Confirmar os subdomínios livres em `celke.uno`

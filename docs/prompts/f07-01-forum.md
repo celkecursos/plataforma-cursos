@@ -3410,7 +3410,7 @@ No ambiente local, pelo Swagger, com um aluno matriculado numa turma:
 
 ```bash
 git add backend/ infra/ docs/
-git commit -m "Fórum por aula e por turma"
+git commit -m "feat(forum): adicionar fórum por aula e por turma"
 git push -u origin feature/forum
 ```
 

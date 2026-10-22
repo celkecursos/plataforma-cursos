@@ -2933,5 +2933,5 @@ done
 
 ```bash
 git add backend/ infra/
-git commit -m "Autorização e proteções: limite por IP, bloqueio, CSRF e auditoria de login"
+git commit -m "feat(auth): adicionar limite por IP, bloqueio, CSRF e auditoria de login"
 ```

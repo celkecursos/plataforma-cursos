@@ -3171,7 +3171,7 @@ No ambiente local, pelo Swagger, com uma aula e um aluno matriculado:
 
 ```bash
 git add backend/ infra/ docs/
-git commit -m "Arquivos de apoio"
+git commit -m "feat(arquivo): adicionar arquivos de apoio"
 git push -u origin feature/arquivos-apoio
 ```
 

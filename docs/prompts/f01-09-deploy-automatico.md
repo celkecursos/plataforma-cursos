@@ -849,5 +849,5 @@ Etapas 1.1 a 1.8 concluídas.
 
 ```bash
 git add .github/ docs/ infra/
-git commit -m "Deploy automático com rollback"
+git commit -m "ci: adicionar deploy automático com rollback"
 ```

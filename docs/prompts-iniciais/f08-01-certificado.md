@@ -2681,7 +2681,7 @@ No ambiente local, pelo Swagger, com um aluno matriculado numa turma:
 
 ```bash
 git add backend/ infra/ docs/
-git commit -m "Certificado em PDF"
+git commit -m "feat(certificado): emitir certificado em PDF"
 git push -u origin feature/certificado
 ```
 
