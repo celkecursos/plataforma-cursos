@@ -1,0 +1,90 @@
+import { Alerta, Botao, CampoSenha } from '@celke/kole-react';
+import { useState } from 'react';
+import { Link, useSearchParams } from 'react-router';
+import { api } from '@compartilhado/api/cliente.ts';
+import { mensagemDeErro } from '@compartilhado/api/erros.ts';
+import { LayoutConta } from '@compartilhado/ui/LayoutConta.tsx';
+import { erroConfirmacao, erroSenhaNova, semErros } from '@compartilhado/ui/validacao.ts';
+import { CAMINHOS } from '../caminhos.ts';
+
+/** Destino do link de recuperação: cria a nova senha (e encerra as sessões abertas). */
+export function RedefinirSenhaPagina() {
+  const [parametros] = useSearchParams();
+  const token = parametros.get('token');
+  const [senha, setSenha] = useState('');
+  const [confirmacao, setConfirmacao] = useState('');
+  const [erros, setErros] = useState<{ senha?: string; confirmacao?: string }>({});
+  const [erroGeral, setErroGeral] = useState<string>();
+  const [enviando, setEnviando] = useState(false);
+  const [pronto, setPronto] = useState(false);
+
+  if (!token) {
+    return (
+      <LayoutConta marca="Plataforma de Cursos" titulo="Link inválido">
+        <Alerta severidade="err" mensagem="Link inválido ou expirado. Peça um novo." />
+        <Link className="pc-link" to={CAMINHOS.recuperarSenha}>
+          Pedir um novo link
+        </Link>
+      </LayoutConta>
+    );
+  }
+
+  if (pronto) {
+    return (
+      <LayoutConta marca="Plataforma de Cursos" titulo="Senha alterada">
+        <Alerta
+          severidade="ok"
+          mensagem="Sua nova senha já vale. Por segurança, você saiu de todos os dispositivos."
+        />
+        <Link className="pc-link" to={CAMINHOS.entrar}>
+          Entrar
+        </Link>
+      </LayoutConta>
+    );
+  }
+
+  const enviar = async () => {
+    const novos = { senha: erroSenhaNova(senha), confirmacao: erroConfirmacao(senha, confirmacao) };
+    setErros(novos);
+    setErroGeral(undefined);
+    if (!semErros(novos)) return;
+    setEnviando(true);
+    try {
+      await api.post('/api/auth/redefinir-senha', { token, senha });
+      setPronto(true);
+    } catch (erro) {
+      setErroGeral(mensagemDeErro(erro));
+    } finally {
+      setEnviando(false);
+    }
+  };
+
+  return (
+    <LayoutConta
+      marca="Plataforma de Cursos"
+      titulo="Criar nova senha"
+      aoEnviar={enviar}
+      rodape={<Link to={CAMINHOS.recuperarSenha}>Pedir um novo link</Link>}
+    >
+      {erroGeral && <Alerta severidade="err" mensagem={erroGeral} />}
+      <CampoSenha
+        rotulo="Nova senha"
+        valor={senha}
+        aoMudar={setSenha}
+        erro={erros.senha}
+        obrigatorio
+        dica="Pelo menos 10 caracteres."
+        autoComplete="new-password"
+      />
+      <CampoSenha
+        rotulo="Repita a nova senha"
+        valor={confirmacao}
+        aoMudar={setConfirmacao}
+        erro={erros.confirmacao}
+        obrigatorio
+        autoComplete="new-password"
+      />
+      <Botao type="submit" rotulo="Salvar nova senha" icone="save" carregando={enviando} bloco />
+    </LayoutConta>
+  );
+}

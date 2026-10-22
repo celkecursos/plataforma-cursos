@@ -1,10 +1,12 @@
 package br.com.celke.cursos.e2e.proxy;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 
 import br.com.celke.cursos.e2e.support.Api;
 import br.com.celke.cursos.e2e.support.Dados;
+import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -28,10 +30,42 @@ class ProxyE2E {
 
     @ParameterizedTest(name = "{0}")
     @ValueSource(strings = {"/v3/api-docs", "/swagger-ui/index.html", "/actuator/env", "/actuator/metrics", "/"})
-    @DisplayName("fora de /api e do health check, nada chega à API")
+    @DisplayName("fora de /api e do health check, nada chega à API: quem responde é o front")
     void rotasForaDaApi(String rota) {
-        Api.aluno().get(rota).then().statusCode(404);
-        Api.adm().get(rota).then().statusCode(404);
+        // O container web devolve o index.html do app (o React Router decide a página)
+        Api.aluno()
+                .get(rota)
+                .then()
+                .statusCode(200)
+                .contentType(containsString("text/html"))
+                .body(containsString("id=\"raiz\""));
+        Api.adm()
+                .get(rota)
+                .then()
+                .statusCode(200)
+                .contentType(containsString("text/html"))
+                .body(containsString("id=\"raiz\""));
+    }
+
+    @Test
+    @DisplayName("os fronts saem com Content-Security-Policy e o index.html sempre revalidado")
+    void cabecalhosDosFronts() {
+        for (var cliente : List.of(Api.aluno(), Api.adm())) {
+            cliente.get("/")
+                    .then()
+                    .statusCode(200)
+                    .header("Content-Security-Policy", containsString("default-src 'self'"))
+                    .header("Content-Security-Policy", containsString("frame-ancestors 'none'"))
+                    .header("Cache-Control", "no-cache")
+                    .header("Strict-Transport-Security", "max-age=31536000");
+        }
+    }
+
+    @Test
+    @DisplayName("aluno e ADM são apps diferentes")
+    void appsSeparados() {
+        Api.aluno().get("/").then().body(containsString("Área do aluno"));
+        Api.adm().get("/").then().body(containsString("Administração"));
     }
 
     @Test
