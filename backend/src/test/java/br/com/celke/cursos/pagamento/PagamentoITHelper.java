@@ -79,10 +79,14 @@ public final class PagamentoITHelper {
                 .isEqualTo(resultado);
     }
 
-    /** Notificação a partir da fixture do evento, com id novo. */
+    /**
+     * Notificação a partir da fixture do evento, com id novo e ocorrida agora (a data da fixture
+     * envelhece e deixaria vencida a matrícula com prazo).
+     */
     public Notificacao notificacao(String evento) {
         return new Notificacao((ObjectNode) json.readTree(FixturesHotmart.corpo(evento)))
-                .id(UUID.randomUUID().toString());
+                .id(UUID.randomUUID().toString())
+                .ocorridoEm(System.currentTimeMillis());
     }
 
     public record Gateway(long id, String webhookToken, String hottok) {}
