@@ -4,6 +4,7 @@ import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.jdbc.core.simple.JdbcClient;
@@ -134,6 +135,25 @@ public class FilaService {
                 .param("agora", utc(agora))
                 .update();
     }
+
+    /** Jobs que foram para ERRO depois do instante, menos os do tipo excluído (alerta de operação). */
+    public List<FalhaJob> falhasDesde(Instant desde, String tipoExcluido) {
+        return jdbc.sql("""
+                        SELECT id, tipo, ultimo_erro, atualizado_em FROM jobs
+                         WHERE status = 'ERRO' AND atualizado_em > :desde AND tipo <> :excluido
+                         ORDER BY atualizado_em, id
+                        """)
+                .param("desde", utc(desde))
+                .param("excluido", tipoExcluido)
+                .query((rs, n) -> new FalhaJob(
+                        rs.getLong("id"),
+                        rs.getString("tipo"),
+                        rs.getString("ultimo_erro"),
+                        rs.getObject("atualizado_em", OffsetDateTime.class).toInstant()))
+                .list();
+    }
+
+    public record FalhaJob(long id, String tipo, String erro, Instant em) {}
 
     private static OffsetDateTime utc(Instant instante) {
         return instante.atOffset(ZoneOffset.UTC);

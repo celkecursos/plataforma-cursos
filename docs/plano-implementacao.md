@@ -465,11 +465,17 @@ vigentes, a cada versão nova.
 
 Capítulos 29 a 31. Fica antes do front porque precisa estar pronta antes de entrarem dados reais em produção.
 
-- [ ] Backup diário do PostgreSQL e do Garage para fora da VPS (restic); restauração testada e documentada
-- [ ] Monitor de uptime externo; alerta de disco e de falhas no worker
-- [ ] Rotação de logs do Docker; limpeza de uploads órfãos e dos dados da homologação
-- [ ] Conta "horas de vídeo que cabem no disco" e plano de saída para S3 externo (R2/B2)
-- [ ] Revisão OWASP ASVS nível 1 da API; varredura com OWASP ZAP na homologação; Trivy no pipeline
+- [x] Backup com restic para fora da VPS (`infra/scripts/backup.sh`): dump do PostgreSQL por stdin e arquivos do Garage com o snapshot consistente dos metadados; retenção 7/4/6. Restauração (`restaurar.sh`) testada na stack de e2e — banco e os 11 objetos do bucket de volta — e documentada em [operação](operacao.md)
+- [ ] Agendar o backup no cron da VPS e repetir o teste de restauração na homologação (depende da VPS no ar)
+- [x] Alertas do worker por e-mail (`ALERTA_EMAIL`): jobs que foram para ERRO e disco abaixo de 15% livre, a cada 15 minutos
+- [ ] Monitor de uptime externo (UptimeRobot ou Better Stack) no health check e no site (depende da VPS no ar)
+- [x] Rotação de logs do Docker (`json-file`, 5 × 10 MB) em todos os serviços; uploads órfãos já expiram pelo bucket (2 dias); roteiro para limpar a homologação
+- [x] Conta das horas de vídeo que cabem no disco e plano de saída para o R2/B2 (troca de endpoint + `rclone sync`) em [operação](operacao.md)
+- [x] Revisão OWASP ASVS nível 1 documentada; Trivy no pipeline (críticos com correção quebram o build — já corrigiu Tomcat e Jackson); OWASP ZAP baseline na stack local (0 falhas; `Cross-Origin-Resource-Policy` acrescentado ao Caddy)
+- [ ] OWASP ZAP baseline na homologação a cada versão (depende da VPS no ar)
+
+**Pronto quando:** existe backup diário fora da VPS com a restauração testada, os alertas chegam por
+e-mail e o pipeline barra imagens com vulnerabilidade crítica conhecida.
 
 ---
 

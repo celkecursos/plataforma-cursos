@@ -108,6 +108,23 @@ jobs:
           cache-from: type=gha,scope=worker
           cache-to: type=gha,mode=max,scope=worker
 
+      # Vulnerabilidades críticas com correção disponível nas imagens (sistema e dependências Java)
+      - name: Varredura da imagem da API (Trivy)
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: plataforma-cursos-api:e2e
+          severity: CRITICAL
+          ignore-unfixed: true
+          exit-code: "1"
+
+      - name: Varredura da imagem do worker (Trivy)
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: plataforma-cursos-worker:e2e
+          severity: CRITICAL
+          ignore-unfixed: true
+          exit-code: "1"
+
       - name: Subir a stack de e2e
         run: $COMPOSE_E2E up -d --no-build --wait
 

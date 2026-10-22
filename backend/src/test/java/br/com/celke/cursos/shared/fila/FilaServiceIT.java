@@ -163,6 +163,29 @@ class FilaServiceIT extends IntegrationTest {
     }
 
     @Test
+    @DisplayName("falhas desde um instante: só os jobs em ERRO depois dele e fora do tipo excluído")
+    void falhasDesde() {
+        String tipo = stamp();
+        String excluido = stamp();
+        Job antigo = reservar(tipo, T0);
+        fila.falharDefinitivo(antigo, "antes", T0);
+        Job novo = reservar(tipo, T0);
+        fila.falharDefinitivo(novo, "depois", T0.plusSeconds(60));
+        fila.falharDefinitivo(reservar(excluido, T0), "e-mail", T0.plusSeconds(60));
+        fila.concluir(reservar(tipo, T0), T0.plusSeconds(60));
+
+        assertThat(fila.falhasDesde(T0.plusSeconds(30), excluido))
+                .filteredOn(f -> f.tipo().equals(tipo) || f.tipo().equals(excluido))
+                .extracting(FilaService.FalhaJob::id, FilaService.FalhaJob::erro)
+                .containsExactly(org.assertj.core.groups.Tuple.tuple(novo.id(), "depois"));
+    }
+
+    private Job reservar(String tipo, Instant agora) {
+        fila.enfileirar(tipo, Map.of(), agora);
+        return fila.reservar(Set.of(tipo), agora).orElseThrow();
+    }
+
+    @Test
     @DisplayName("consumidores concorrentes nunca reservam o mesmo job")
     void reservaConcorrente() throws Exception {
         String tipo = stamp();
