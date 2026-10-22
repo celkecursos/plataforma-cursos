@@ -15,7 +15,11 @@ COPY . .
 RUN npm run build
 
 # Gerador do site: só Node, sem dependências (o Node 24 roda o TypeScript direto)
-FROM node:24.11-alpine AS site
+FROM node:24.19-alpine AS site
+# Correções do sistema; npm e yarn saem da imagem (o gerador não instala nada)
+RUN apk upgrade --no-cache \
+    && rm -rf /usr/local/lib/node_modules/npm /usr/local/bin/npm /usr/local/bin/npx \
+        /opt/yarn-* /usr/local/bin/yarn /usr/local/bin/yarnpkg
 WORKDIR /app
 COPY site/html.ts site/paginas.ts site/gerar.ts ./site/
 COPY site/assets ./site/assets
