@@ -3,3 +3,5 @@
 # ganham um \r no fim.
 infra/** text eol=lf
 *.sh text eol=lf
+# Frontends: o Prettier exige LF
+web/** text=auto eol=lf

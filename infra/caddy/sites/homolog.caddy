@@ -2,13 +2,13 @@
 {$HOMOLOG_HOST_ALUNO} {
 	import seguranca
 	import homolog
-	import api_com_docs homolog
+	import app_com_docs homolog 8081
 }
 
 {$HOMOLOG_HOST_ADM} {
 	import seguranca
 	import homolog
-	import api_com_docs homolog
+	import app_com_docs homolog 8082
 }
 
 {$HOMOLOG_HOST_MEDIA} {

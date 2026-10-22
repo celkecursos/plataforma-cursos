@@ -1,0 +1,38 @@
+# Caddy interno do container web: só arquivos estáticos, sem TLS (o TLS e os headers comuns ficam no
+# Caddy da VPS). MIDIA_ORIGEM é a origem pública do Garage (vídeos, capas, arquivos de apoio).
+{
+	admin off
+	auto_https off
+}
+
+# Argumento: a pasta do app (aluno ou adm)
+(spa) {
+	root * /srv/{args[0]}
+	encode zstd gzip
+	header {
+		-Server
+		Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: {$MIDIA_ORIGEM}; media-src 'self' blob: {$MIDIA_ORIGEM}; connect-src 'self' {$MIDIA_ORIGEM}; font-src 'self' data:; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
+		X-Frame-Options DENY
+	}
+
+	# Arquivos com hash no nome: nunca mudam
+	handle /assets/* {
+		header Cache-Control "public, max-age=31536000, immutable"
+		file_server
+	}
+
+	# Qualquer outra rota é do React Router: devolve o index.html, sempre revalidado
+	handle {
+		header Cache-Control "no-cache"
+		try_files {path} /index.html
+		file_server
+	}
+}
+
+:8081 {
+	import spa aluno
+}
+
+:8082 {
+	import spa adm
+}

@@ -1,6 +1,6 @@
-# e2e: a stack de um ambiente dos servidores (compose.prod.yml) com o Caddy dos servidores, HTTP em
-# *.localhost (sites de caddy/e2e.caddy), Mailpit no lugar do SMTP, imagens construídas localmente e o
-# seed do profile e2e. Projeto separado do ambiente local.
+# e2e: a stack de um ambiente dos servidores (compose.prod.yml, com os fronts) e o Caddy dos
+# servidores, HTTP em *.localhost (sites de caddy/e2e.caddy), Mailpit no lugar do SMTP, imagens
+# construídas localmente e o seed do profile e2e. Projeto separado do ambiente local.
 #
 #   docker compose -f infra/compose.prod.yml -f infra/compose.e2e.yml --env-file infra/e2e.env up -d --build --wait
 #   docker compose -f infra/compose.prod.yml -f infra/compose.e2e.yml --env-file infra/e2e.env down -v
@@ -17,6 +17,13 @@ services:
     depends_on:
       api:
         condition: service_healthy
+      web:
+        condition: service_healthy
+
+  web:
+    image: plataforma-cursos-web:e2e
+    build:
+      context: ../web
 
   api:
     image: plataforma-cursos-api:e2e

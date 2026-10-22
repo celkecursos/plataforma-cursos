@@ -1,0 +1,69 @@
+/* Telas fora da área logada (cadastro, confirmação, recuperação de senha): cartão centralizado
+   com os tokens da @celke/kole-react, nos dois temas. */
+.pc-conta {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 24px 16px;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-ui);
+}
+
+.pc-conta-cartao {
+  width: 100%;
+  max-width: 440px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-card);
+  padding: 32px 28px;
+  display: grid;
+  gap: 18px;
+}
+
+.pc-conta-marca {
+  font-size: var(--fs-caption);
+  color: var(--t2);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin: 0;
+}
+
+.pc-conta-titulo {
+  font-size: var(--fs-titulo);
+  margin: 0;
+}
+
+.pc-conta-descricao {
+  color: var(--t2);
+  margin: 0;
+}
+
+.pc-conta-form {
+  display: grid;
+  gap: 14px;
+}
+
+.pc-conta-rodape {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  justify-content: space-between;
+  font-size: var(--fs-corpo-2);
+}
+
+.pc-conta-rodape a,
+.pc-link {
+  color: var(--pri);
+}
+
+.pc-pagina {
+  display: grid;
+  gap: 20px;
+}
+
+.pc-grade-cards {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+}

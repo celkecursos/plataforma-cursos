@@ -1,13 +1,13 @@
 # Produção
 {$PRODUCAO_HOST_ALUNO} {
 	import seguranca
-	import api producao
+	import app producao 8081
 }
 
 {$PRODUCAO_HOST_ADM} {
 	import seguranca
 	import somente_ips_adm
-	import api producao
+	import app producao 8082
 }
 
 {$PRODUCAO_HOST_MEDIA} {

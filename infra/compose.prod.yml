@@ -1,7 +1,8 @@
-# Stack de um ambiente dos servidores (produção ou homologação): API, worker, PostgreSQL e Garage.
+# Stack de um ambiente dos servidores (produção ou homologação): API, worker, fronts (web),
+# PostgreSQL e Garage.
 # Imagens publicadas no GHCR com a tag do commit (TAG); nenhuma porta publicada. O Caddy (projeto
-# próprio, em caddy/) chega à API e ao Garage pela rede plataforma-cursos-<AMBIENTE>, pelos apelidos
-# <AMBIENTE>-api e <AMBIENTE>-garage. Todas as variáveis vêm do .env do ambiente.
+# próprio, em caddy/) chega à API, aos fronts e ao Garage pela rede plataforma-cursos-<AMBIENTE>,
+# pelos apelidos <AMBIENTE>-api, <AMBIENTE>-web e <AMBIENTE>-garage. Todas as variáveis vêm do .env do ambiente.
 #
 #   Produção:    docker compose -p plataforma-cursos-producao -f compose.prod.yml up -d --wait
 #   Homologação: docker compose -p plataforma-cursos-homolog -f compose.prod.yml -f compose.homolog.yml up -d --wait
@@ -93,6 +94,23 @@ services:
           # A transcodificação (ffmpeg) não pode tomar a CPU toda da VPS
           cpus: "1.5"
           memory: 2G
+
+  # Área do aluno (porta 8081) e ADM (8082), estáticos; a API é chamada no mesmo domínio (/api)
+  web:
+    logging: *logging
+    image: ${IMAGEM_WEB:-ghcr.io/celkecursos/plataforma-cursos-web}:${TAG:?defina TAG}
+    restart: unless-stopped
+    environment:
+      # Origem dos vídeos e arquivos na Content-Security-Policy dos fronts
+      MIDIA_ORIGEM: ${S3_ENDPOINT_PUBLICO:?defina S3_ENDPOINT_PUBLICO}
+    networks:
+      default:
+        aliases:
+          - ${AMBIENTE:?defina AMBIENTE}-web
+    deploy:
+      resources:
+        limits:
+          memory: 64M
 
   postgres:
     logging: *logging

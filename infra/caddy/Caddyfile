@@ -1,7 +1,7 @@
 # Porta de entrada da plataforma. Um Caddy só atende os dois ambientes da VPS: cada site está em
-# sites/<ambiente>.caddy e chega à API e ao Garage do seu ambiente pelos apelidos <ambiente>-api e
-# <ambiente>-garage. Com "https://..." o Caddy emite o certificado sozinho; com "http://..." atende
-# sem TLS (e2e).
+# sites/<ambiente>.caddy e chega à API, aos fronts e ao Garage do seu ambiente pelos apelidos
+# <ambiente>-api, <ambiente>-web e <ambiente>-garage. Com "https://..." o Caddy emite o certificado
+# sozinho; com "http://..." atende sem TLS (e2e).
 {
 	admin off
 	email {$ACME_EMAIL:nao-configurado@celke.uno}
@@ -19,10 +19,11 @@
 	}
 }
 
-# Só a API e o health check passam; o resto (Swagger, outros endpoints do Actuator) não sai daqui.
+# Um front (aluno ou ADM) com a sua API. Só a API e o health check chegam à API; o resto (Swagger,
+# outros endpoints do Actuator) nunca: vai para o container web, que serve o app React.
 # O X-Forwarded-For que o cliente mandar é substituído pelo IP real da conexão.
-# Argumento: o ambiente (producao, homolog, e2e).
-(api) {
+# Argumentos: o ambiente (producao, homolog, e2e) e a porta do app no container web (8081 aluno, 8082 ADM).
+(app) {
 	@api path /api/* /actuator/health /actuator/health/*
 	handle @api {
 		reverse_proxy {args[0]}-api:8080 {
@@ -31,12 +32,14 @@
 		}
 	}
 	handle {
-		respond 404
+		reverse_proxy {args[0]}-web:{args[1]} {
+			lb_try_duration 30s
+		}
 	}
 }
 
-# Como (api), mas também com a documentação (Swagger): só na homologação
-(api_com_docs) {
+# Como (app), mas também com a documentação (Swagger): só na homologação
+(app_com_docs) {
 	@api path /api/* /actuator/health /actuator/health/* /v3/api-docs /v3/api-docs/* /swagger-ui.html /swagger-ui/*
 	handle @api {
 		reverse_proxy {args[0]}-api:8080 {
@@ -44,7 +47,9 @@
 		}
 	}
 	handle {
-		respond 404
+		reverse_proxy {args[0]}-web:{args[1]} {
+			lb_try_duration 30s
+		}
 	}
 }
 

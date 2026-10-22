@@ -64,9 +64,37 @@ jobs:
           path: backend/target/site/jacoco
           if-no-files-found: ignore
 
+  frontend:
+    name: Frontend (lint, tipos, unitários e build)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      # O lock guarda o kole-react como git+ssh; o repositório é público e vem por HTTPS
+      - name: Dependências
+        run: |
+          git config --global url."https://github.com/".insteadOf "ssh://git@github.com/"
+          npm ci --no-audit --no-fund
+
+      - run: npm run format:check
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+
   e2e:
     name: e2e (stack completa)
-    needs: testes
+    needs: [testes, frontend]
     runs-on: ubuntu-latest
     timeout-minutes: 30
     permissions:
@@ -108,6 +136,16 @@ jobs:
           cache-from: type=gha,scope=worker
           cache-to: type=gha,mode=max,scope=worker
 
+      - name: Imagem dos fronts
+        uses: docker/build-push-action@v7
+        with:
+          context: web
+          tags: plataforma-cursos-web:e2e
+          load: true
+          labels: org.opencontainers.image.source=https://github.com/${{ github.repository }}
+          cache-from: type=gha,scope=web
+          cache-to: type=gha,mode=max,scope=web
+
       # Vulnerabilidades críticas com correção disponível nas imagens (sistema e dependências Java)
       - name: Varredura da imagem da API (Trivy)
         uses: aquasecurity/trivy-action@v0.36.0
@@ -125,12 +163,35 @@ jobs:
           ignore-unfixed: true
           exit-code: "1"
 
+      - name: Varredura da imagem dos fronts (Trivy)
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: plataforma-cursos-web:e2e
+          severity: CRITICAL
+          ignore-unfixed: true
+          exit-code: "1"
+
       - name: Subir a stack de e2e
         run: $COMPOSE_E2E up -d --no-build --wait
 
       - name: Jornadas e2e
         working-directory: backend
         run: ./mvnw -B verify -Pe2e
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      # Navegador real contra os fronts servidos pelo container web, atrás do Caddy
+      - name: Jornadas e2e dos fronts (Playwright)
+        working-directory: web
+        run: |
+          git config --global url."https://github.com/".insteadOf "ssh://git@github.com/"
+          npm ci --no-audit --no-fund
+          npx playwright install --with-deps chromium
+          npm run e2e
 
       # Só depois do merge, e só se o e2e passou: as imagens publicadas são exatamente as testadas
       - name: Publicar imagens no GHCR
@@ -139,7 +200,7 @@ jobs:
           REGISTRO: ghcr.io/${{ github.repository_owner }}
         run: |
           echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
-          for imagem in api worker; do
+          for imagem in api worker web; do
             docker tag "plataforma-cursos-$imagem:e2e" "$REGISTRO/plataforma-cursos-$imagem:$GITHUB_SHA"
             docker push "$REGISTRO/plataforma-cursos-$imagem:$GITHUB_SHA"
           done
@@ -156,6 +217,8 @@ jobs:
           path: |
             stack-e2e.log
             backend/target/failsafe-reports
+            web/playwright-report
+            web/test-results
 
       - name: Derrubar a stack de e2e
         if: always()

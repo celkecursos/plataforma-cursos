@@ -131,14 +131,18 @@ plataforma-cursos/
 │       │   (cada módulo: api/ · application/ · domain/ · infra/)
 │       ├── test/java/           unitários (*Test) e integração (*IT) + support/
 │       └── e2e/java/            e2e caixa-preta (*E2E: REST Assured + Awaitility)
-├── web/                         (a partir da Fase 11)
-│   ├── package.json             workspaces
-│   ├── site/
+├── web/                         (a partir da Fase 11) um pacote só, um build por app
+│   ├── package.json
+│   ├── compartilhado/           cliente HTTP, sessão, rotas protegidas, validação
 │   ├── aluno/
-│   └── adm/
+│   ├── adm/
+│   ├── site/                    (Fase 14)
+│   ├── e2e/                     Playwright contra a stack de e2e
+│   ├── Dockerfile               build dos fronts + Caddy interno (aluno :8081, ADM :8082)
+│   └── Caddyfile
 ├── infra/
 │   ├── compose.yml              ambiente local (inclui Mailpit)
-│   ├── compose.prod.yml         um ambiente dos servidores: API, worker, PostgreSQL, Garage
+│   ├── compose.prod.yml         um ambiente dos servidores: API, worker, web, PostgreSQL, Garage
 │   ├── compose.homolog.yml      sobreposição: limites menores e Swagger
 │   ├── compose.e2e.yml          sobreposição: Caddy com *.localhost, Mailpit, seed e2e
 │   ├── e2e.env                  variáveis da stack de e2e (só valores de teste)
@@ -481,25 +485,26 @@ e-mail e o pipeline barra imagens com vulnerabilidade crítica conhecida.
 
 ## Bloco B — Frontend
 
-**Pré-requisito:** `@celke/ui` publicado no npm, já com os componentes da área do aluno:
-`PlayerVideo` (hls.js, `xhrSetup` com token, retomar posição, enviar progresso), `CardCurso`,
-`ListaAulas` e componentes de fórum. Esses componentes são feitos no repositório da biblioteca (capítulo 32).
+**Biblioteca de layout:** `@celke/kole-react`, instalada do GitHub (`github:celkecursos/kole-react`)
+com o commit fixo no `package.json`. Ela traz a moldura (`Estrutura`, `TelaLogin`), formulários,
+tabelas e feedback. Os componentes próprios da área do aluno (`PlayerVideo` com hls.js, `CardCurso`,
+`ListaAulas`, fórum) ficam no app enquanto não existirem na biblioteca.
 
 ### Fase 11 — `feature/web-base`
 
 Capítulo 33.
 
-- [ ] Workspace `web/` com `site`, `aluno`, `adm` (Vite + React + TypeScript, Node LTS)
-- [ ] `@celke/ui` do npm com versão fixa
-- [ ] Cliente HTTP: token em memória, refresh silencioso, fila de requisições durante o refresh
-- [ ] Rotas protegidas por papel; tratamento de termo pendente
-- [ ] Aluno: login, cadastro, confirmação de e-mail, recuperar senha
-- [ ] ADM: login, layout `Estrutura`
-- [ ] Proxy do Vite `/api → localhost:8080` (mesma origem também no dev)
-- [ ] Imagem `web`: build dos fronts + Caddy servindo `/srv/site`, `/srv/aluno`, `/srv/adm`
-- [ ] Caddy: CSP (`connect-src 'self' https://media.celke.uno`), `X-Frame-Options`, cache longo nos assets com hash e sem cache no `index.html`; desligar o Swagger da homologação se não for mais necessário
-- [ ] Vitest + Testing Library; Playwright no navegador entra no `pipeline.yml`
-- [ ] e2e: login aluno, login admin, aluno barrado no ADM, logout
+- [x] `web/` com `aluno` e `adm` (Vite + React + TypeScript, Node 24); um pacote só, sem workspaces; `site` entra na Fase 14
+- [x] `@celke/kole-react` do GitHub com commit fixo
+- [x] Cliente HTTP: token em memória, refresh silencioso, fila de requisições durante o refresh
+- [x] Rotas protegidas por papel; tratamento de termo pendente
+- [x] Aluno: login, cadastro, confirmação de e-mail, recuperar senha
+- [x] ADM: login, layout `Estrutura`
+- [x] Proxy do Vite `/api → localhost:8080` (mesma origem também no dev)
+- [x] Imagem `web`: build dos fronts + Caddy servindo `/srv/aluno` (:8081) e `/srv/adm` (:8082); o Caddy da VPS manda `/api` para a API e o resto para ela
+- [x] Caddy: CSP (mídia em `MIDIA_ORIGEM`), `X-Frame-Options`, cache longo nos assets com hash e sem cache no `index.html` (o Swagger da homologação continua: a API ainda é testada por ele)
+- [x] Vitest + Testing Library; Playwright no navegador entra no `pipeline.yml`
+- [x] e2e (Playwright, caminho feliz e infeliz): login aluno e admin, senha errada, cadastro com validação e confirmação pelo Mailpit, recuperação de senha, links inválidos, aluno barrado no ADM, sessão por refresh, refresh reutilizado, logout
 
 ### Fase 12 — `feature/web-adm`
 

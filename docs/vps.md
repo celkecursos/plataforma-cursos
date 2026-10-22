@@ -29,8 +29,10 @@ produção), pelo script `/usr/local/bin/plataforma-cursos-deploy`.
     └── .env                       segredos da homologação (diferentes dos da produção)
 ```
 
-Só o Caddy publica portas. Ele chega à API e ao Garage de cada ambiente pela rede do ambiente, pelos
-apelidos `producao-api`, `producao-garage`, `homolog-api` e `homolog-garage`.
+Só o Caddy publica portas. Ele chega à API, aos fronts e ao Garage de cada ambiente pela rede do
+ambiente, pelos apelidos `producao-api`, `producao-web`, `producao-garage`, `homolog-api`, `homolog-web`
+e `homolog-garage`. Em `aluno` e `adm`, `/api/*` e o health check vão para a API; o resto vai para o
+container `web` (área do aluno na porta 8081, ADM na 8082).
 
 | Host | Ambiente | Acesso |
 |---|---|---|
@@ -263,7 +265,8 @@ Do seu computador:
 ```bash
 curl -s https://aluno.celke.uno/actuator/health            # {"groups":[...],"status":"UP"}
 curl -sI https://aluno.celke.uno/actuator/health | grep -i strict-transport
-curl -s -o /dev/null -w "%{http_code}\n" https://aluno.celke.uno/v3/api-docs   # 404
+curl -s https://aluno.celke.uno/ | grep -o '<title>.*</title>'   # a área do aluno
+curl -s https://aluno.celke.uno/v3/api-docs | head -c 15        # <!doctype html> (o front, não a API)
 curl -s -o /dev/null -w "%{http_code}\n" https://adm.celke.uno/actuator/health # 403 fora de ADM_IPS
 nc -zv -w 3 <ip-da-vps> 5432 ; nc -zv -w 3 <ip-da-vps> 3900 ; nc -zv -w 3 <ip-da-vps> 8080   # recusadas
 ssh root@<ip-da-vps>                                        # recusado
@@ -286,12 +289,18 @@ tar -C /opt/plataforma-cursos/producao/versoes/<sha> -cz compose.prod.yml garage
 O rollback não desfaz migrations: por isso toda migration precisa ser compatível com a versão anterior.
 
 **Atualizar o Caddy** (é compartilhado pelos dois ambientes, então não entra no deploy automático):
-copie os arquivos novos de `infra/caddy/` para `/opt/plataforma-cursos/caddy/` e, como `deploy`:
+copie os arquivos novos de `infra/caddy/` (`Caddyfile` e `sites/`) para `/opt/plataforma-cursos/caddy/`
+e, como `deploy`:
 
 ```bash
 cd /opt/plataforma-cursos
 docker compose -f caddy/compose.yml --env-file caddy/.env --project-directory caddy up -d --force-recreate
 ```
+
+Quando a mudança do Caddy depende de um container novo (como na Fase 11, que passou a mandar as
+páginas para o `web`), atualize o Caddy **depois** do deploy dos dois ambientes com esse container: antes
+disso o Caddy novo não teria para onde mandar as páginas (502), enquanto o antigo continua respondendo
+404 fora da API.
 
 **Atualizar o script de deploy**: copie o `infra/scripts/deploy.sh` novo para a VPS e, como
 administrador, `sudo install -o root -g root -m 755 deploy.sh /usr/local/bin/plataforma-cursos-deploy`.
