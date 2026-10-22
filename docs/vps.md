@@ -1,6 +1,7 @@
 # Roteiro da VPS
 
-Preparação da VPS da Hostinger (Ubuntu 24.04) para a produção e a homologação. Feito uma vez; as
+Preparação da VPS da Hostinger (Ubuntu 24.04 ou mais novo; testado também no 26.04) para a produção e
+a homologação. Feito uma vez; as
 versões novas são implantadas pelo pipeline (merge na `homolog` → homologação; merge na `main` →
 produção), pelo script `/usr/local/bin/plataforma-cursos-deploy`.
 
@@ -63,42 +64,106 @@ Confira antes de seguir: `dig +short aluno.celke.uno` responde o IP da VPS.
 
 ## 3. Chaves SSH
 
-No seu computador:
+São **duas chaves diferentes**, as duas geradas no **seu computador** (nunca na VPS: a chave privada do
+deploy ficaria guardada no próprio servidor que ela abre). De cada uma, só a parte pública (`.pub`) vai
+para a VPS.
+
+| Chave | Quem usa | Pública (`.pub`) vai para | Privada fica |
+|---|---|---|---|
+| administrador | você, para entrar na VPS | `ADMIN_CHAVE` | no seu computador |
+| deploy | o GitHub Actions, para publicar | `DEPLOY_CHAVE` | no secret `VPS_SSH_KEY` (passo 8) |
+
+Não use a mesma chave nas duas: a do deploy só executa o script de deploy (sem terminal), e a do
+administrador dá acesso completo com sudo.
+
+No Linux, macOS ou Git Bash:
 
 ```bash
-# Sua chave (administrador). Use a que já tem, se houver:
+# Sua chave (administrador). Use a que já tem, se houver (id_ed25519.pub ou id_rsa.pub):
 cat ~/.ssh/id_ed25519.pub
 
-# Chave só do deploy automático (a privada vai para o secret VPS_SSH_KEY do GitHub)
+# Chave só do deploy automático
 ssh-keygen -t ed25519 -f ~/.ssh/plataforma-cursos-deploy -C "github-deploy" -N ""
 cat ~/.ssh/plataforma-cursos-deploy.pub
 ```
 
+No PowerShell do Windows:
+
+```powershell
+Get-Content $HOME\.ssh\id_ed25519.pub     # ou id_rsa.pub; sem nenhuma: ssh-keygen -t ed25519
+ssh-keygen -t ed25519 -f $HOME\.ssh\plataforma-cursos-deploy -C "github-deploy" -N '""'
+Get-Content $HOME\.ssh\plataforma-cursos-deploy.pub
+```
+
+Cada `.pub` é **uma linha inteira**: `ssh-ed25519 AAAAC3Nza...` (cerca de 80 caracteres) ou
+`ssh-rsa AAAAB3Nza...` (centenas de caracteres). Copie a linha toda; uma chave cortada deixa você fora
+da VPS no fim do passo 4.
+
 ## 4. Preparar a VPS
+
+O script recebe três valores:
+
+- `ADMIN_USUARIO`: o nome do **seu** usuário Linux na VPS (ex.: `cesar`). Ele ainda não existe: o script
+  cria, com sudo e acesso ao Docker. Não é o usuário do painel da Hostinger nem o do GitHub. Depois do
+  script, é com ele que você entra (`ssh cesar@<ip-da-vps>`), porque o root deixa de entrar por SSH.
+- `ADMIN_CHAVE`: a linha do `.pub` da sua chave de administrador.
+- `DEPLOY_CHAVE`: a linha do `.pub` da chave do deploy. O usuário `deploy` tem nome fixo.
+
+Do seu computador, na raiz do repositório:
 
 ```bash
 scp infra/scripts/preparar-vps.sh root@<ip-da-vps>:/root/
 ssh root@<ip-da-vps>
-ADMIN_USUARIO=cesar \
-ADMIN_CHAVE="$(cat <<'K'
-ssh-ed25519 AAAA... sua chave
-K
-)" \
-DEPLOY_CHAVE="ssh-ed25519 AAAA... github-deploy" \
-bash /root/preparar-vps.sh
 ```
 
-A chave do deploy fica presa ao script de deploy (`command=` no `authorized_keys`): ela não abre shell,
-terminal nem túnel, mesmo se vazar.
+Na VPS, como root. Primeiro garanta o fim de linha LF (um checkout do Windows feito antes do
+`.gitattributes` pode ter trazido CRLF, e o bash falha com `set: pipefail: invalid option name`):
+
+```bash
+cd /root
+sed -i 's/\r$//' preparar-vps.sh
+grep -c $'\r' preparar-vps.sh          # 0
+```
+
+Depois rode o script, **numa linha só** e com as chaves entre aspas:
+
+```bash
+ADMIN_USUARIO=cesar ADMIN_CHAVE="ssh-ed25519 AAAA... sua chave" DEPLOY_CHAVE="ssh-ed25519 AAAA... github-deploy" bash preparar-vps.sh
+```
+
+Para quebrar em várias linhas, termine cada uma com `\` (sem espaço depois dela) e não esqueça a última,
+`bash preparar-vps.sh`: sem ela as variáveis são definidas e nada é executado. As linhas com `#` no
+começo do script são só o exemplo de uso; não precisa editar o arquivo.
+
+O script pede a senha do sudo do administrador (o login continua só por chave) e termina com
+**"Pronto."**. A chave do deploy fica presa ao script de deploy (`command=` no `authorized_keys`): ela
+não abre shell, terminal nem túnel, mesmo se vazar.
 
 **Não feche a sessão de root** até confirmar, em outro terminal:
 
 ```bash
 ssh cesar@<ip-da-vps>      # entra sem senha
 sudo -v                    # aceita a senha definida pelo script
+sudo ufw status            # ativo, com OpenSSH, 80/tcp, 443/tcp e 443/udp
+swapon --show              # /swapfile de 2G
 ```
 
 Depois disso, `ssh root@<ip-da-vps>` e login por senha passam a ser recusados.
+
+### Se algo der errado no passo 4
+
+- **O script parou no meio**: ele pode ser rodado de novo, com os mesmos valores; o que já existe é
+  mantido e só a senha do sudo é pedida outra vez. Se ele parou depois de `==> SSH só por chave e sem
+  root`, o root pode já não entrar por SSH (no Ubuntu 24.04+ o SSH sobe por socket e cada conexão nova
+  já lê a configuração). Entre como administrador, copie o script para a pasta dele
+  (`scp infra/scripts/preparar-vps.sh cesar@<ip-da-vps>:~/`) e rode como root com `sudo -i`.
+- **`sudo -i` e os comandos seguintes colados juntos**: as linhas coladas se perdem enquanto o shell do
+  root abre. Rode o `sudo -i` sozinho e os comandos depois, um de cada vez.
+- **`ssh cesar@...` recusado** (`Permission denied (publickey)`), quase sempre por chave incompleta no
+  `ADMIN_CHAVE`: entre pelo **terminal do navegador** no painel da Hostinger (VPS → Terminal), que não
+  passa pelo SSH, desfaça o bloqueio com `rm /etc/ssh/sshd_config.d/01-plataforma.conf` e rode o script
+  de novo com a chave completa.
+- **`scp` roda no seu computador**, não dentro da VPS: na VPS ele tenta conectar nela mesma e é recusado.
 
 ## 5. Copiar os arquivos da infraestrutura
 
