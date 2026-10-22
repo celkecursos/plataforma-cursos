@@ -13,3 +13,6 @@ app:
     consumidor-ativo: true
     # Arquivo regravado a cada 10 s; o healthcheck do Docker confere se mudou no último minuto
     arquivo-batimento: /tmp/worker-batimento
+  video:
+    # O ffmpeg roda com prioridade baixa: a API e o banco, no mesmo servidor, continuam respondendo
+    prefixo-comando: nice,-n,10

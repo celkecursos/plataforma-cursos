@@ -59,6 +59,9 @@ services:
   worker:
     image: ${IMAGEM_WORKER:-ghcr.io/celkecursos/plataforma-cursos-worker}:${TAG:?defina TAG}
     restart: unless-stopped
+    # No deploy, o job em andamento tem 30 s para terminar; uma conversão interrompida volta para a fila
+    # quando o lease vence (o worker o renova a cada minuto enquanto converte)
+    stop_grace_period: 30s
     environment:
       <<: *app
       JAVA_TOOL_OPTIONS: -Xmx768m

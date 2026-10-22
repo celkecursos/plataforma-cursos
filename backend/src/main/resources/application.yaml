@@ -117,3 +117,13 @@ app:
     backoff-maximo: PT1H
     intervalo: PT2S
     consumidor-ativo: false
+  video:
+    tamanho-maximo: 5GB
+    # Validade das URLs de envio das partes (um vídeo grande numa conexão lenta)
+    validade-envio: PT6H
+    ffmpeg: ffmpeg
+    ffprobe: ffprobe
+    # veryfast: na VPS (1,5 vCPU para o worker) o ganho de compressão dos presets lentos não compensa o tempo
+    preset: veryfast
+    crf: 24
+    diretorio-trabalho: ${java.io.tmpdir}/plataforma-cursos-videos

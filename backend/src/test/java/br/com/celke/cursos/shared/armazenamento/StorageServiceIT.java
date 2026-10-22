@@ -1,6 +1,7 @@
 package br.com.celke.cursos.shared.armazenamento;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import br.com.celke.cursos.shared.armazenamento.StorageService.InfoArquivo;
 import br.com.celke.cursos.shared.armazenamento.StorageService.ParteEnviada;
@@ -14,11 +15,14 @@ import java.net.http.HttpRequest.BodyPublishers;
 import java.net.http.HttpResponse;
 import java.net.http.HttpResponse.BodyHandlers;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 import org.springframework.beans.factory.annotation.Autowired;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.CORSRule;
@@ -113,6 +117,33 @@ class StorageServiceIT extends IntegrationTest {
         storage.abortarMultipart(chave, uploadId);
 
         assertThat(storage.info(chave)).isEmpty();
+    }
+
+    @Test
+    @DisplayName("grava e baixa arquivos do disco, lê só o início e exclui por prefixo")
+    void arquivosDoDiscoEPrefixo(@TempDir Path dir) throws Exception {
+        Path origem = Files.writeString(dir.resolve("index.m3u8"), "#EXTM3U\n#EXT-X-ENDLIST\n");
+        String prefixo = pasta + "hls/";
+        storage.gravarArquivo(prefixo + "720p/index.m3u8", origem, "application/vnd.apple.mpegurl");
+        storage.gravarArquivo(prefixo + "720p/seg_0000.ts", origem, "video/mp2t");
+        storage.gravarArquivo(pasta + "fora-do-prefixo.txt", origem, "text/plain");
+
+        assertThat(storage.info(prefixo + "720p/index.m3u8"))
+                .contains(new InfoArquivo(Files.size(origem), "application/vnd.apple.mpegurl"));
+        assertThat(storage.baixarInicio(prefixo + "720p/index.m3u8", 4))
+                .isEqualTo("#EXT".getBytes(StandardCharsets.UTF_8));
+        Path destino = dir.resolve("baixado.m3u8");
+        storage.baixarParaArquivo(prefixo + "720p/index.m3u8", destino);
+        assertThat(destino).hasSameBinaryContentAs(origem);
+
+        storage.excluirPrefixo(prefixo);
+
+        assertThat(storage.info(prefixo + "720p/index.m3u8")).isEmpty();
+        assertThat(storage.info(prefixo + "720p/seg_0000.ts")).isEmpty();
+        assertThat(storage.info(pasta + "fora-do-prefixo.txt"))
+                .as("fora do prefixo continua")
+                .isPresent();
+        assertThatThrownBy(() -> storage.excluirPrefixo("videos")).isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test

@@ -33,20 +33,38 @@ public class ProcessadorFila {
             return false;
         }
         Job job = reservado.get();
+        ManipuladorJob manipulador = manipuladores.get(job.tipo());
         if (job.excedeuTentativas()) {
-            fila.falharDefinitivo(job, "Tentativas esgotadas (o processamento foi interrompido).", clock.instant());
+            desistir(manipulador, job, "Tentativas esgotadas (o processamento foi interrompido).");
             return true;
         }
         try {
-            manipuladores.get(job.tipo()).processar(job);
+            manipulador.processar(job);
             fila.concluir(job, clock.instant());
         } catch (ErroPermanenteException e) {
             LOG.error("Job {} ({}) falhou sem nova tentativa: {}", job.id(), job.tipo(), e.getMessage());
-            fila.falharDefinitivo(job, e.getMessage(), clock.instant());
+            desistir(manipulador, job, e.getMessage());
         } catch (Exception e) {
             LOG.warn("Job {} ({}) falhou na tentativa {}: {}", job.id(), job.tipo(), job.tentativas(), e.toString());
             fila.falhar(job, e.toString(), clock.instant());
+            if (job.ultimaTentativa()) {
+                avisar(manipulador, job, e.toString());
+            }
         }
         return true;
+    }
+
+    private void desistir(ManipuladorJob manipulador, Job job, String motivo) {
+        fila.falharDefinitivo(job, motivo, clock.instant());
+        avisar(manipulador, job, motivo);
+    }
+
+    /** O estado da fila já foi gravado: uma falha ao avisar o manipulador só vai para o log. */
+    private static void avisar(ManipuladorJob manipulador, Job job, String motivo) {
+        try {
+            manipulador.desistir(job, motivo);
+        } catch (RuntimeException e) {
+            LOG.error("Job {} ({}): falha ao registrar a desistência", job.id(), job.tipo(), e);
+        }
     }
 }

@@ -1,6 +1,5 @@
 package br.com.celke.cursos.e2e.curso;
 
-import static io.restassured.RestAssured.given;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.startsWith;
@@ -9,11 +8,9 @@ import br.com.celke.cursos.e2e.support.Adm;
 import br.com.celke.cursos.e2e.support.Api;
 import br.com.celke.cursos.e2e.support.Dados;
 import br.com.celke.cursos.e2e.support.E2eConfig;
+import br.com.celke.cursos.e2e.support.Midia;
 import br.com.celke.cursos.support.fixtures.ImagemFixture;
-import io.restassured.config.EncoderConfig;
-import io.restassured.config.RestAssuredConfig;
 import io.restassured.response.Response;
-import io.restassured.specification.RequestSpecification;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
@@ -25,8 +22,6 @@ import org.junit.jupiter.api.Test;
  * publica, e o visitante sem login encontra o curso no catálogo, com o conteúdo e a capa.
  */
 class CatalogoE2E {
-
-    private static final String HOST_MIDIA = "media.localhost";
 
     @Test
     @DisplayName("ADM cria e publica um curso com capa; o catálogo público mostra o curso")
@@ -54,10 +49,11 @@ class CatalogoE2E {
                 .extract()
                 .response();
         URI url = URI.create(envio.jsonPath().getString("url"));
-        assertThat(url.getHost()).isEqualTo(HOST_MIDIA);
-        midia().contentType("image/png")
+        assertThat(url.getHost()).isEqualTo(Midia.HOST);
+        Midia.requisicao()
+                .contentType("image/png")
                 .body(png)
-                .put(url.getRawPath() + "?" + url.getRawQuery())
+                .put(Midia.caminho(url))
                 .then()
                 .statusCode(200);
         adm.requisicao()
@@ -65,7 +61,7 @@ class CatalogoE2E {
                 .put("/api/adm/cursos/" + curso + "/capa")
                 .then()
                 .statusCode(200)
-                .body("capaUrl", startsWith(E2eConfig.origem(HOST_MIDIA)));
+                .body("capaUrl", startsWith(E2eConfig.origem(Midia.HOST)));
 
         // 3. Antes de publicar, o catálogo não conhece o curso
         Api.aluno().get("/api/cursos/" + slug).then().statusCode(404);
@@ -92,8 +88,9 @@ class CatalogoE2E {
                 .extract()
                 .response();
         URI capa = URI.create(redirecionamento.getHeader("Location"));
-        assertThat(capa.getHost()).isEqualTo(HOST_MIDIA);
-        Response imagem = midia().get(capa.getRawPath() + "?" + capa.getRawQuery())
+        assertThat(capa.getHost()).isEqualTo(Midia.HOST);
+        Response imagem = Midia.requisicao()
+                .get(Midia.caminho(capa))
                 .then()
                 .statusCode(200)
                 .extract()
@@ -114,20 +111,6 @@ class CatalogoE2E {
                 .then()
                 .statusCode(403)
                 .body("detail", equalTo("Acesso negado."));
-    }
-
-    /**
-     * Requisição ao Garage pelo Caddy com a URL pré-assinada como veio: sem recodificar a query e sem
-     * acrescentar charset ao Content-Type, que fazem parte da assinatura.
-     */
-    private static RequestSpecification midia() {
-        return given().config(RestAssuredConfig.config()
-                        .encoderConfig(EncoderConfig.encoderConfig()
-                                .appendDefaultContentCharsetToContentTypeIfUndefined(false)))
-                .urlEncodingEnabled(false)
-                .baseUri("http://localhost")
-                .port(E2eConfig.PORTA)
-                .header("Host", HOST_MIDIA + ":" + E2eConfig.PORTA);
     }
 
     private static List<String> slugsNoCatalogo() {

@@ -89,9 +89,24 @@ public class FilaService {
                         """).param("id", job.id()).param("agora", utc(agora)).update();
     }
 
+    /**
+     * Estende o lease de um job em processamento: um job longo (como uma transcodificação) chama a
+     * cada minuto para não ser pego por outro worker. Se o worker cair, o lease vence e o job volta.
+     */
+    public void renovar(Job job, Instant agora) {
+        jdbc.sql("""
+                        UPDATE jobs SET reservado_ate = :reservadoAte, atualizado_em = :agora
+                         WHERE id = :id AND status = 'PROCESSANDO'
+                        """)
+                .param("id", job.id())
+                .param("reservadoAte", utc(agora.plus(props.lease())))
+                .param("agora", utc(agora))
+                .update();
+    }
+
     /** Falha com nova tentativa depois do backoff; sem tentativas restantes, o job vai para ERRO. */
     public void falhar(Job job, String erro, Instant agora) {
-        if (job.tentativas() >= job.maxTentativas()) {
+        if (job.ultimaTentativa()) {
             falharDefinitivo(job, erro, agora);
             return;
         }

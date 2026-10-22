@@ -135,6 +135,34 @@ class FilaServiceIT extends IntegrationTest {
     }
 
     @Test
+    @DisplayName("renovar o lease mantém o job com o worker; sem renovação ele volta para a fila")
+    void renovacaoDoLease() {
+        String tipo = stamp();
+        long id = fila.enfileirar(tipo, Map.of(), T0);
+        Job job = fila.reservar(Set.of(tipo), T0).orElseThrow();
+
+        // Renovado aos 9 min: o lease vai até os 19 min
+        fila.renovar(job, T0.plus(Duration.ofMinutes(9)));
+        assertThat(fila.reservar(Set.of(tipo), T0.plus(Duration.ofMinutes(10)).plusSeconds(1)))
+                .isEmpty();
+        assertThat(fila.reservar(Set.of(tipo), T0.plus(Duration.ofMinutes(19)).plusSeconds(1)))
+                .hasValueSatisfying(j -> assertThat(j.id()).isEqualTo(id));
+    }
+
+    @Test
+    @DisplayName("renovar um job já concluído não o devolve para processamento")
+    void renovacaoDeJobConcluido() {
+        String tipo = stamp();
+        long id = fila.enfileirar(tipo, Map.of(), T0);
+        Job job = fila.reservar(Set.of(tipo), T0).orElseThrow();
+        fila.concluir(job, T0);
+
+        fila.renovar(job, T0.plusSeconds(30));
+
+        assertThat(status(id)).isEqualTo(StatusJob.CONCLUIDO);
+    }
+
+    @Test
     @DisplayName("consumidores concorrentes nunca reservam o mesmo job")
     void reservaConcorrente() throws Exception {
         String tipo = stamp();
