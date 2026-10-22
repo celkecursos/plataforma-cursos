@@ -18,3 +18,14 @@ export async function aceitarTermosSePedir(page: Page): Promise<void> {
     await expect(cursos).toBeVisible();
   }
 }
+
+/**
+ * Escolhe uma opção num CampoSelect da @celke/kole-react pelo rótulo visível. O rótulo é um
+ * <label for> apontando para o combobox (um div), o que não dá nome acessível a ele.
+ */
+export async function escolher(page: Page, rotulo: string, opcao: string): Promise<void> {
+  const label = page.locator('label').filter({ hasText: new RegExp(`^${rotulo}[:*]*$`) });
+  const id = await label.first().getAttribute('for');
+  await page.locator(`[id="${id}"]`).click();
+  await page.getByRole('option', { name: opcao, exact: true }).click();
+}

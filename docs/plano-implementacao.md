@@ -510,10 +510,10 @@ Capítulo 33.
 
 Capítulo 34.
 
-- [ ] Cursos, turmas, módulos e aulas (`Tabela`, `Form`, `Filtros`, `Paginacao`), arrastar para reordenar
-- [ ] Upload de vídeo multipart com progresso, status de processamento, reprocessar
-- [ ] Arquivos de apoio, matrículas, moderação do fórum, termos
-- [ ] e2e: admin cria curso completo e envia vídeo curto até "pronto"
+- [x] Cursos, turmas, módulos e aulas (`Tabela`, `Form`, `Paginacao`, `Abas`); reordenar com os botões subir/descer (acessível por teclado, uma troca por clique)
+- [x] Upload de vídeo multipart direto ao Garage com progresso e cancelamento, status do processamento (consulta a cada 3 s), reprocessar, remover
+- [x] Capa do curso, arquivos de apoio (aula e módulo), matrículas (período, cancelamento), moderação do fórum (responder, fixar, ocultar), certificado da turma, termos
+- [x] e2e (Playwright, caminho feliz e infeliz): admin cria curso completo e envia vídeo curto até "pronto"; validações na tela, conflitos da API (slug repetido, exclusão com filhos), formatos recusados, matrícula sem conta e em turma encerrada, moderação do fórum
 
 ### Fase 13 — `feature/web-aluno`
 

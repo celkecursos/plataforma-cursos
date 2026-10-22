@@ -6,6 +6,13 @@ import { MARCA } from '../marca.ts';
 
 export const NAV: SecaoNav[] = [
   { itens: [{ rotulo: 'Painel', icone: 'house', rota: CAMINHOS.inicio }] },
+  {
+    rotulo: 'Conteúdo',
+    itens: [
+      { rotulo: 'Cursos', icone: 'graduation-cap', rota: CAMINHOS.cursos },
+      { rotulo: 'Termos', icone: 'file-text', rota: CAMINHOS.termos },
+    ],
+  },
 ];
 
 export function LayoutAdm() {

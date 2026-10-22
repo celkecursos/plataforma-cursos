@@ -9,7 +9,9 @@ test.describe('ADM', () => {
   }) => {
     await page.goto('/');
     await expect(page.getByRole('link', { name: 'Painel' })).toBeVisible();
-    await expect(page.getByText('Administrador')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Usuário: Admin do e2e' })).toContainText(
+      'Administrador',
+    );
   });
 
   test('o admin entra pela tela e volta para onde ia', async ({ page }) => {
