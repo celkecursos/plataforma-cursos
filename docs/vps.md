@@ -327,6 +327,10 @@ homologação continua restrita por IP, mas deixa passar `/api/pagamentos/webhoo
 teste notificar `https://homolog-aluno.celke.uno/api/pagamentos/webhooks/<token>` (o endereço completo
 aparece no painel). Configuração da Hotmart: `docs/pagamentos.md`.
 
+**Logs persistentes e auditoria (Fase 17):** nada a configurar. O deploy cria o volume `logs` de cada
+ambiente; a API e o worker gravam nele com retenção (180 dias ou 2 GB por serviço). Como ler:
+`docs/operacao.md`, seção 4.
+
 **Atualizar o script de deploy**: copie o `infra/scripts/deploy.sh` novo para a VPS e, como
 administrador, `sudo install -o root -g root -m 755 deploy.sh /usr/local/bin/plataforma-cursos-deploy`.
 

@@ -1,5 +1,6 @@
 package br.com.celke.cursos.shared.fila;
 
+import br.com.celke.cursos.shared.auditoria.ContextoAuditoria;
 import java.time.Clock;
 import java.util.List;
 import java.util.Map;
@@ -7,6 +8,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.MDC;
 import org.springframework.stereotype.Component;
 
 /** Reserva um job, entrega ao manipulador do tipo e registra o resultado na fila. */
@@ -38,6 +40,8 @@ public class ProcessadorFila {
             desistir(manipulador, job, "Tentativas esgotadas (o processamento foi interrompido).");
             return true;
         }
+        // A trilha de auditoria registra o job como origem das mudanças que ele fizer
+        MDC.put(ContextoAuditoria.CHAVE_JOB, job.tipo());
         try {
             manipulador.processar(job);
             fila.concluir(job, clock.instant());
@@ -50,6 +54,8 @@ public class ProcessadorFila {
             if (job.ultimaTentativa()) {
                 avisar(manipulador, job, e.toString());
             }
+        } finally {
+            MDC.remove(ContextoAuditoria.CHAVE_JOB);
         }
         return true;
     }

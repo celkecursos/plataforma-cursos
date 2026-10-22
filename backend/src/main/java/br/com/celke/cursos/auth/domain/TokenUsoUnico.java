@@ -1,5 +1,6 @@
 package br.com.celke.cursos.auth.domain;
 
+import br.com.celke.cursos.shared.auditoria.SemAuditoria;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -12,6 +13,7 @@ import java.time.Instant;
 
 /** Token de link enviado por e-mail, gravado só pelo hash. Vale uma vez e até expirar. */
 @Entity
+@SemAuditoria
 @Table(name = "tokens_uso_unico")
 public class TokenUsoUnico {
 

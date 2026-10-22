@@ -1,5 +1,6 @@
 package br.com.celke.cursos.pagamento.domain;
 
+import br.com.celke.cursos.shared.auditoria.SemAuditoria;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -18,6 +19,7 @@ import org.hibernate.type.SqlTypes;
  * normalizado só são escritos ali e apagados pela retenção.
  */
 @Entity
+@SemAuditoria
 @Table(name = "eventos_pagamento")
 public class EventoRecebido {
 

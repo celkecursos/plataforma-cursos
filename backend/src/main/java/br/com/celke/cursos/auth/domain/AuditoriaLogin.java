@@ -1,5 +1,6 @@
 package br.com.celke.cursos.auth.domain;
 
+import br.com.celke.cursos.shared.auditoria.SemAuditoria;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -11,6 +12,7 @@ import jakarta.persistence.Table;
 import java.time.Instant;
 
 @Entity
+@SemAuditoria
 @Table(name = "auditoria_login")
 public class AuditoriaLogin {
 

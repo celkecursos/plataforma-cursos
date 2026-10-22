@@ -29,6 +29,8 @@ x-app: &app
   SMTP_STARTTLS: ${SMTP_STARTTLS:-true}
   EMAIL_REMETENTE: ${EMAIL_REMETENTE:?defina EMAIL_REMETENTE}
   LOGGING_STRUCTURED_FORMAT_CONSOLE: ecs
+  # Log também em arquivo, no volume logs: um por dia, guardado por 180 dias ou 2 GB por serviço
+  LOGGING_STRUCTURED_FORMAT_FILE: ecs
   # Alertas do worker por e-mail (jobs com erro, disco quase cheio, chargeback); em branco, desligados
   ALERTA_EMAIL: ${ALERTA_EMAIL:-}
   # Chave dos segredos dos meios de pagamento; sem ela, o painel não grava credenciais
@@ -50,6 +52,9 @@ services:
     environment:
       <<: *app
       JAVA_TOOL_OPTIONS: -Xmx512m
+      LOGGING_FILE_NAME: /var/log/plataforma-cursos/api.log
+    volumes:
+      - logs:/var/log/plataforma-cursos
     depends_on:
       postgres:
         condition: service_healthy
@@ -80,6 +85,9 @@ services:
     environment:
       <<: *app
       JAVA_TOOL_OPTIONS: -Xmx768m
+      LOGGING_FILE_NAME: /var/log/plataforma-cursos/worker.log
+    volumes:
+      - logs:/var/log/plataforma-cursos
     depends_on:
       # As migrations são aplicadas pela API; o worker sobe depois dela
       api:
@@ -195,3 +203,5 @@ volumes:
   postgres:
   garage:
   site:
+  # Logs da API e do worker em arquivo (o log do Docker roda em poucos dias)
+  logs:

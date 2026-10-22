@@ -15,7 +15,8 @@ FROM eclipse-temurin:25-jre-noble AS runtime
 RUN apt-get update \
     && apt-get install -y --no-install-recommends curl \
     && rm -rf /var/lib/apt/lists/* \
-    && groupadd --system app && useradd --system --gid app --no-create-home app
+    && groupadd --system app && useradd --system --gid app --no-create-home app \
+    && mkdir -p /var/log/plataforma-cursos && chown app:app /var/log/plataforma-cursos
 WORKDIR /app
 
 # ---- API ----

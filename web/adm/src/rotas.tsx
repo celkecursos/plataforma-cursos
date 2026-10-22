@@ -1,6 +1,7 @@
 import { createBrowserRouter } from 'react-router';
 import { RotaPrivada } from '@compartilhado/sessao/RotaPrivada.tsx';
 import { CAMINHOS } from './caminhos.ts';
+import { AuditoriaPagina } from './paginas/auditoria/AuditoriaPagina.tsx';
 import { LayoutAdm } from './layout/LayoutAdm.tsx';
 import { SemPermissao } from './layout/SemPermissao.tsx';
 import { AulaPagina } from './paginas/aula/AulaPagina.tsx';
@@ -37,6 +38,7 @@ export const roteador = createBrowserRouter([
       { path: 'pagamentos/pedidos', element: <PedidosPagina /> },
       { path: 'pagamentos/pedidos/:pedidoId', element: <PedidoPagina /> },
       { path: 'pagamentos/eventos', element: <EventosPagina /> },
+      { path: 'auditoria', element: <AuditoriaPagina /> },
     ],
   },
   { path: '*', element: <SemPermissao titulo="Página não encontrada" /> },

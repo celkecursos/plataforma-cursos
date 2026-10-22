@@ -282,6 +282,26 @@ export interface EventoDetalhe {
   payload: string | null;
 }
 
+export type OperacaoAuditoria = 'INCLUSAO' | 'ALTERACAO' | 'EXCLUSAO';
+
+/** Uma linha da trilha de auditoria; `antes` e `depois` são JSON com os campos. */
+export interface RegistroAuditoria {
+  id: number;
+  em: string;
+  operacao: OperacaoAuditoria;
+  entidade: string;
+  entidadeId: string | null;
+  usuarioId: number | null;
+  usuarioNome: string | null;
+  usuarioEmail: string | null;
+  origem: string;
+  ip: string | null;
+  userAgent: string | null;
+  requestId: string | null;
+  antes: string | null;
+  depois: string | null;
+}
+
 interface Rotulo {
   rotulo: string;
   severidade: Severidade;
@@ -346,6 +366,12 @@ export const STATUS_EVENTO: Record<StatusEvento, Rotulo> = {
   PROCESSADO: { rotulo: 'Processado', severidade: 'ok' },
   IGNORADO: { rotulo: 'Ignorado', severidade: 'warn' },
   ERRO: { rotulo: 'Erro', severidade: 'err' },
+};
+
+export const OPERACAO_AUDITORIA: Record<OperacaoAuditoria, Rotulo> = {
+  INCLUSAO: { rotulo: 'Inclusão', severidade: 'ok' },
+  ALTERACAO: { rotulo: 'Alteração', severidade: 'info' },
+  EXCLUSAO: { rotulo: 'Exclusão', severidade: 'err' },
 };
 
 export const TIPOS_TERMO: Record<TipoTermo, string> = {

@@ -88,13 +88,48 @@ Falha no envio de e-mail não gera alerta por e-mail (iria pela mesma fila): apa
 ## 4. Logs e limpeza
 
 - **Logs do Docker** com rotação em todos os serviços (`json-file`, 5 arquivos de 10 MB por container):
-  no máximo ~250 MB por ambiente. Os logs da API e do worker são JSON (ECS) com o id de correlação e o `@timestamp` no horário de Brasília (`-03:00`); o gerador do site e o `deploy.log` usam o mesmo fuso.
+  no máximo ~250 MB por ambiente, poucos dias de histórico. Os logs da API e do worker são JSON (ECS) com o id de correlação e o `@timestamp` no horário de Brasília (`-03:00`); o gerador do site e o `deploy.log` usam o mesmo fuso.
+- **Logs persistentes da API e do worker**: além do console, cada um grava o mesmo JSON em
+  `/var/log/plataforma-cursos/api.log` e `worker.log`, no volume `logs` do ambiente (sobrevive a deploy e
+  recriação do container). Um arquivo por dia de Brasília, comprimido (`api.log.2026-10-22.0.gz`), novo
+  arquivo a cada 50 MB, guardado por **180 dias** ou até **2 GB por serviço**, o que vier primeiro. Para
+  ler, como `deploy`:
+
+  ```bash
+  cd /opt/plataforma-cursos/producao
+  docker compose -p plataforma-cursos-producao -f compose.prod.yml exec api ls -lh /var/log/plataforma-cursos
+  docker compose -p plataforma-cursos-producao -f compose.prod.yml exec api tail -n 100 /var/log/plataforma-cursos/api.log
+  # Um dia antigo, procurando um id de requisição (funciona com o container parado)
+  docker run --rm -v plataforma-cursos-producao_logs:/logs:ro alpine \
+    sh -c 'zcat /logs/api.log.2026-10-22.*.gz | grep 7f1c2a90'
+  ```
+
+  O volume não entra no backup diário (o que importa guardar por anos está no banco: a auditoria).
 - **Uploads abandonados** (`uploads/` do bucket): a regra de expiração do bucket apaga em 2 dias, e os
   uploads em partes não concluídos em 1 dia. Os envios aceitos saem de `uploads/` na confirmação.
 - **Log de acesso aos vídeos**: o worker apaga todo dia o que passou de 180 dias.
 - **Dados da homologação**: quando acumular lixo de testes,
   `docker compose -p plataforma-cursos-homolog -f compose.prod.yml -f compose.homolog.yml down -v`
   e o próximo deploy da `homolog` recria tudo vazio (crie o admin de novo com `criar-admin`).
+
+## 4.1 Auditoria
+
+A tabela `auditoria` guarda cada inclusão, alteração e exclusão feita pela aplicação nos dados (ADM, área
+do aluno, cadastro e worker): **quem** (usuário do token; vazio para visitante e sistema), **o quê**
+(entidade e id), a **operação**, o **antes e o depois** dos campos (na alteração, só os que mudaram),
+**de onde** (rota da requisição, como `PUT /api/adm/cursos/{id}`, ou o job da fila, como
+`job pagamento.processar-evento`), **IP**, navegador, id da requisição e a data.
+
+- Consulta no ADM: **Segurança → Auditoria**, com filtro por entidade, id, operação e e-mail do usuário.
+- Dados sensíveis (hash de senha, segredos do meio de pagamento, token do webhook) aparecem como `***`:
+  a trilha mostra que mudaram, nunca o valor.
+- Ficam fora: progresso das aulas (muda a cada poucos segundos), log de acesso a vídeo, auditoria de
+  login, notificações de pagamento (já são registros próprios) e tokens de sessão e de e-mail. Mudanças
+  feitas direto em SQL (fila, atualizações em lote) também não passam pela trilha.
+- O registro entra na mesma transação da mudança: o que foi desfeito não aparece.
+- **Só inclusão**: o banco recusa `UPDATE` e `DELETE` na tabela (gatilho). A única exclusão é a retenção,
+  feita pelo worker aos domingos, que apaga o que passou de **5 anos** (`app.auditoria.retencao`).
+- Login e tentativas de login continuam na `auditoria_login`; acesso a vídeo na `acessos_video`.
 
 ## 5. Quanto vídeo cabe no disco
 

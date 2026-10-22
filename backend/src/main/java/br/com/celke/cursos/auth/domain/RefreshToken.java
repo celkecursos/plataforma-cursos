@@ -1,5 +1,6 @@
 package br.com.celke.cursos.auth.domain;
 
+import br.com.celke.cursos.shared.auditoria.SemAuditoria;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -11,6 +12,7 @@ import java.util.UUID;
 
 /** Refresh token gravado só pelo hash. Um token pertence a uma família (uma sessão de login). */
 @Entity
+@SemAuditoria
 @Table(name = "refresh_tokens")
 public class RefreshToken {
 

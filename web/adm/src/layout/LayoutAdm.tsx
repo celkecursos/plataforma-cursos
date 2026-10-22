@@ -21,6 +21,10 @@ export const NAV: SecaoNav[] = [
       { rotulo: 'Eventos recebidos', icone: 'inbox', rota: CAMINHOS.eventos },
     ],
   },
+  {
+    rotulo: 'Segurança',
+    itens: [{ rotulo: 'Auditoria', icone: 'shield-check', rota: CAMINHOS.auditoria }],
+  },
 ];
 
 export function LayoutAdm() {

@@ -1,5 +1,6 @@
 package br.com.celke.cursos.usuario.domain;
 
+import br.com.celke.cursos.shared.auditoria.DadoSensivel;
 import jakarta.persistence.CollectionTable;
 import jakarta.persistence.Column;
 import jakarta.persistence.ElementCollection;
@@ -32,6 +33,7 @@ public class Usuario {
     private String email;
 
     /** Nulo na conta criada por uma compra, até o dono criar a senha pelo link do e-mail. */
+    @DadoSensivel
     @Column(name = "senha_hash")
     private String senhaHash;
 

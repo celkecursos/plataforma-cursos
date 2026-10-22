@@ -564,6 +564,19 @@ configuração da Hotmart: [`docs/pagamentos.md`](pagamentos.md).
 - [x] `PAGAMENTOS_CHAVE` nos `.env` dos ambientes; homologação (restrita por IP) aceita só o caminho do webhook de fora
 - [ ] Na homologação: "Enviar teste" da Hotmart de cada evento, fixtures trocadas pelos corpos reais
 
+
+### Fase 17 — `feature/auditoria`
+
+Prompt: [`docs/prompts/f17-01-auditoria-e-logs.md`](prompts/f17-01-auditoria-e-logs.md). Operação:
+[`docs/operacao.md`](operacao.md), seções 4 e 4.1.
+
+- [x] Trilha de auditoria (`auditoria`) gravada por um ouvinte dos eventos do Hibernate, na transação da mudança: usuário, operação, entidade e id, antes e depois (só o que mudou), origem (rota ou job), IP, navegador, id da requisição e data
+- [x] Dados sensíveis (`@DadoSensivel`) como `***`; entidades de log e de sessão fora da trilha (`@SemAuditoria`)
+- [x] Só inclusão garantida pelo banco (gatilho); retenção de 5 anos pelo worker
+- [x] Tela de consulta no ADM (Segurança → Auditoria) com filtros e o antes/depois lado a lado
+- [x] Logs da API e do worker também em arquivo, no volume `logs`: um por dia, 180 dias ou 2 GB por serviço
+- [x] Testes unitários, de integração e Playwright
+
 ---
 
 ## 5. Mapa fase → capítulos do tutorial
@@ -590,3 +603,4 @@ O conteúdo de cada capítulo está em [capitulos.md](capitulos.md).
 | 14 | `feature/site` | 36 |
 | 15 | `feature/migracao-legado` | 37 |
 | 16 | `feature/pagamentos` | 38–40 |
+| 17 | `feature/auditoria` | 41 |
