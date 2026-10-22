@@ -20,6 +20,8 @@
 		<aws-sdk.version>2.57.1</aws-sdk.version>
 		<bouncycastle.version>1.86</bouncycastle.version>
 		<bucket4j.version>8.21.0</bucket4j.version>
+		<commonmark.version>0.30.0</commonmark.version>
+		<owasp-html-sanitizer.version>20260924.2</owasp-html-sanitizer.version>
 		<rest-assured.version>6.2.0</rest-assured.version>
 		<spotless.version>3.10.4</spotless.version>
 		<palantir-java-format.version>2.102.0</palantir-java-format.version>
@@ -102,6 +104,17 @@
 			<groupId>org.bouncycastle</groupId>
 			<artifactId>bcprov-jdk18on</artifactId>
 			<version>${bouncycastle.version}</version>
+		</dependency>
+		<!-- Fórum: Markdown para HTML e filtro do HTML gerado (contra XSS) -->
+		<dependency>
+			<groupId>org.commonmark</groupId>
+			<artifactId>commonmark</artifactId>
+			<version>${commonmark.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>com.googlecode.owasp-java-html-sanitizer</groupId>
+			<artifactId>owasp-java-html-sanitizer</artifactId>
+			<version>${owasp-html-sanitizer.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>org.springdoc</groupId>

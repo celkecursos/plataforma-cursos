@@ -131,3 +131,8 @@ app:
     margem-playlist: PT2H
     # Log de acesso aos vídeos: 6 meses (prazo do Marco Civil para registros de acesso a aplicações)
     retencao-log-acesso: P180D
+  forum:
+    # Perguntas e respostas por aluno dentro da janela (o instrutor não tem limite)
+    mensagens-por-janela: 20
+    janela: PT1H
+    anexos-por-mensagem: 3

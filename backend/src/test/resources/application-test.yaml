@@ -20,3 +20,6 @@ app:
     cors-origens: http://localhost:5173
   email:
     remetente: nao-responda@teste.celke.uno
+  forum:
+    # Limite baixo para o teste do 429 (cada teste usa um aluno próprio)
+    mensagens-por-janela: 5
