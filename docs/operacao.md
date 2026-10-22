@@ -78,6 +78,7 @@ produção mais recente.
 |---|---|
 | Site fora do ar | Monitor externo (UptimeRobot ou Better Stack, plano gratuito) a cada 5 minutos em `https://aluno.celke.uno/actuator/health` e `https://cursos.celke.uno`, com aviso por e-mail e celular |
 | Job que desistiu (conversão de vídeo, por exemplo) | O worker verifica a cada 15 minutos os jobs que foram para `ERRO` e envia um e-mail para `ALERTA_EMAIL` com o resumo |
+| Pagamento contestado ou notificação com erro | Chargeback, disputa aberta e notificação de pagamento que foi para `ERRO` geram um e-mail para `ALERTA_EMAIL` na hora (veja `docs/pagamentos.md`) |
 | Disco quase cheio | O mesmo verificador do worker mede o disco da VPS (o sistema de arquivos do container é o do host) e alerta abaixo de 15% livre, repetindo a cada 6 horas enquanto não melhorar |
 | Container parado | `restart: unless-stopped` e o healthcheck de cada serviço; o deploy só conclui com tudo saudável |
 
@@ -87,7 +88,7 @@ Falha no envio de e-mail não gera alerta por e-mail (iria pela mesma fila): apa
 ## 4. Logs e limpeza
 
 - **Logs do Docker** com rotação em todos os serviços (`json-file`, 5 arquivos de 10 MB por container):
-  no máximo ~250 MB por ambiente. Os logs da API e do worker são JSON (ECS) com o id de correlação.
+  no máximo ~250 MB por ambiente. Os logs da API e do worker são JSON (ECS) com o id de correlação e o `@timestamp` no horário de Brasília (`-03:00`); o gerador do site e o `deploy.log` usam o mesmo fuso.
 - **Uploads abandonados** (`uploads/` do bucket): a regra de expiração do bucket apaga em 2 dias, e os
   uploads em partes não concluídos em 1 dia. Os envios aceitos saem de `uploads/` na confirmação.
 - **Log de acesso aos vídeos**: o worker apaga todo dia o que passou de 180 dias.

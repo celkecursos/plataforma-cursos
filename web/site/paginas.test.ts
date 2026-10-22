@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { instanteBrasilia } from './gerar.ts';
 import { html, jsonEmScript, paragrafos } from './html.ts';
 import {
   paginaCurso,
@@ -23,6 +24,7 @@ const curso: CursoDetalhe = {
   descricao: 'Primeiro parágrafo.\n\nSegundo parágrafo.',
   capaUrl: '/api/cursos/java-do-zero/capa',
   modulos: [{ titulo: 'Introdução', aulas: [{ id: 1, titulo: 'Boas-vindas', gratuita: true }] }],
+  ofertas: [],
 };
 
 describe('html', () => {
@@ -64,6 +66,19 @@ describe('páginas', () => {
     expect(pagina).not.toContain('noindex');
   });
 
+  it('sem oferta, convida para criar a conta; com oferta, mostra o preço e o Comprar', () => {
+    expect(paginaCurso(ctx, curso)).toContain('Quero fazer este curso');
+    const aVenda = paginaCurso(ctx, {
+      ...curso,
+      ofertas: [{ id: 7, titulo: 'À vista', precoCentavos: 19_700, moeda: 'BRL' }],
+    });
+    expect(aVenda).not.toContain('Quero fazer este curso');
+    expect(aVenda).toContain('R$\u00a0197,00');
+    expect(aVenda).toContain('href="https://aluno.celke.uno/comprar/7"');
+    expect(aVenda).toContain('"@type":"Offer"');
+    expect(aVenda).toContain('"price":"197.00"');
+  });
+
   it('homologação fica fora dos buscadores', () => {
     const fora = { ...ctx, indexavel: false };
     expect(paginaInicial(fora, [])).toContain('<meta name="robots" content="noindex, nofollow" />');
@@ -76,5 +91,16 @@ describe('páginas', () => {
     const mapa = sitemap(ctx, [curso]);
     expect(mapa).toContain('<loc>https://cursos.celke.uno/cursos/java-do-zero/</loc>');
     expect(mapa).toContain('<loc>https://cursos.celke.uno/certificados/validar/</loc>');
+  });
+});
+
+describe('logs do gerador', () => {
+  it('horário de Brasília com o deslocamento', () => {
+    expect(instanteBrasilia(new Date('2026-10-22T13:33:20.123Z'))).toBe(
+      '2026-10-22T10:33:20.123-03:00',
+    );
+    expect(instanteBrasilia(new Date('2026-10-22T02:59:59.000Z'))).toBe(
+      '2026-10-21T23:59:59.000-03:00',
+    );
   });
 });

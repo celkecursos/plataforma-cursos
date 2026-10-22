@@ -13,6 +13,14 @@ export const NAV: SecaoNav[] = [
       { rotulo: 'Termos', icone: 'file-text', rota: CAMINHOS.termos },
     ],
   },
+  {
+    rotulo: 'Pagamentos',
+    itens: [
+      { rotulo: 'Meios de pagamento', icone: 'credit-card', rota: CAMINHOS.meiosPagamento },
+      { rotulo: 'Pedidos', icone: 'receipt', rota: CAMINHOS.pedidos },
+      { rotulo: 'Eventos recebidos', icone: 'inbox', rota: CAMINHOS.eventos },
+    ],
+  },
 ];
 
 export function LayoutAdm() {

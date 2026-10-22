@@ -50,6 +50,8 @@ services:
       APP_LIMITES_REQUISICOES_POR_IP_POR_MINUTO: "300"
       # URLs dos segmentos vencem em segundos: a jornada de entrega confere a expiração
       APP_VIDEO_MARGEM_PLAYLIST: PT5S
+      # Sem chamar a Hotmart de verdade: o "Testar credenciais" recebe uma recusa
+      APP_PAGAMENTOS_HOTMART_URL_TOKEN: http://mailpit:8025/hotmart-indisponivel
 
   worker:
     image: plataforma-cursos-worker:e2e

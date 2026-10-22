@@ -1,6 +1,6 @@
 import { Alerta, Botao, CampoEmail, CampoSenha, CampoTexto } from '@celke/kole-react';
 import { useState } from 'react';
-import { Link } from 'react-router';
+import { Link, useSearchParams } from 'react-router';
 import { api } from '@compartilhado/api/cliente.ts';
 import { ErroApi, mensagemDeErro } from '@compartilhado/api/erros.ts';
 import type { Mensagem } from '@compartilhado/api/tipos.ts';
@@ -18,6 +18,11 @@ type Erros = Partial<Record<'nome' | 'email' | 'senha' | 'confirmacao', string>>
 
 /** Cadastro do aluno: a conta só entra depois de confirmar o e-mail (link enviado pela API). */
 export function CadastroPagina() {
+  const [parametros] = useSearchParams();
+  const voltar = parametros.get('voltar');
+  const entrar = voltar
+    ? `${CAMINHOS.entrar}?voltar=${encodeURIComponent(voltar)}`
+    : CAMINHOS.entrar;
   const [nome, setNome] = useState('');
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
@@ -66,8 +71,8 @@ export function CadastroPagina() {
           Enviamos um link para <strong>{email.trim()}</strong>. Abra o e-mail e clique no link para
           ativar a conta.
         </Alerta>
-        <Link className="pc-link" to={CAMINHOS.entrar}>
-          Voltar para a entrada
+        <Link className="pc-link" to={entrar}>
+          Depois de confirmar, entre aqui
         </Link>
       </LayoutConta>
     );
@@ -81,7 +86,7 @@ export function CadastroPagina() {
       aoEnviar={enviar}
       rodape={
         <span>
-          Já tem conta? <Link to={CAMINHOS.entrar}>Entrar</Link>
+          Já tem conta? <Link to={entrar}>Entrar</Link>
         </span>
       }
     >

@@ -69,6 +69,12 @@ public class SecurityConfig {
                         // Validação pública do certificado pelo código (página "validar certificado" do site)
                         .requestMatchers(HttpMethod.GET, "/api/certificados/*")
                         .permitAll()
+                        // Notificações dos meios de pagamento: autenticadas pelo próprio meio (hottok...)
+                        .requestMatchers(HttpMethod.POST, "/api/pagamentos/webhooks/*")
+                        .permitAll()
+                        // Situação do pedido na página de retorno (sem login, só o status)
+                        .requestMatchers(HttpMethod.GET, "/api/pagamentos/pedidos/*")
+                        .permitAll()
                         // Área do ADM: o papel é exigido aqui e repetido com @PreAuthorize nos controllers
                         .requestMatchers("/api/adm/**")
                         .hasRole("ADMIN")

@@ -8,6 +8,10 @@ import { CursoPagina } from './paginas/curso/CursoPagina.tsx';
 import { CursosPagina } from './paginas/cursos/CursosPagina.tsx';
 import { EntrarPagina } from './paginas/EntrarPagina.tsx';
 import { PainelPagina } from './paginas/PainelPagina.tsx';
+import { EventosPagina } from './paginas/pagamentos/EventosPagina.tsx';
+import { MeiosPagamentoPagina } from './paginas/pagamentos/MeiosPagamentoPagina.tsx';
+import { PedidoPagina } from './paginas/pagamentos/PedidoPagina.tsx';
+import { PedidosPagina } from './paginas/pagamentos/PedidosPagina.tsx';
 import { TermosPagina } from './paginas/termos/TermosPagina.tsx';
 import { TurmaPagina } from './paginas/turma/TurmaPagina.tsx';
 
@@ -29,6 +33,10 @@ export const roteador = createBrowserRouter([
         element: <AulaPagina />,
       },
       { path: 'termos', element: <TermosPagina /> },
+      { path: 'pagamentos', element: <MeiosPagamentoPagina /> },
+      { path: 'pagamentos/pedidos', element: <PedidosPagina /> },
+      { path: 'pagamentos/pedidos/:pedidoId', element: <PedidoPagina /> },
+      { path: 'pagamentos/eventos', element: <EventosPagina /> },
     ],
   },
   { path: '*', element: <SemPermissao titulo="Página não encontrada" /> },

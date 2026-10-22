@@ -7,7 +7,7 @@ export type StatusTurma = 'PREPARACAO' | 'ATIVA' | 'ENCERRADA';
 export type StatusConteudo = 'ATIVO' | 'INATIVO';
 export type StatusVideo = 'AGUARDANDO_ENVIO' | 'PENDENTE' | 'PROCESSANDO' | 'PRONTO' | 'ERRO';
 export type SituacaoMatricula = 'AGUARDANDO_INICIO' | 'VIGENTE' | 'VENCIDA' | 'CANCELADA';
-export type FormaPagamento = 'MANUAL' | 'CORTESIA' | 'PIX' | 'CARTAO' | 'BOLETO';
+export type FormaPagamento = 'MANUAL' | 'CORTESIA' | 'PIX' | 'CARTAO' | 'BOLETO' | 'OUTRO';
 export type TipoTermo = 'TERMOS_USO' | 'POLITICA_PRIVACIDADE';
 
 export interface Curso {
@@ -149,6 +149,139 @@ export interface Termo {
   publicadoEm: string;
 }
 
+export type StatusPedido =
+  | 'CRIADO'
+  | 'AGUARDANDO_PAGAMENTO'
+  | 'APROVADO'
+  | 'CONCLUIDO'
+  | 'EM_DISPUTA'
+  | 'ATRASADO'
+  | 'REEMBOLSADO'
+  | 'CHARGEBACK'
+  | 'CANCELADO'
+  | 'EXPIRADO';
+export type StatusEvento = 'RECEBIDO' | 'PROCESSADO' | 'IGNORADO' | 'ERRO';
+
+/** Campo da configuração de um meio de pagamento (o formulário é montado a partir daqui). */
+export interface CampoConfiguracao {
+  chave: string;
+  rotulo: string;
+  tipo: 'TEXTO' | 'URL' | 'SELECAO';
+  secreto: boolean;
+  obrigatorio: boolean;
+  dica: string | null;
+  padrao: string | null;
+  opcoes: string[];
+}
+
+export interface TipoGateway {
+  tipo: string;
+  nome: string;
+  campos: CampoConfiguracao[];
+  capacidades: string[];
+}
+
+export interface TiposGateway {
+  cifraDisponivel: boolean;
+  tipos: TipoGateway[];
+}
+
+export interface SegredoResumo {
+  configurado: boolean;
+  final4: string | null;
+}
+
+export interface Gateway {
+  id: number;
+  tipo: string;
+  nomeTipo: string;
+  nome: string;
+  ativo: boolean;
+  valores: Record<string, string>;
+  segredos: Record<string, SegredoResumo>;
+  segredosLegiveis: boolean;
+  webhookUrl: string;
+  criadoEm: string;
+  atualizadoEm: string;
+}
+
+export interface ResultadoTeste {
+  ok: boolean;
+  mensagem: string;
+}
+
+export interface Oferta {
+  id: number;
+  turmaId: number;
+  gatewayId: number;
+  gatewayNome: string | null;
+  gatewayAtivo: boolean;
+  produtoExterno: string;
+  ofertaExterna: string;
+  codigoCheckout: string | null;
+  titulo: string;
+  precoCentavos: number;
+  moeda: string;
+  diasAcesso: number | null;
+  ativa: boolean;
+  criadoEm: string;
+}
+
+export interface Pedido {
+  id: number;
+  codigo: string;
+  status: StatusPedido;
+  origem: 'CHECKOUT' | 'EXTERNO';
+  email: string;
+  nome: string | null;
+  usuarioId: number | null;
+  gatewayId: number;
+  ofertaId: number;
+  ofertaTitulo: string | null;
+  turmaId: number | null;
+  transacaoExterna: string | null;
+  valorCentavos: number | null;
+  moeda: string | null;
+  formaPagamento: FormaPagamento | null;
+  matriculaId: number | null;
+  criadoEm: string;
+  atualizadoEm: string;
+}
+
+export interface EventoPagamento {
+  id: number;
+  gatewayId: number;
+  idExterno: string;
+  tipoOriginal: string;
+  status: StatusEvento;
+  recebidoEm: string;
+  ocorridoEm: string | null;
+  transacao: string | null;
+  erro: string | null;
+  pedidoId: number | null;
+  processadoEm: string | null;
+}
+
+export interface HistoricoPedido {
+  id: number;
+  de: StatusPedido | null;
+  para: StatusPedido;
+  eventoId: number | null;
+  motivo: string | null;
+  em: string;
+}
+
+export interface PedidoDetalhe {
+  pedido: Pedido;
+  historico: HistoricoPedido[];
+  eventos: EventoPagamento[];
+}
+
+export interface EventoDetalhe {
+  evento: EventoPagamento;
+  payload: string | null;
+}
+
 interface Rotulo {
   rotulo: string;
   severidade: Severidade;
@@ -192,6 +325,27 @@ export const FORMAS_PAGAMENTO: Record<FormaPagamento, string> = {
   PIX: 'Pix',
   CARTAO: 'Cartão',
   BOLETO: 'Boleto',
+  OUTRO: 'Outro',
+};
+
+export const STATUS_PEDIDO: Record<StatusPedido, Rotulo> = {
+  CRIADO: { rotulo: 'Criado', severidade: 'neutral' },
+  AGUARDANDO_PAGAMENTO: { rotulo: 'Aguardando pagamento', severidade: 'info' },
+  APROVADO: { rotulo: 'Aprovado', severidade: 'ok' },
+  CONCLUIDO: { rotulo: 'Concluído', severidade: 'ok' },
+  EM_DISPUTA: { rotulo: 'Em disputa', severidade: 'warn' },
+  ATRASADO: { rotulo: 'Atrasado', severidade: 'warn' },
+  REEMBOLSADO: { rotulo: 'Reembolsado', severidade: 'err' },
+  CHARGEBACK: { rotulo: 'Chargeback', severidade: 'err' },
+  CANCELADO: { rotulo: 'Cancelado', severidade: 'err' },
+  EXPIRADO: { rotulo: 'Expirado', severidade: 'neutral' },
+};
+
+export const STATUS_EVENTO: Record<StatusEvento, Rotulo> = {
+  RECEBIDO: { rotulo: 'Na fila', severidade: 'info' },
+  PROCESSADO: { rotulo: 'Processado', severidade: 'ok' },
+  IGNORADO: { rotulo: 'Ignorado', severidade: 'warn' },
+  ERRO: { rotulo: 'Erro', severidade: 'err' },
 };
 
 export const TIPOS_TERMO: Record<TipoTermo, string> = {

@@ -11,6 +11,10 @@ export function EntrarPagina() {
   const navigate = useNavigate();
   const [parametros] = useSearchParams();
   const destino = destinoAposLogin(parametros.get('voltar'));
+  // Quem veio de "Comprar" cria a conta e volta para a compra depois de entrar
+  const comVoltar = parametros.get('voltar')
+    ? `?voltar=${encodeURIComponent(parametros.get('voltar')!)}`
+    : '';
 
   if (estado.status === 'autenticado') return <Navigate to={destino} replace />;
 
@@ -38,7 +42,7 @@ export function EntrarPagina() {
       linkSenha={<Link to={CAMINHOS.recuperarSenha}>Esqueci minha senha</Link>}
       acoes={
         <p>
-          Ainda não tem conta? <Link to={CAMINHOS.cadastro}>Criar conta</Link>
+          Ainda não tem conta? <Link to={CAMINHOS.cadastro + comVoltar}>Criar conta</Link>
         </p>
       }
       aoEntrar={async ({ usuario, senha }) => {

@@ -4,6 +4,7 @@ import br.com.celke.cursos.curso.application.CapaCursoService.EnvioCapa;
 import br.com.celke.cursos.curso.application.CatalogoService.CursoDetalhe;
 import br.com.celke.cursos.curso.application.ConteudoTurmaService.AulaConteudo;
 import br.com.celke.cursos.curso.application.ConteudoTurmaService.ModuloConteudo;
+import br.com.celke.cursos.curso.application.OfertasCatalogo.OfertaCatalogo;
 import br.com.celke.cursos.curso.domain.StatusConteudo;
 import br.com.celke.cursos.curso.domain.StatusCurso;
 import br.com.celke.cursos.curso.domain.StatusTurma;
@@ -114,8 +115,15 @@ public final class CursoResponses {
         }
     }
 
+    /** Detalhe do curso; {@code ofertas} são as opções à venda (vazia: nada à venda agora). */
     public record CursoCatalogoDetalhe(
-            String slug, String titulo, String resumo, String descricao, String capaUrl, List<ModuloCatalogo> modulos) {
+            String slug,
+            String titulo,
+            String resumo,
+            String descricao,
+            String capaUrl,
+            List<ModuloCatalogo> modulos,
+            List<OfertaCatalogo> ofertas) {
 
         public static CursoCatalogoDetalhe de(CursoDetalhe detalhe) {
             var curso = detalhe.curso();
@@ -125,7 +133,8 @@ public final class CursoResponses {
                     curso.getResumo(),
                     curso.getDescricao(),
                     enderecoCapa(curso),
-                    detalhe.modulos().stream().map(ModuloCatalogo::de).toList());
+                    detalhe.modulos().stream().map(ModuloCatalogo::de).toList(),
+                    detalhe.ofertas());
         }
     }
 

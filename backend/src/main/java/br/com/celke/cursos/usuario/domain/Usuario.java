@@ -31,7 +31,8 @@ public class Usuario {
     @Column(nullable = false, length = 254)
     private String email;
 
-    @Column(name = "senha_hash", nullable = false)
+    /** Nulo na conta criada por uma compra, até o dono criar a senha pelo link do e-mail. */
+    @Column(name = "senha_hash")
     private String senhaHash;
 
     @Column(nullable = false)
@@ -82,6 +83,10 @@ public class Usuario {
             this.emailConfirmadoEm = agora;
             this.atualizadoEm = agora;
         }
+    }
+
+    public boolean possuiSenha() {
+        return senhaHash != null;
     }
 
     public boolean isEmailConfirmado() {

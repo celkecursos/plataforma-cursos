@@ -22,6 +22,7 @@ capítulo.
 | 7. Operação | 29–31 | 10 |
 | 8. Frontend com `@celke/ui` | 32–36 | 11–14 |
 | 9. Migração do legado (opcional) | 37 | 15 |
+| 10. Vendas e pagamentos | 38–40 | 16 |
 
 ---
 
@@ -34,7 +35,7 @@ capítulo.
 - **Objetivo:** entender o que será construído, o que fica de fora e como as peças se ligam.
 - **Conteúdo:**
   - Funcionalidades que vêm do CLMS legado: cursos, turmas, módulos, aulas em vídeo, matrícula, progresso, arquivos de apoio, fórum, certificado, perfil e termos.
-  - O que fica de fora: Hotmart, LeadLovers, automação de e-mail, clube de desafios.
+  - O que fica de fora: LeadLovers, automação de e-mail, clube de desafios. A venda pela Hotmart entra no fim, na Parte 10, numa estrutura que aceita outros meios de pagamento.
   - Arquitetura: uma VPS da Hostinger (2 vCPU, 8 GB, 100 GB NVMe) com tudo em Docker — Caddy (HTTPS e roteamento), API e worker Spring Boot, PostgreSQL 18 e Garage (S3) — servindo produção e uma homologação leve.
   - Domínios, todos subdomínios de `celke.uno` (o domínio principal pertence a outras aplicações): `cursos.` (site), `aluno.`, `adm.` e `media.`, e os equivalentes `homolog-*`.
   - Fluxo do vídeo: upload direto ao Garage → worker com ffmpeg → HLS → playlist assinada pela API.
@@ -550,3 +551,52 @@ Fica antes do frontend porque precisa estar pronta antes de entrarem dados reais
   - Senhas bcrypt do Laravel aproveitadas: o hash `$2y$` é aceito no primeiro login e regravado em Argon2.
   - Reprocessamento dos vídeos já existentes no S3 para HLS.
 - **Entrega:** alunos do legado entram com a senha atual e encontram seus cursos.
+
+---
+
+## Parte 10 — Vendas e pagamentos
+
+### Cap. 38 — Meios de pagamento e o webhook da Hotmart
+
+**Fase:** 16
+
+- **Objetivo:** receber as notificações da Hotmart com segurança, numa estrutura que aceita outros meios de pagamento sem mexer no núcleo.
+- **Conteúdo:**
+  - Webhook 1.0.0 (o do projeto antigo) × 2.0.0: corpo JSON com `id` por evento, `X-HOTMART-HOTTOK` no cabeçalho, `xcod` em `data.purchase.origin`.
+  - A porta `GatewayPagamento` (um bean por meio): campos de configuração, capacidades, teste das credenciais, checkout, autenticação, interpretação e consulta; `GatewaysRegistrados` por tipo.
+  - Meio de pagamento configurado pelo painel: campos comuns em JSON, segredos cifrados com AES-256-GCM (`PAGAMENTOS_CHAVE`, IV por gravação, webhook token como dado associado), um ativo por vez com índice único parcial.
+  - Migration `V15`: meios de pagamento, ofertas, pedidos, histórico e eventos recebidos; usuário sem senha; matrícula ligada ao pedido.
+  - `POST /api/pagamentos/webhooks/{token}`: limite de tamanho e por IP, hottok comparado em tempo constante, `INSERT ... ON CONFLICT DO NOTHING` como idempotência, corpo mascarado (documento, telefone, IP), job na fila e 200 na hora.
+  - Por que só responder erro quando nada foi gravado: a Hotmart reenvia e desativa a URL que continua falhando.
+  - Homologação restrita por IP com exceção só para o caminho do webhook.
+- **Segurança:** segredos nunca voltam na API nem ficam em texto puro no banco; 401 sem gravar nada; 413 para corpo grande.
+- **Testes:** interpretação de cada fixture (campos opcionais do afiliado, status desconhecido, data em número e em texto), hottok, cifra (ida e volta, IV diferente, chave errada), integração do webhook (duplicado, 401, 404, corpo inválido, 413) e matriz de papéis.
+- **Entrega:** "Enviar teste" da Hotmart aparece em "Eventos recebidos" na homologação.
+
+### Cap. 39 — Pedido, status e matrícula
+
+**Fase:** 16
+
+- **Objetivo:** transformar cada notificação na matrícula certa, mesmo com eventos repetidos e fora de ordem.
+- **Conteúdo:**
+  - Status interno do pedido, igual para todos os meios, e a tabela de transições num lugar só (`TransicoesPedido`): reembolso e chargeback sempre valem; aprovação depois do reembolso não reabre.
+  - Worker com uma transação por evento e trava no pedido (`SELECT ... FOR UPDATE`); pedido achado pelo `xcod`, pela transação ou criado como `EXTERNO` (afiliado, link direto).
+  - Matrícula pelo pagamento: criar, estender quem já está matriculado, reativar depois de disputa, cancelar no reembolso.
+  - Conta do comprador sem senha e o link de criar senha no e-mail da matrícula (nunca senha por e-mail).
+  - Checkout por redirecionamento com o código do pedido no `xcod`; página de retorno que consulta o pedido.
+  - Avisos ao admin (chargeback, disputa, evento com erro), reprocessamento pelo painel, retenção do corpo dos eventos e a reconciliação pela API de vendas (ligada por configuração).
+- **Testes:** todas as transições; integração do fluxo completo (aprovado → acesso e e-mail → reembolso tira o acesso), venda sem `xcod` criando a conta, boleto aguardando, evento antigo ignorado, dois eventos do mesmo pedido ao mesmo tempo; jornada e2e pelo Caddy até o e-mail no Mailpit.
+- **Entrega:** compra aprovada libera o curso e o reembolso tira, sem matrícula nem e-mail duplicado.
+
+### Cap. 40 — Comprar pelo site, painel de vendas e testes de ponta a ponta
+
+**Fase:** 16
+
+- **Objetivo:** o aluno compra pelo site e o admin acompanha as vendas pelo ADM.
+- **Conteúdo:**
+  - ADM: meios de pagamento com o formulário montado a partir dos campos do gateway, "Testar credenciais", ativação e a URL do webhook pronta para copiar; aba "Venda" da turma com as ofertas; pedidos com a linha do tempo; eventos recebidos com o corpo e "Reprocessar".
+  - Aluno: `/comprar/:oferta` (volta para a compra depois de entrar ou criar a conta) e `/pagamento/retorno`, que acompanha o pedido a cada 3 s; "Crie sua senha" para quem veio da compra.
+  - Site: preço e botão "Comprar" de cada oferta na página do curso, com as ofertas nos dados estruturados.
+  - Como adicionar outro meio de pagamento (Mercado Pago, Stripe...) só com um valor no enum e um bean novo.
+- **Testes:** Vitest da página de retorno e do formulário; Playwright do admin cadastrando a Hotmart (validação e credencial errada), da compra interceptando o `pay.hotmart.com`, do boleto, do reembolso e do evento ignorado reprocessado.
+- **Entrega:** compra de ponta a ponta na homologação com a Hotmart de teste.

@@ -42,6 +42,11 @@ JWT_SEGREDO=$(openssl rand -base64 48)
 AUTH_ORIGENS=$ALUNO,$ADM
 FRONT_ALUNO_URL=$ALUNO
 
+# Chave dos segredos dos meios de pagamento (trocar exige informar os segredos de novo no painel)
+PAGAMENTOS_CHAVE=$(openssl rand -base64 32)
+# Reconciliação diária pela API do meio de pagamento (precisa das credenciais da API no painel)
+PAGAMENTOS_RECONCILIACAO=false
+
 GARAGE_RPC_SECRET=$(hex 32)
 GARAGE_ADMIN_TOKEN=$(hex 32)
 S3_BUCKET=midia

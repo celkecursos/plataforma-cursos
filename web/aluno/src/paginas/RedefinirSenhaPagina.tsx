@@ -7,10 +7,14 @@ import { LayoutConta } from '@compartilhado/ui/LayoutConta.tsx';
 import { erroConfirmacao, erroSenhaNova, semErros } from '@compartilhado/ui/validacao.ts';
 import { CAMINHOS } from '../caminhos.ts';
 
-/** Destino do link de recuperação: cria a nova senha (e encerra as sessões abertas). */
+/**
+ * Destino do link de recuperação: cria a nova senha (e encerra as sessões abertas). Vindo do e-mail da
+ * matrícula paga (`origem=pagamento`), é a primeira senha da conta criada pela compra.
+ */
 export function RedefinirSenhaPagina() {
   const [parametros] = useSearchParams();
   const token = parametros.get('token');
+  const primeiraSenha = parametros.get('origem') === 'pagamento';
   const [senha, setSenha] = useState('');
   const [confirmacao, setConfirmacao] = useState('');
   const [erros, setErros] = useState<{ senha?: string; confirmacao?: string }>({});
@@ -31,10 +35,17 @@ export function RedefinirSenhaPagina() {
 
   if (pronto) {
     return (
-      <LayoutConta marca="Plataforma de Cursos" titulo="Senha alterada">
+      <LayoutConta
+        marca="Plataforma de Cursos"
+        titulo={primeiraSenha ? 'Senha criada' : 'Senha alterada'}
+      >
         <Alerta
           severidade="ok"
-          mensagem="Sua nova senha já vale. Por segurança, você saiu de todos os dispositivos."
+          mensagem={
+            primeiraSenha
+              ? 'Sua senha foi criada. Entre para acessar o seu curso.'
+              : 'Sua nova senha já vale. Por segurança, você saiu de todos os dispositivos.'
+          }
         />
         <Link className="pc-link" to={CAMINHOS.entrar}>
           Entrar
@@ -62,13 +73,16 @@ export function RedefinirSenhaPagina() {
   return (
     <LayoutConta
       marca="Plataforma de Cursos"
-      titulo="Criar nova senha"
+      titulo={primeiraSenha ? 'Crie sua senha' : 'Criar nova senha'}
+      descricao={
+        primeiraSenha ? 'Sua matrícula está confirmada. Crie a senha para entrar.' : undefined
+      }
       aoEnviar={enviar}
       rodape={<Link to={CAMINHOS.recuperarSenha}>Pedir um novo link</Link>}
     >
       {erroGeral && <Alerta severidade="err" mensagem={erroGeral} />}
       <CampoSenha
-        rotulo="Nova senha"
+        rotulo={primeiraSenha ? 'Senha' : 'Nova senha'}
         valor={senha}
         aoMudar={setSenha}
         erro={erros.senha}
@@ -77,14 +91,20 @@ export function RedefinirSenhaPagina() {
         autoComplete="new-password"
       />
       <CampoSenha
-        rotulo="Repita a nova senha"
+        rotulo={primeiraSenha ? 'Repita a senha' : 'Repita a nova senha'}
         valor={confirmacao}
         aoMudar={setConfirmacao}
         erro={erros.confirmacao}
         obrigatorio
         autoComplete="new-password"
       />
-      <Botao type="submit" rotulo="Salvar nova senha" icone="save" carregando={enviando} bloco />
+      <Botao
+        type="submit"
+        rotulo={primeiraSenha ? 'Criar senha' : 'Salvar nova senha'}
+        icone="save"
+        carregando={enviando}
+        bloco
+      />
     </LayoutConta>
   );
 }

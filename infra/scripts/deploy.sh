@@ -48,7 +48,8 @@ exec 9> .deploy.lock
 flock -n 9 || falhar "já existe um deploy de $AMBIENTE em andamento"
 
 log() {
-  echo "[$(date -u +%Y-%m-%dT%H:%M:%SZ)] $AMBIENTE ${TAG:0:12}: $*" | tee -a deploy.log
+  # Horário de Brasília, com o deslocamento, como nos logs da API e do worker
+  echo "[$(TZ=America/Sao_Paulo date +%Y-%m-%dT%H:%M:%S%:z)] $AMBIENTE ${TAG:0:12}: $*" | tee -a deploy.log
 }
 
 compose() {

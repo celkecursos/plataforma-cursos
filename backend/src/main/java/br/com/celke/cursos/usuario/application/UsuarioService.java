@@ -44,13 +44,22 @@ public class UsuarioService {
         return criar(nome, email, senha, Set.of(Papel.ALUNO), false);
     }
 
+    /**
+     * Conta de aluno criada por uma compra: sem senha e com o e-mail confirmado (o pagamento chegou a
+     * ele). O dono cria a senha pelo link enviado no e-mail da matrícula.
+     */
+    @Transactional
+    public Usuario criarAlunoSemSenha(String nome, String email) {
+        return criar(nome, email, null, Set.of(Papel.ALUNO), true);
+    }
+
     private Usuario criar(String nome, String email, String senha, Set<Papel> papeis, boolean confirmado) {
         String emailNormalizado = Usuario.normalizarEmail(email);
         if (repository.existsByEmail(emailNormalizado)) {
             throw new ConflitoException("Já existe um usuário com este e-mail.");
         }
-        return repository.save(new Usuario(
-                nome, emailNormalizado, passwordEncoder.encode(senha), papeis, confirmado, clock.instant()));
+        String hash = senha == null ? null : passwordEncoder.encode(senha);
+        return repository.save(new Usuario(nome, emailNormalizado, hash, papeis, confirmado, clock.instant()));
     }
 
     @Transactional
@@ -68,7 +77,7 @@ public class UsuarioService {
 
     /** A senha informada é a atual do usuário (troca de senha no perfil). */
     public boolean senhaConfere(Usuario usuario, String senha) {
-        return senha != null && passwordEncoder.matches(senha, usuario.getSenhaHash());
+        return senha != null && usuario.possuiSenha() && passwordEncoder.matches(senha, usuario.getSenhaHash());
     }
 
     @Transactional

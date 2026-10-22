@@ -26,6 +26,8 @@ x-app: &app
   SMTP_AUTH: "false"
   SMTP_STARTTLS: "false"
   EMAIL_REMETENTE: ${EMAIL_REMETENTE:?defina EMAIL_REMETENTE no infra/.env}
+  # Chave dos segredos dos meios de pagamento; sem ela, o painel não grava credenciais
+  PAGAMENTOS_CHAVE: ${PAGAMENTOS_CHAVE:-}
   # Logs em JSON (ECS), com o id de correlação de cada requisição
   LOGGING_STRUCTURED_FORMAT_CONSOLE: ecs
 

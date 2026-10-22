@@ -143,4 +143,59 @@ class MatriculaTest {
             assertThat(filtro.aceita(matricula, agora)).as(filtro.name()).isEqualTo(filtro == esperado);
         }
     }
+
+    @Nested
+    class PeloPagamento {
+
+        private final Instant agora = Instant.parse("2026-04-01T00:00:00Z");
+
+        @Test
+        @DisplayName("matrícula de pagamento guarda o pedido")
+        void guardaPedido() {
+            Matricula matricula = Matricula.dePagamento(2L, 3L, INICIO, FIM, FormaPagamento.PIX, " HP1 ", 9L, INICIO);
+
+            assertThat(matricula.getPedidoId()).isEqualTo(9L);
+            assertThat(matricula.getTransacao()).isEqualTo("HP1");
+            assertThat(matricula.getFormaPagamento()).isEqualTo(FormaPagamento.PIX);
+        }
+
+        @ParameterizedTest(name = "{0}")
+        @CsvSource(
+                value = {
+                    "fim no futuro soma a partir do fim,     2026-06-01T10:00:00Z, 30,   2026-07-01T10:00:00Z",
+                    "fim já passou soma a partir de agora,   2026-03-15T10:00:00Z, 30,   2026-05-01T00:00:00Z",
+                    "oferta sem prazo deixa sem prazo,       2026-06-01T10:00:00Z, nulo, nulo",
+                    "matrícula sem prazo continua sem prazo, nulo,                 30,   nulo",
+                },
+                nullValues = "nulo")
+        void estender(String caso, Instant fimAtual, Integer dias, Instant novoFim) {
+            Matricula matricula = matricula(1, 2, 3, INICIO, fimAtual);
+
+            matricula.estender(dias, agora, agora);
+
+            assertThat(matricula.getFim()).isEqualTo(novoFim);
+        }
+
+        @Test
+        @DisplayName("matrícula cancelada não é estendida")
+        void naoEstendeCancelada() {
+            assertThatThrownBy(() -> cancelada(matricula(1, 2, 3, INICIO, FIM)).estender(30, agora, agora))
+                    .isInstanceOf(ConflitoException.class)
+                    .hasMessage("A matrícula está cancelada.");
+        }
+
+        @Test
+        @DisplayName("reativar devolve o acesso com o mesmo período; ativa não muda")
+        void reativar() {
+            Matricula matricula = cancelada(matricula(1, 2, 3, INICIO, FIM));
+
+            matricula.reativar(agora);
+
+            assertThat(matricula.getStatus()).isEqualTo(StatusMatricula.ATIVA);
+            assertThat(matricula.getCanceladaEm()).isNull();
+            assertThat(matricula.situacao(agora)).isEqualTo(SituacaoMatricula.VIGENTE);
+            matricula.reativar(agora);
+            assertThat(matricula.getFim()).isEqualTo(FIM);
+        }
+    }
 }

@@ -313,6 +313,20 @@ páginas para o `web`), atualize o Caddy **depois** do deploy dos dois ambientes
 disso o Caddy novo não teria para onde mandar as páginas (502), enquanto o antigo continua respondendo
 404 fora da API.
 
+**Pagamentos (Fase 16):** o `gerar-env-servidor.sh` já cria a `PAGAMENTOS_CHAVE` nos ambientes novos.
+Nos `.env` que já existem, acrescente uma chave por ambiente (diferentes entre si), antes do deploy:
+
+```bash
+echo "PAGAMENTOS_CHAVE=$(openssl rand -base64 32)" >> /opt/plataforma-cursos/producao/.env
+echo "PAGAMENTOS_CHAVE=$(openssl rand -base64 32)" >> /opt/plataforma-cursos/homolog/.env
+```
+
+Trocar a chave depois exige informar de novo os segredos do meio de pagamento no painel. A
+reconciliação fica desligada até `PAGAMENTOS_RECONCILIACAO=true`. Atualize também o Caddy (acima): a
+homologação continua restrita por IP, mas deixa passar `/api/pagamentos/webhooks/*`, para a Hotmart de
+teste notificar `https://homolog-aluno.celke.uno/api/pagamentos/webhooks/<token>` (o endereço completo
+aparece no painel). Configuração da Hotmart: `docs/pagamentos.md`.
+
 **Atualizar o script de deploy**: copie o `infra/scripts/deploy.sh` novo para a VPS e, como
 administrador, `sudo install -o root -g root -m 755 deploy.sh /usr/local/bin/plataforma-cursos-deploy`.
 

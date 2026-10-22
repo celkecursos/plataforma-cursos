@@ -187,3 +187,50 @@
 .pc-formulario-estreito {
   max-width: 420px;
 }
+
+/* Pagamentos (ADM) */
+.pc-codigo {
+  font-family: var(--font-mono, monospace);
+  font-size: var(--fs-corpo-2);
+  overflow-wrap: anywhere;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 4px 8px;
+}
+
+.pc-passos {
+  margin: 0;
+  padding-left: 20px;
+  display: grid;
+  gap: 6px;
+}
+
+.pc-json {
+  font-family: var(--font-mono, monospace);
+  font-size: var(--fs-corpo-2);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  max-height: 420px;
+  overflow: auto;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 12px;
+  margin: 0;
+}
+
+.pc-linha-tempo {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+}
+
+.pc-linha-tempo li {
+  display: grid;
+  gap: 2px;
+  border-left: 3px solid var(--border);
+  padding-left: 12px;
+}

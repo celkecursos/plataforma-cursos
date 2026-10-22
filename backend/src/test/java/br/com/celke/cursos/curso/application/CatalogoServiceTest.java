@@ -39,12 +39,15 @@ class CatalogoServiceTest {
     @Mock
     private ConteudoTurmaService conteudoTurmaService;
 
+    @Mock
+    private OfertasCatalogo ofertasCatalogo;
+
     private CatalogoService service;
     private final Curso curso = publicado(curso(1, "java"));
 
     @BeforeEach
     void setUp() {
-        service = new CatalogoService(cursos, turmas, conteudoTurmaService);
+        service = new CatalogoService(cursos, turmas, conteudoTurmaService, ofertasCatalogo);
     }
 
     @Test
@@ -75,13 +78,19 @@ class CatalogoServiceTest {
         when(turmas.findFirstByCursoIdAndStatusOrderByIdDesc(1L, StatusTurma.ATIVA))
                 .thenReturn(Optional.empty());
 
-        assertThat(service.detalhar("java").modulos()).isEmpty();
+        var detalhe = service.detalhar("java");
+
+        assertThat(detalhe.modulos()).isEmpty();
+        assertThat(detalhe.ofertas()).isEmpty();
     }
 
     @Test
-    @DisplayName("mostra o conteúdo ativo da turma ativa mais recente")
+    @DisplayName("mostra o conteúdo ativo e as ofertas da turma ativa mais recente")
     void conteudoDaTurmaAtiva() {
         List<ModuloConteudo> conteudo = List.of(new ModuloConteudo(10L, "Introdução", List.of()));
+        List<OfertasCatalogo.OfertaCatalogo> ofertas =
+                List.of(new OfertasCatalogo.OfertaCatalogo(3L, "À vista", 19_700, "BRL"));
+        when(ofertasCatalogo.ativas(5L)).thenReturn(ofertas);
         when(cursos.findBySlugAndStatus("java", StatusCurso.PUBLICADO)).thenReturn(Optional.of(curso));
         when(turmas.findFirstByCursoIdAndStatusOrderByIdDesc(1L, StatusTurma.ATIVA))
                 .thenReturn(Optional.of(turma(5, curso)));
@@ -91,5 +100,6 @@ class CatalogoServiceTest {
 
         assertThat(detalhe.curso()).isSameAs(curso);
         assertThat(detalhe.modulos()).isEqualTo(conteudo);
+        assertThat(detalhe.ofertas()).isEqualTo(ofertas);
     }
 }

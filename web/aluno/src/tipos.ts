@@ -164,3 +164,33 @@ export function localizarAula(turma: TurmaAluno, aulaId: number): AulaNaTurma | 
     proxima: todas[indice + 1]?.aula ?? null,
   };
 }
+
+export type StatusPedido =
+  | 'CRIADO'
+  | 'AGUARDANDO_PAGAMENTO'
+  | 'APROVADO'
+  | 'CONCLUIDO'
+  | 'EM_DISPUTA'
+  | 'ATRASADO'
+  | 'REEMBOLSADO'
+  | 'CHARGEBACK'
+  | 'CANCELADO'
+  | 'EXPIRADO';
+
+/** Resposta do checkout: ir para a página do meio de pagamento ou montar o formulário embutido. */
+export interface Checkout {
+  pedido: string;
+  tipo: 'REDIRECIONAMENTO' | 'EMBUTIDO';
+  url: string | null;
+  dados: Record<string, unknown> | null;
+}
+
+/** Situação do pedido na página de retorno; curso e turma só para o dono logado. */
+export interface SituacaoPedido {
+  codigo: string;
+  status: StatusPedido;
+  turmaId: number | null;
+  turmaNome: string | null;
+  cursoTitulo: string | null;
+  cursoSlug: string | null;
+}

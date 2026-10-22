@@ -105,7 +105,8 @@ class CatalogoIT extends IntegrationTest {
                            {"titulo":"Sem aulas","aulas":[]},
                            {"titulo":"Introdução","aulas":[
                              {"id":%d,"titulo":"Gratuita","gratuita":true},
-                             {"id":%d,"titulo":"Paga","gratuita":false}]}]}
+                             {"id":%d,"titulo":"Paga","gratuita":false}]}],
+                         "ofertas":[]}
                         """.formatted(slug, slug, slug, gratuita, paga));
     }
 

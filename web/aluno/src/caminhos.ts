@@ -8,7 +8,11 @@ export const CAMINHOS = {
   inicio: '/',
   certificados: '/certificados',
   perfil: '/perfil',
+  retornoPagamento: '/pagamento/retorno',
 } as const;
+
+/** Destino do botão "Comprar" do site. */
+export const caminhoComprar = (ofertaId: number | string) => `/comprar/${ofertaId}`;
 
 export const caminhoTurma = (turmaId: number | string) => `/turmas/${turmaId}`;
 

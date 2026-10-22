@@ -84,10 +84,14 @@
 	respond @fora "Acesso restrito." 403
 }
 
-# Homologação: só os IPs de HOMOLOG_IPS e fora dos buscadores
+# Homologação: só os IPs de HOMOLOG_IPS e fora dos buscadores. As notificações dos meios de pagamento
+# (Hotmart de teste) passam: vêm dos servidores deles e são autenticadas pela API (hottok)
 (homolog) {
 	header X-Robots-Tag "noindex, nofollow"
-	@fora not remote_ip {$HOMOLOG_IPS}
+	@fora {
+		not remote_ip {$HOMOLOG_IPS}
+		not path /api/pagamentos/webhooks/*
+	}
 	respond @fora "Acesso restrito." 403
 }
 

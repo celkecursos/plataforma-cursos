@@ -29,8 +29,11 @@ x-app: &app
   SMTP_STARTTLS: ${SMTP_STARTTLS:-true}
   EMAIL_REMETENTE: ${EMAIL_REMETENTE:?defina EMAIL_REMETENTE}
   LOGGING_STRUCTURED_FORMAT_CONSOLE: ecs
-  # Alertas do worker por e-mail (jobs com erro, disco quase cheio); em branco, desligados
+  # Alertas do worker por e-mail (jobs com erro, disco quase cheio, chargeback); em branco, desligados
   ALERTA_EMAIL: ${ALERTA_EMAIL:-}
+  # Chave dos segredos dos meios de pagamento; sem ela, o painel não grava credenciais
+  PAGAMENTOS_CHAVE: ${PAGAMENTOS_CHAVE:-}
+  APP_PAGAMENTOS_RECONCILIACAO_ATIVA: ${PAGAMENTOS_RECONCILIACAO:-false}
 
 # Logs do Docker com rotação: no máximo 5 arquivos de 10 MB por container
 x-logging: &logging
