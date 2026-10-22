@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { instanteBrasilia } from './gerar.ts';
 import { html, jsonEmScript, paragrafos } from './html.ts';
 import {
   paginaCurso,
@@ -90,5 +91,16 @@ describe('páginas', () => {
     const mapa = sitemap(ctx, [curso]);
     expect(mapa).toContain('<loc>https://cursos.celke.uno/cursos/java-do-zero/</loc>');
     expect(mapa).toContain('<loc>https://cursos.celke.uno/certificados/validar/</loc>');
+  });
+});
+
+describe('logs do gerador', () => {
+  it('horário de Brasília com o deslocamento', () => {
+    expect(instanteBrasilia(new Date('2026-10-22T13:33:20.123Z'))).toBe(
+      '2026-10-22T10:33:20.123-03:00',
+    );
+    expect(instanteBrasilia(new Date('2026-10-22T02:59:59.000Z'))).toBe(
+      '2026-10-21T23:59:59.000-03:00',
+    );
   });
 });

@@ -123,9 +123,32 @@ export async function gerar(): Promise<number> {
   return cursos.length;
 }
 
+/** Instante no horário de Brasília, com o deslocamento (`2026-10-22T10:33:20.123-03:00`), como nos logs da API. */
+export function instanteBrasilia(data: Date): string {
+  const partes = Object.fromEntries(
+    new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'America/Sao_Paulo',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      fractionalSecondDigits: 3,
+      hourCycle: 'h23',
+      timeZoneName: 'longOffset',
+    })
+      .formatToParts(data)
+      .map((p) => [p.type, p.value]),
+  );
+  const deslocamento =
+    partes['timeZoneName'] === 'GMT' ? '+00:00' : partes['timeZoneName']!.slice(3);
+  return `${partes['year']}-${partes['month']}-${partes['day']}T${partes['hour']}:${partes['minute']}:${partes['second']}.${partes['fractionalSecond']}${deslocamento}`;
+}
+
 function registrar(mensagem: string): void {
   console.log(
-    JSON.stringify({ '@timestamp': new Date().toISOString(), servico: 'site', mensagem }),
+    JSON.stringify({ '@timestamp': instanteBrasilia(new Date()), servico: 'site', mensagem }),
   );
 }
 

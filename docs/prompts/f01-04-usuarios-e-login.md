@@ -351,6 +351,14 @@ spring:
       mail.smtp.timeout: 10000
       mail.smtp.writetimeout: 10000
 
+logging:
+  # Horário de Brasília nos logs: o @timestamp do JSON (ECS) e o texto do console do desenvolvimento
+  structured:
+    json:
+      customizer: br.com.celke.cursos.shared.config.FusoHorarioLogs
+  pattern:
+    dateformat: "yyyy-MM-dd'T'HH:mm:ss.SSSXXX, America/Sao_Paulo"
+
 server:
   shutdown: graceful
   # A API roda atrás do Caddy, que informa o host e o protocolo originais

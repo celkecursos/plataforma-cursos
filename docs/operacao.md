@@ -88,7 +88,7 @@ Falha no envio de e-mail não gera alerta por e-mail (iria pela mesma fila): apa
 ## 4. Logs e limpeza
 
 - **Logs do Docker** com rotação em todos os serviços (`json-file`, 5 arquivos de 10 MB por container):
-  no máximo ~250 MB por ambiente. Os logs da API e do worker são JSON (ECS) com o id de correlação.
+  no máximo ~250 MB por ambiente. Os logs da API e do worker são JSON (ECS) com o id de correlação e o `@timestamp` no horário de Brasília (`-03:00`); o gerador do site e o `deploy.log` usam o mesmo fuso.
 - **Uploads abandonados** (`uploads/` do bucket): a regra de expiração do bucket apaga em 2 dias, e os
   uploads em partes não concluídos em 1 dia. Os envios aceitos saem de `uploads/` na confirmação.
 - **Log de acesso aos vídeos**: o worker apaga todo dia o que passou de 180 dias.
