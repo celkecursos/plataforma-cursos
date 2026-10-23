@@ -54,7 +54,7 @@
 }
 
 # Site público (cursos.*): só as leituras públicas da API (catálogo, capas, termos vigentes e
-# validação de certificado) chegam a ela; o resto é o site gerado, servido pelo container web.
+# validação de certificado) chegam a ela; o resto é o site em React renderizado no servidor.
 # Argumento: o ambiente.
 (site) {
 	@api {
@@ -67,7 +67,7 @@
 		}
 	}
 	handle {
-		reverse_proxy {args[0]}-web:8083 {
+		reverse_proxy {args[0]}-site:3000 {
 			lb_try_duration 30s
 		}
 	}

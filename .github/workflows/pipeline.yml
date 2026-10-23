@@ -166,7 +166,7 @@ jobs:
           cache-from: type=gha,scope=web
           cache-to: type=gha,mode=max,scope=web
 
-      - name: Imagem do gerador do site
+      - name: Imagem do site
         uses: docker/build-push-action@v7
         with:
           context: web

@@ -1,4 +1,4 @@
-# Caddy interno do container web: só arquivos estáticos (aluno, ADM e site), sem TLS (o TLS e os headers comuns ficam no
+# Caddy interno do container web: só arquivos estáticos (aluno e ADM), sem TLS (o TLS e os headers comuns ficam no
 # Caddy da VPS). MIDIA_ORIGEM é a origem pública do Garage (vídeos, capas, arquivos de apoio).
 {
 	admin off
@@ -35,33 +35,4 @@
 
 :8082 {
 	import spa adm
-}
-
-# Site público: páginas geradas pelo container site no volume montado em /srv/site (o link `atual`
-# aponta para a versão mais recente). Sem cookies, então pode ficar em cache por pouco tempo.
-:8083 {
-	root * /srv/site/atual
-	encode zstd gzip
-	header {
-		-Server
-		Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: {$MIDIA_ORIGEM}; connect-src 'self'; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
-		X-Frame-Options DENY
-	}
-
-	handle /assets/* {
-		header Cache-Control "public, max-age=3600"
-		file_server
-	}
-
-	# /cursos/x e /cursos/x/ servem /cursos/x/index.html; o HTML muda a cada geração
-	handle {
-		header Cache-Control "public, max-age=60"
-		try_files {path} {path}/index.html
-		file_server
-	}
-
-	handle_errors 404 {
-		rewrite * /404.html
-		file_server
-	}
 }

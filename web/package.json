@@ -2,12 +2,13 @@
   "name": "plataforma-cursos-web",
   "private": true,
   "version": "0.1.0",
-  "description": "Frontends da Plataforma de Cursos: área do aluno e ADM (React + @celke/kole-react).",
+  "description": "Frontends da Plataforma de Cursos: área do aluno e ADM (React + @celke/kole-react) e o site público (React com renderização no servidor).",
   "type": "module",
   "scripts": {
     "dev:aluno": "vite --config aluno/vite.config.ts",
     "dev:adm": "vite --config adm/vite.config.ts",
-    "build": "tsc -b && vite build --config aluno/vite.config.ts && vite build --config adm/vite.config.ts",
+    "dev:site": "react-router dev site",
+    "build": "tsc -b && vite build --config aluno/vite.config.ts && vite build --config adm/vite.config.ts && react-router build site",
     "typecheck": "tsc -b",
     "lint": "eslint .",
     "format": "prettier --write .",
@@ -19,11 +20,16 @@
     "e2e:debug": "playwright test --debug",
     "e2e:report": "playwright show-report",
     "e2e:trace": "playwright show-trace",
-    "lighthouse": "node e2e/lighthouse.ts"
+    "lighthouse": "node e2e/lighthouse.ts",
+    "cursos-exemplo": "node scripts/cursos-exemplo.ts",
+    "start:site": "cd site && react-router-serve ../dist/site/server/index.js"
   },
   "dependencies": {
     "@celke/kole-react": "github:celkecursos/kole-react#fc87d5c4409e1e65e8c571321c08d56871d2a4d3",
+    "@react-router/node": "^8.5.0",
+    "@react-router/serve": "^8.5.0",
     "hls.js": "^1.7.3",
+    "isbot": "^5.2.2",
     "lucide-react": "^1.61.0",
     "qrcode": "^1.5.4",
     "react": "^19.3.1",
@@ -33,6 +39,7 @@
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@playwright/test": "^1.64.1",
+    "@react-router/dev": "^8.5.0",
     "@testing-library/jest-dom": "^7.0.1",
     "@testing-library/react": "^16.3.3",
     "@testing-library/user-event": "^14.6.8",

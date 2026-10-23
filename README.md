@@ -86,7 +86,7 @@ docker compose -f infra/compose.prod.yml -f infra/compose.e2e.yml --env-file inf
 Este comando:
 
 - cria o banco e aplica as migrations;
-- sobe a API, o worker (fila, e-mails e conversão de vídeo), os fronts e o gerador do site;
+- sobe a API, o worker (fila, e-mails e conversão de vídeo), os fronts e o site público (React com renderização no servidor);
 - cria o bucket no Garage e as contas de exemplo;
 - deixa tudo atrás do Caddy na porta 8088.
 
@@ -114,7 +114,15 @@ conta pela chave `JBSWY3DPEHPK3PXPJBSWY3DPEHPK3PXP` (tipo "baseado em tempo"): �
 exemplo, definido em `SEED_E2E_TOTP` no `infra/e2e.env`.
 
 Para ver um curso no site e na área do aluno: entre no ADM, crie o curso, uma turma (ative-a), um módulo
-e uma aula, publique o curso e matricule o aluno na aba **Matrículas** da turma.
+e uma aula, publique o curso e matricule o aluno na aba **Matrículas** da turma. Para ter vários cursos
+de exemplo publicados de uma vez (com capa, módulos e aulas), dentro de `web/`:
+
+```bash
+npm run cursos-exemplo -- http://adm.localhost:8088
+```
+
+O script pede o e-mail, a senha e o código do aplicativo autenticador do administrador e pode rodar
+de novo (o curso que já existe é pulado). Serve também para a homologação, com o endereço do ADM dela.
 
 **5. Parar**
 
@@ -228,7 +236,7 @@ docker compose -f infra/compose.yml run --rm api redefinir-2fa admin@exemplo.com
 
 ```
 backend/   API e worker (Java 25, Spring Boot 4.1): módulos por funcionalidade, testes e e2e
-web/       Área do aluno e ADM (React + Vite), site público gerado a partir da API, testes Playwright
+web/       Área do aluno e ADM (React + Vite), site público em React com renderização no servidor, testes Playwright
 infra/     Docker Compose (local, servidores e e2e), Caddy, scripts de VPS, deploy e backup
 docs/      Plano, roteiro dos capítulos, VPS, operação, pagamentos e prompts
 ```

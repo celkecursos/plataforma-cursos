@@ -11,8 +11,8 @@ import { alunoConfirmado } from '../support/contas.ts';
 import { SENHA_NOVA, stamp } from '../support/dados.ts';
 
 /**
- * Site público gerado pelo container site a partir da API (na stack de e2e, a cada 3 s). Um curso
- * publicado pelo ADM aparece sozinho; rascunho nunca aparece.
+ * Site público em React renderizado no servidor a partir da API (na stack de e2e, com cache de 1 s).
+ * Um curso publicado pelo ADM aparece sozinho; rascunho nunca aparece.
  */
 let adm: ClienteApi;
 let publicado: CursoMontado;
@@ -30,7 +30,7 @@ test.beforeAll(async () => {
   await adm.post('/api/adm/cursos', { titulo: rascunho, resumo: 'Não publicado.' });
 });
 
-/** Recarrega até o gerador incluir o que acabou de mudar na API (o parâmetro fura o cache de 60 s do HTML). */
+/** Recarrega até o site mostrar o que acabou de mudar na API (o parâmetro fura o cache de 60 s do HTML). */
 async function aguardarGeracao(page: Page, caminho: string, texto: string | RegExp) {
   await expect(async () => {
     await page.goto(`${caminho}?v=${Date.now()}`);
@@ -48,6 +48,16 @@ test('a home e o catálogo mostram o curso publicado, não o rascunho', async ({
     'href',
     'http://aluno.localhost:8088/cadastro',
   );
+});
+
+test('a busca do catálogo filtra os cursos no navegador', async ({ page }) => {
+  await aguardarGeracao(page, '/cursos/', publicado.titulo);
+  const busca = page.getByRole('searchbox', { name: 'Buscar curso' });
+  await busca.fill(publicado.titulo.toUpperCase());
+  await expect(page.getByRole('link', { name: new RegExp(publicado.titulo) })).toBeVisible();
+  await busca.fill('nenhum curso tem este nome');
+  await expect(page.getByText('Nenhum curso encontrado para essa busca.')).toBeVisible();
+  await expect(page.getByRole('link', { name: new RegExp(publicado.titulo) })).toHaveCount(0);
 });
 
 test('página do curso com o conteúdo e as meta tags', async ({ page }) => {

@@ -1,7 +1,7 @@
 # Testes E2E dos fronts (Playwright)
 
 Testes ponta a ponta: dirigem um navegador real contra a **stack de e2e rodando de verdade** — Caddy,
-API, worker (fila, e-mail e conversão de vídeo), fronts, gerador do site, PostgreSQL, Garage e Mailpit,
+API, worker (fila, e-mail e conversão de vídeo), fronts, site público, PostgreSQL, Garage e Mailpit,
 com as mesmas imagens que vão para produção. Não há mock de API: dependem dos containers no ar.
 
 **Nunca contra um servidor.** A stack de e2e é descartável (`down -v` apaga tudo) e as contas do seed só
@@ -48,10 +48,10 @@ O resto deste documento é referência: não é preciso ler tudo para rodar o pr
 
 | Camada             | Cobre                                                                                                  | Onde                                                                            |
 | :----------------- | :----------------------------------------------------------------------------------------------------- | :------------------------------------------------------------------------------ |
-| Unidade (front)    | funções puras, componentes, cliente HTTP                                                               | `{aluno,adm,compartilhado}/src/**/*.test.ts(x)` e `site/*.test.ts` — `npm test` |
+| Unidade (front)    | funções puras, componentes, cliente HTTP                                                               | `{aluno,adm,compartilhado}/src/**/*.test.ts(x)`, `site/app/**/*.test.ts` e `scripts/**/*.test.ts` — `npm test` |
 | Backend            | regra, rotas, segurança, banco, fila                                                                   | `backend/src/test` — `./mvnw verify`                                            |
 | Jornadas da API    | API pelo Caddy, worker, Garage e e-mail, sem navegador                                                 | `backend/src/e2e` — `./mvnw verify -Pe2e`                                       |
-| **E2E dos fronts** | **telas de verdade**: navegação, formulários, mensagens, sessão por cookie, vídeo tocando, site gerado | **aqui**                                                                        |
+| **E2E dos fronts** | **telas de verdade**: navegação, formulários, mensagens, sessão por cookie, vídeo tocando, site renderizado | **aqui**                                                                        |
 
 **Regra de negócio não sobe para cá.** Se o caso é de cálculo, validação ou permissão, ele tem teste no
 backend ou de unidade; aqui fica o que só o navegador prova (a tela mostra o erro certo, o vídeo toca, o
@@ -186,8 +186,8 @@ requisições por IP.
 
 - **`site.spec.ts`** — home e catálogo com o curso publicado (rascunho não aparece), página do curso com
   meta tags, capa, 404, rotas da API fora das públicas barradas, sitemap e robots, validação de
-  certificado e termos publicados. O site é regenerado a cada 3 s na stack de e2e; os testes recarregam
-  até a mudança aparecer.
+  certificado e termos publicados, busca do catálogo no navegador. O site guarda as leituras da API por
+  1 s na stack de e2e (`SITE_CACHE_SEGUNDOS`); os testes recarregam até a mudança aparecer.
 
 **Apoio** (`e2e/support/`): `config.ts` (endereços e trava), `api.ts` (montar dados pela API),
 `sessoes.ts` (fixtures de sessão), `contas.ts` e `mailpit.ts` (contas confirmadas pelo e-mail),

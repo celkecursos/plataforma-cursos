@@ -64,6 +64,7 @@ target/
 # Node
 node_modules/
 dist/
+.react-router/
 coverage/
 playwright-report/
 test-results/

@@ -30,18 +30,18 @@ produção), pelo script `/usr/local/bin/plataforma-cursos-deploy`.
 ```
 
 Só o Caddy publica portas. Ele chega à API, aos fronts e ao Garage de cada ambiente pela rede do
-ambiente, pelos apelidos `producao-api`, `producao-web`, `producao-garage`, `homolog-api`, `homolog-web`
-e `homolog-garage`. Em `aluno` e `adm`, `/api/*` e o health check vão para a API; o resto vai para o
+ambiente, pelos apelidos `producao-api`, `producao-web`, `producao-site`, `producao-garage`,
+`homolog-api`, `homolog-web`, `homolog-site` e `homolog-garage`. Em `aluno` e `adm`, `/api/*` e o health check vão para a API; o resto vai para o
 container `web` (área do aluno na porta 8081, ADM na 8082). Em `cursos`, só as leituras públicas da
 API (catálogo, termos vigentes, validação de certificado) vão para ela; o resto é o site público, que o
-container `site` gera a partir da API ao subir e a cada 5 minutos (`SITE_INTERVALO`), servido pelo
-`web` na porta 8083.
+container `site` (React com renderização no servidor) monta a cada requisição a partir da API, na
+porta 3000.
 
 | Host | Ambiente | Acesso |
 |---|---|---|
 | `aluno.celke.uno` | produção | público |
 | `adm.celke.uno` | produção | só `ADM_IPS` |
-| `cursos.celke.uno` | produção | público (site gerado a partir da API) |
+| `cursos.celke.uno` | produção | público (site renderizado a partir da API) |
 | `media.celke.uno` | produção | público (URLs assinadas) |
 | `homolog-aluno.celke.uno`, `homolog-adm.celke.uno`, `homolog-media.celke.uno` | homologação | só `HOMOLOG_IPS`, `noindex`, com Swagger |
 
@@ -324,6 +324,11 @@ docker compose -f caddy/compose.yml --env-file caddy/.env --project-directory ca
 precisa de `PRODUCAO_HOST_SITE` e `HOMOLOG_HOST_SITE` (veja `infra/caddy/.env.example`). O endereço
 público do site vem de `SITE_URL` no `.env` do ambiente; em branco, é derivado de `FRONT_ALUNO_URL`
 (`aluno.` → `cursos.`). A homologação sai com `noindex` e `robots.txt` bloqueando tudo.
+
+**Site em React com renderização no servidor (Fase 21):** o site passa a ser servido pelo container
+`site` (porta 3000) e não mais pelo `web` (8083, que deixa de existir). Depois do deploy dos dois
+ambientes com esta versão, atualize o Caddy como acima: até lá, o Caddy antigo continua mandando
+`cursos.*` para o `web`, que já não responde nessa porta.
 
 Quando a mudança do Caddy depende de um container novo (como na Fase 11, que passou a mandar as
 páginas para o `web`), atualize o Caddy **depois** do deploy dos dois ambientes com esse container: antes
