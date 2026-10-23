@@ -7,14 +7,18 @@ import {
   CampoTextarea,
   Carregando,
 } from '@celke/kole-react';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
 import { api } from '@compartilhado/api/cliente.ts';
 import { ErroApi, mensagemDeErro } from '@compartilhado/api/erros.ts';
 import { useCarregar } from '@compartilhado/api/useCarregar.ts';
+import { CampoImagens, type CampoImagensRef } from '@compartilhado/ui/CampoImagens.tsx';
 import { dataHora } from '@compartilhado/ui/formato.ts';
+import { GaleriaImagens } from '@compartilhado/ui/GaleriaImagens.tsx';
+import { LIMITES_FORUM } from '@compartilhado/ui/imagens.ts';
 import { caminhoAula, caminhoTurma } from '../../caminhos.ts';
 import type { Topico } from '../../tipos.ts';
+import { useImagensMensagem } from './useImagensMensagem.ts';
 
 /** Uma pergunta do fórum com as respostas; o aluno também pode responder. */
 export function TopicoPagina() {
@@ -23,6 +27,8 @@ export function TopicoPagina() {
   const [resposta, setResposta] = useState('');
   const [erro, setErro] = useState<string>();
   const [enviando, setEnviando] = useState(false);
+  const imagens = useImagensMensagem();
+  const campoImagens = useRef<CampoImagensRef>(null);
   const topico = useCarregar(
     () => api.get<Topico>(`/api/aluno/forum/topicos/${topicoId}`),
     [topicoId],
@@ -36,12 +42,15 @@ export function TopicoPagina() {
     setErro(undefined);
     setEnviando(true);
     try {
+      const anexos = await imagens.enviar();
       topico.definir(
         await api.post<Topico>(`/api/aluno/forum/topicos/${topicoId}/respostas`, {
           corpo: resposta.trim(),
+          anexos,
         }),
       );
       setResposta('');
+      imagens.limpar();
     } catch (falha) {
       setErro((falha instanceof ErroApi && falha.erroDoCampo('corpo')) || mensagemDeErro(falha));
     } finally {
@@ -92,6 +101,7 @@ export function TopicoPagina() {
       <Card>
         {/* HTML já filtrado pela API (Markdown → HTML seguro) */}
         <div className="pc-texto-longo" dangerouslySetInnerHTML={{ __html: t.corpoHtml }} />
+        <GaleriaImagens imagens={t.anexos} de={t.autorNome} />
       </Card>
 
       <h2 className="pc-subtitulo">
@@ -105,6 +115,7 @@ export function TopicoPagina() {
             <span className="pc-dica">{dataHora(r.criadoEm)}</span>
           </header>
           <div dangerouslySetInnerHTML={{ __html: r.corpoHtml }} />
+          <GaleriaImagens imagens={r.anexos} de={r.autorNome} />
         </article>
       ))}
 
@@ -124,6 +135,16 @@ export function TopicoPagina() {
             erro={erro}
             rows={4}
             maxLength={10_000}
+            onPaste={(evento) => campoImagens.current?.colar(evento)}
+          />
+          <CampoImagens
+            ref={campoImagens}
+            rotulo="Imagens da resposta"
+            valor={imagens.imagens}
+            aoMudar={imagens.setImagens}
+            limites={LIMITES_FORUM}
+            progresso={imagens.progresso}
+            desabilitado={enviando}
           />
           <div>
             <Botao type="submit" rotulo="Publicar resposta" icone="send" carregando={enviando} />
