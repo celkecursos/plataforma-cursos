@@ -22,6 +22,9 @@ import java.util.Set;
 @Table(name = "usuarios")
 public class Usuario {
 
+    /** Nome que aparece no lugar do autor depois que a conta é excluída. */
+    public static final String NOME_EXCLUIDA = "Conta excluída";
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -131,6 +134,25 @@ public class Usuario {
     public void encerrarSessoes(Instant agora) {
         this.sessoesEncerradasEm = agora;
         this.atualizadoEm = agora;
+    }
+
+    /**
+     * Exclusão da conta a pedido do titular: tira nome, e-mail, senha e foto, inativa e encerra as
+     * sessões. O id fica (matrículas, pedidos, aceites e auditoria apontam para ele). Devolve a chave da
+     * foto, a apagar do bucket.
+     */
+    public String anonimizar(Instant agora) {
+        String foto = this.fotoChave;
+        this.nome = NOME_EXCLUIDA;
+        this.email = "excluida-" + id + "@conta-excluida.invalid";
+        this.senhaHash = null;
+        this.fotoChave = null;
+        bloquear(agora);
+        return foto;
+    }
+
+    public boolean isExcluida() {
+        return email.endsWith("@conta-excluida.invalid");
     }
 
     public Instant getSessoesEncerradasEm() {

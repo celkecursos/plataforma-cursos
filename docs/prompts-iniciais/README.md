@@ -46,3 +46,4 @@ cria ou altera o `web/package.json`.
 | 26 | [Auditoria das ações e logs persistentes](f17-01-auditoria-e-logs.md) | 17 | `feature/auditoria` |
 | 27 | [Imagens no fórum de dúvidas](f18-01-anexos-no-forum.md) | 18 | `feature/forum-anexos` |
 | 28 | [Segurança: segundo fator, menos privilégio e senhas fortes](f19-01-seguranca.md) | 19 | `feature/seguranca` |
+| 29 | [LGPD: cópia dos dados, exclusão da conta e política de privacidade](f20-01-lgpd.md) | 20 | `feature/lgpd` |

@@ -683,6 +683,18 @@ Prompt: [`docs/prompts/f19-01-seguranca.md`](prompts/f19-01-seguranca.md). Opera
 - [x] Teste que varre todas as rotas da API: só as públicas declaradas respondem sem login
 - [x] Testes unitários, de integração e Playwright
 
+### Fase 20 — `feature/lgpd`
+
+Prompt: [`docs/prompts/f20-01-lgpd.md`](prompts/f20-01-lgpd.md). Operação:
+[`docs/operacao.md`](operacao.md), seção 4.2. Modelo da política:
+[`docs/politica-privacidade-modelo.md`](politica-privacidade-modelo.md).
+
+- [x] Baixar meus dados: JSON com a conta e uma seção por módulo (`DadosPessoais` em cada módulo)
+- [x] Excluir minha conta: senha e confirmação, aviso por e-mail, conta anonimizada, progresso, certificados, foto, sessões e segundo fator apagados, pedidos sem e-mail e nome; o que tem prazo legal fica
+- [x] Retenção da auditoria de login (180 dias)
+- [x] Modelo da política de privacidade com dados, finalidades, bases legais e os prazos aplicados pelo sistema
+- [x] Perfil do aluno → Privacidade; testes de integração e Playwright
+
 ---
 
 ## 5. Mapa fase → capítulos do tutorial
@@ -712,6 +724,7 @@ O conteúdo de cada capítulo está em [capitulos.md](capitulos.md).
 | 17 | `feature/auditoria` | 41 |
 | 18 | `feature/forum-anexos` | 26 |
 | 19 | `feature/seguranca` | 42, 43 |
+| 20 | `feature/lgpd` | 44 |
 `````
 
 ### 4. `docs/capitulos.md`
@@ -1381,6 +1394,25 @@ Fica antes do frontend porque precisa estar pronta antes de entrarem dados reais
   - O teste que varre todas as rotas da API e falha se uma rota nova nascer aberta.
 - **Testes:** integração do usuário do banco (dados sim, estrutura não), da tela de usuários e da varredura das rotas; unitário do limite por usuário; Playwright do bloqueio e da compra confirmada.
 - **Entrega:** a aplicação não consegue apagar tabelas; um aluno bloqueado sai na hora.
+
+---
+
+## Parte 13 — Privacidade
+
+### Cap. 44 — LGPD: cópia dos dados, exclusão da conta e política de privacidade
+
+**Fase:** 20 · **Prompt:** [f20-01](prompts/f20-01-lgpd.md)
+
+- **Objetivo:** o aluno exerce os direitos do titular sozinho, pelo perfil, e a política de privacidade diz exatamente o que o sistema faz.
+- **Conteúdo:**
+  - O que é dado pessoal na plataforma, por módulo, e por que cada módulo responde pelas próprias tabelas (`DadosPessoais`).
+  - Baixar meus dados: um JSON com a conta e uma seção por módulo, datas em ISO-8601.
+  - Excluir a conta: o que é apagado (progresso, certificados, foto, sessões, segundo fator), o que é anonimizado (conta, pedidos) e o que fica pelo prazo legal (matrículas e pedidos, aceites, registros de acesso, auditoria, backups); a anonimização em vez de apagar a linha do usuário.
+  - Retenção: a auditoria de login passa a ser limpa depois de 180 dias, como o log de acesso aos vídeos.
+  - O modelo da política de privacidade: controlador e encarregado, dados e finalidades, bases legais, compartilhamento, prazos, direitos, segurança, cookies.
+- **Segurança:** a exclusão exige a senha e a palavra de confirmação; o access token cai na hora; administrador não se exclui por aqui.
+- **Testes:** integração da exportação e da exclusão (dados anonimizados, sessões encerradas, auditoria mantida, e-mail enviado) e da retenção; Playwright de baixar os dados e excluir a conta.
+- **Entrega:** um aluno baixa os dados e exclui a conta pelo perfil; a política publicada bate com o sistema.
 `````
 
 ### 5. Os próprios prompts

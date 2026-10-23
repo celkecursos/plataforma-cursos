@@ -108,6 +108,10 @@ app:
       chave: ${TOTP_CHAVE:}
       emissor: Plataforma de Cursos
       rejeitar-reuso: true
+    auditoria-login:
+      # Tentativas de login (e-mail, IP e navegador): 6 meses, prazo do Marco Civil para os registros de
+      # acesso a aplicações; a limpeza é diária, no worker
+      retencao: P180D
   conta:
     # Área do aluno: base dos links enviados por e-mail
     url-aluno: ${FRONT_ALUNO_URL:}

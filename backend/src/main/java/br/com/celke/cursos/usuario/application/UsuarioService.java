@@ -144,6 +144,14 @@ public class UsuarioService {
         return usuario;
     }
 
+    /** Anonimiza a conta (exclusão a pedido do titular); devolve a chave da foto, a apagar do bucket. */
+    @Transactional
+    public Optional<String> anonimizar(Long id) {
+        Usuario usuario =
+                repository.findById(id).orElseThrow(() -> new NaoEncontradoException("Usuário não encontrado."));
+        return Optional.ofNullable(usuario.anonimizar(clock.instant()));
+    }
+
     @Transactional
     public Usuario encerrarSessoes(Long id) {
         Usuario usuario =

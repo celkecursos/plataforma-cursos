@@ -12,6 +12,8 @@ import org.springframework.security.oauth2.core.OAuth2TokenValidator;
 import org.springframework.security.oauth2.core.OAuth2TokenValidatorResult;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 /**
  * Recusa o access token de conta bloqueada ou emitido antes do "encerrar sessões" do ADM, sem esperar
@@ -50,9 +52,21 @@ public class SessaoValidaValidator implements OAuth2TokenValidator<Jwt> {
         return valida ? OAuth2TokenValidatorResult.success() : OAuth2TokenValidatorResult.failure(SESSAO_ENCERRADA);
     }
 
-    /** Esquece a situação guardada (depois de bloquear, desbloquear ou encerrar as sessões). */
+    /**
+     * Esquece a situação guardada (depois de bloquear, desbloquear, encerrar as sessões ou excluir a
+     * conta). Dentro de uma transação, esquece de novo depois do commit: uma requisição no meio do caminho
+     * não deixa a situação antiga guardada.
+     */
     public void esquecer(Long usuarioId) {
         situacoes.invalidate(usuarioId);
+        if (TransactionSynchronizationManager.isSynchronizationActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    situacoes.invalidate(usuarioId);
+                }
+            });
+        }
     }
 
     private Optional<Situacao> carregar(Long id) {

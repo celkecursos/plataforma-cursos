@@ -31,6 +31,8 @@ passo a passo como tutorial.
   `HttpOnly`, verificação em duas etapas (aplicativo autenticador) obrigatória para administradores,
   senhas comuns e vazadas recusadas, recuperação de senha, bloqueio por tentativas, limites por IP e por
   usuário, termos versionados com aceite, usuário do banco da aplicação sem permissão de mudar tabelas.
+- **Privacidade (LGPD):** o aluno baixa uma cópia dos dados e exclui a conta pelo perfil; retenção dos
+  registros com prazo legal e um modelo de política de privacidade com os prazos que o sistema aplica.
 - **Pagamentos:** Hotmart (webhook 2.0.0) numa estrutura que aceita outros meios de pagamento.
 - **Operação:** fila de jobs no PostgreSQL (worker), alertas por e-mail, backup e restauração, logs em
   JSON no horário de Brasília guardados em arquivo, auditoria de todas as alterações nos dados.
@@ -247,6 +249,7 @@ docs/      Plano, roteiro dos capítulos, VPS, operação, pagamentos e prompts
 - [Roteiro da VPS](docs/vps.md)
 - [Operação: backup, alertas, logs, auditoria e segurança](docs/operacao.md)
 - [Pagamentos (Hotmart)](docs/pagamentos.md)
+- [Modelo da política de privacidade](docs/politica-privacidade-modelo.md)
 - [Roteiro do tutorial (capítulos)](docs/capitulos.md)
 - [Prompts para recriar o projeto do zero](docs/prompts-iniciais/README.md)
 - [Prompts por fase](docs/prompts/README.md)
