@@ -16568,7 +16568,7 @@ function FormOferta({ turma, oferta, aoFechar, aoSalvar }: PropsForm) {
 `web/aluno/src/pagamento.test.tsx`:
 
 `````tsx
-import { act, render, screen } from '@testing-library/react';
+import { act, cleanup, render, screen, waitFor } from '@testing-library/react';
 import { createMemoryRouter, RouterProvider } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
@@ -16578,6 +16578,28 @@ import {
   RetornoPagamentoPagina,
 } from './paginas/pagamento/RetornoPagamentoPagina.tsx';
 import type { StatusPedido } from './tipos.ts';
+
+// Sessão da página: retomada (aluno logado) por padrão; um teste simula a retomada ainda em andamento
+type EstadoSessao = { status: 'carregando' | 'anonimo' | 'autenticado' };
+const sessao = vi.hoisted(() => {
+  let estado: EstadoSessao = { status: 'autenticado' };
+  const ouvintes = new Set<() => void>();
+  return {
+    ler: () => estado,
+    definir: (novo: EstadoSessao) => {
+      estado = novo;
+      ouvintes.forEach((ouvinte) => ouvinte());
+    },
+    assinar: (ouvinte: () => void) => {
+      ouvintes.add(ouvinte);
+      return () => ouvintes.delete(ouvinte);
+    },
+  };
+});
+vi.mock('@compartilhado/sessao/ProvedorSessao.tsx', async () => {
+  const { useSyncExternalStore } = await import('react');
+  return { useSessao: () => ({ estado: useSyncExternalStore(sessao.assinar, sessao.ler) }) };
+});
 
 describe('resultado do pedido na página de retorno', () => {
   it.each<[StatusPedido, string]>([
@@ -16671,6 +16693,32 @@ describe('página de retorno', () => {
     abrir('/pagamento/retorno');
     expect(screen.getByText('O link não tem o código do pedido.')).toBeInTheDocument();
     expect(fetchMock).not.toHaveBeenCalled();
+  });
+});
+
+describe('sessão ainda sendo retomada', () => {
+  const fetchMock = vi.fn<typeof fetch>();
+
+  afterEach(() => {
+    fetchMock.mockReset();
+    vi.unstubAllGlobals();
+    sessao.definir({ status: 'autenticado' });
+  });
+
+  it('só consulta o pedido depois que a sessão volta (senão a API não devolve a turma)', async () => {
+    cleanup(); // páginas dos testes anteriores também ouviriam a sessão
+    vi.stubGlobal('fetch', fetchMock);
+    fetchMock.mockResolvedValueOnce(json(pedido('APROVADO')));
+    sessao.definir({ status: 'carregando' });
+    abrir('/pagamento/retorno?pedido=abc');
+
+    expect(screen.getByText('Consultando o seu pedido...')).toBeInTheDocument();
+    expect(fetchMock).not.toHaveBeenCalled();
+
+    act(() => sessao.definir({ status: 'autenticado' }));
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+    expect(fetchMock.mock.calls[0]![0]).toBe('/api/pagamentos/pedidos/abc');
+    expect(await screen.findByText('Pagamento confirmado')).toBeInTheDocument();
   });
 });
 
@@ -16769,6 +16817,7 @@ import { useEffect, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router';
 import { api } from '@compartilhado/api/cliente.ts';
 import { mensagemDeErro } from '@compartilhado/api/erros.ts';
+import { useSessao } from '@compartilhado/sessao/ProvedorSessao.tsx';
 import { LayoutConta } from '@compartilhado/ui/LayoutConta.tsx';
 import { CAMINHOS, caminhoTurma } from '../../caminhos.ts';
 import type { SituacaoPedido, StatusPedido } from '../../tipos.ts';
@@ -16794,19 +16843,22 @@ export function resultado(status: StatusPedido): Resultado {
 
 /**
  * Página de obrigado do meio de pagamento (`?pedido=<código>` ou `?xcod=<código>`): consulta o pedido a cada 3 segundos
- * por até 2 minutos, até a notificação chegar.
+ * por até 2 minutos, até a notificação chegar. Quem volta do meio de pagamento abre a página do zero: a
+ * consulta espera a sessão ser retomada pelo cookie, senão sai sem login e a API não devolve a turma.
  */
 export function RetornoPagamentoPagina() {
   const [parametros] = useSearchParams();
   // `xcod`: o código do pedido como a Hotmart o repassa à página de obrigado
   const codigo = parametros.get('pedido') ?? parametros.get('xcod');
   const navigate = useNavigate();
+  const { estado: sessao } = useSessao();
+  const sessaoPronta = sessao.status !== 'carregando';
   const [situacao, setSituacao] = useState<SituacaoPedido>();
   const [erro, setErro] = useState<string>();
   const [esgotou, setEsgotou] = useState(false);
 
   useEffect(() => {
-    if (!codigo) return;
+    if (!codigo || !sessaoPronta) return;
     let ativo = true;
     const inicio = Date.now();
     let espera: ReturnType<typeof setTimeout>;
@@ -16833,7 +16885,7 @@ export function RetornoPagamentoPagina() {
       ativo = false;
       clearTimeout(espera);
     };
-  }, [codigo]);
+  }, [codigo, sessaoPronta]);
 
   if (!codigo || erro) {
     return (
