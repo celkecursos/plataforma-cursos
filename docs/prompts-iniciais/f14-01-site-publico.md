@@ -347,12 +347,15 @@ container `site` gera a partir da API ao subir e a cada 5 minutos (`SITE_INTERVA
 | `media.celke.uno` | produção | público (URLs assinadas) |
 | `homolog-aluno.celke.uno`, `homolog-adm.celke.uno`, `homolog-media.celke.uno` | homologação | só `HOMOLOG_IPS`, `noindex`, com Swagger |
 
-## 1. No painel da Hostinger
+## 1. Contratar a VPS na Hostinger
 
-1. Anote o IP da VPS.
-2. Firewall da VPS: libere só 22, 80 e 443 (TCP) e 443 (UDP). O `ufw` faz o mesmo dentro da VPS; o
+1. Contrate a VPS pelo link https://celke.com.br/page/hostinger e use o cupom **CELKE** no pagamento.
+   Escolha o plano **KVM 2** (2 vCPU, 8 GB de RAM) com o sistema **Ubuntu 24.04**, sem painel de
+   controle, e defina uma senha forte para o root (ela só vale até o passo 4).
+2. No painel da Hostinger, anote o IP da VPS.
+3. Firewall da VPS: libere só 22, 80 e 443 (TCP) e 443 (UDP). O `ufw` faz o mesmo dentro da VPS; o
    painel é a segunda camada.
-3. Ative o backup/snapshot semanal do painel (não substitui o backup fora da VPS da fase de operação).
+4. Ative o backup/snapshot semanal do painel (não substitui o backup fora da VPS da fase de operação).
 
 ## 2. DNS de celke.uno
 
@@ -3134,6 +3137,42 @@ Fase 13 concluída e integrada na `homolog`. Crie a branch a partir dela:
 git switch homolog
 git pull
 git switch -c feature/site
+```
+
+## Orientações para o usuário
+
+Esta etapa tem passos que só o usuário faz, fora do código (no navegador, no painel da Hostinger, no DNS, no GitHub ou na VPS). Depois de gravar os arquivos e passar na **Verificação**, **mostre no terminal**, para o usuário, cada bloco abaixo **exatamente como está**, um de cada vez, na ordem. Depois de cada bloco, pare e espere o usuário confirmar que concluiu antes de mostrar o próximo. Quando ele informar um valor (o IP da VPS, por exemplo), use-o nos blocos seguintes no lugar de `<ip-da-vps>`.
+
+### 1. DNS do site
+
+```text
+==> SITE PÚBLICO — ETAPA 1 DE 2: DNS
+
+No painel do seu domínio, crie mais dois registros do tipo A apontando para o IP da VPS:
+
+  Nome              Tipo   Valor
+  cursos            A      <ip-da-vps>
+  homolog-cursos    A      <ip-da-vps>
+
+Para conferir (deve responder o IP da VPS): dig +short cursos.celke.uno
+Me avise quando estiverem criados: eu confiro com o dig antes de seguir.
+```
+
+### 2. Caddy do site
+
+```text
+==> SITE PÚBLICO — ETAPA 2 DE 2: CADDY (docs/vps.md, seção 11)
+
+1. Na VPS, em /opt/plataforma-cursos/caddy/.env, acrescente:
+
+     PRODUCAO_HOST_SITE=https://cursos.celke.uno
+     HOMOLOG_HOST_SITE=https://homolog-cursos.celke.uno
+
+2. Depois do deploy desta etapa nos dois ambientes, copie o Caddyfile e a pasta sites/ de
+   infra/caddy/ para /opt/plataforma-cursos/caddy/ e, como deploy:
+
+     cd /opt/plataforma-cursos
+     docker compose -f caddy/compose.yml --env-file caddy/.env --project-directory caddy up -d --force-recreate
 ```
 
 ## Verificação

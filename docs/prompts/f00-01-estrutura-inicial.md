@@ -11,8 +11,8 @@ os vídeos ficarão num armazenamento S3 (Garage) convertidos para HLS com ffmpe
 React usando a biblioteca `@celke/kole-react`, e a infraestrutura usará Docker, Caddy, GitHub Actions e deploy
 numa VPS.
 
-Nesta etapa, crie apenas os arquivos iniciais na raiz do repositório. Não crie código, pastas de
-backend/frontend nem faça commit.
+Nesta etapa, crie apenas os arquivos iniciais na raiz do repositório (com a licença). Não crie código,
+pastas de backend/frontend nem faça commit.
 
 ### 1. `README.md`
 
@@ -75,6 +75,39 @@ test-results/
 .DS_Store
 ```
 
+### 3. `LICENSE.txt` (licença MIT)
+
+Antes de criar este arquivo, **pergunte ao usuário** e espere a resposta:
+
+1. "Qual nome (pessoa ou empresa) aparece como titular dos direitos na licença?"
+2. "Qual ano entra na licença? (Enter para usar o ano atual)"
+
+Crie `LICENSE.txt` na raiz com o texto abaixo, trocando `<ano>` e `<titular>` pelas respostas (sem os
+sinais `<` e `>`):
+
+```text
+Copyright (c) <ano> <titular>
+
+Permission is hereby granted, free of charge, to any person obtaining
+a copy of this software and associated documentation files (the
+"Software"), to deal in the Software without restriction, including
+without limitation the rights to use, copy, modify, merge, publish,
+distribute, sublicense, and/or sell copies of the Software, and to
+permit persons to whom the Software is furnished to do so, subject to
+the following conditions:
+
+The above copyright notice and this permission notice shall be
+included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
+LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+```
+
 ## Antes de executar
 
 O repositório já existe no GitHub e está clonado (ou iniciado com `git init -b main` e o `origin`
@@ -83,13 +116,13 @@ vêm com o material do tutorial: copie-os para o repositório como estão.
 
 ## Verificação
 
-- `README.md` e `.gitignore` existem na raiz com o conteúdo acima.
+- `README.md`, `.gitignore` e `LICENSE.txt` (com o titular e o ano informados) existem na raiz.
 - `git status` mostra os arquivos como não rastreados (nenhum commit foi feito).
 
 ## Depois de executar
 
 ```bash
-git add README.md .gitignore docs/
+git add README.md .gitignore LICENSE.txt docs/
 git commit -m "docs: criar estrutura inicial e plano de implementação"
 git push -u origin main
 

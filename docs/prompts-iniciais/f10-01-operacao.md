@@ -2355,6 +2355,45 @@ git pull
 git switch -c feature/operacao
 ```
 
+
+## Orientações para o usuário
+
+Esta etapa tem passos que só o usuário faz, fora do código (no navegador, no painel da Hostinger, no DNS, no GitHub ou na VPS). Depois de gravar os arquivos e passar na **Verificação**, **mostre no terminal**, para o usuário, cada bloco abaixo **exatamente como está**, um de cada vez, na ordem. Depois de cada bloco, pare e espere o usuário confirmar que concluiu antes de mostrar o próximo. Quando ele informar um valor (o IP da VPS, por exemplo), use-o nos blocos seguintes no lugar de `<ip-da-vps>`.
+
+### 1. Backup fora da VPS
+
+```text
+==> OPERAÇÃO — ETAPA 1 DE 2: BACKUP FORA DA VPS (docs/operacao.md, seção 1)
+
+1. Crie um bucket PRIVADO no Cloudflare R2 (ou Backblaze B2) só para os backups e uma chave com
+   acesso apenas a ele.
+2. Copie o script e, na VPS, como deploy:
+
+     scp infra/scripts/backup.sh <seu-usuario>@<ip-da-vps>:/tmp/        # do seu computador
+     sudo install -o root -g root -m 755 /tmp/backup.sh /usr/local/bin/plataforma-cursos-backup
+     install -m 600 /dev/null /opt/plataforma-cursos/backup.env
+     nano /opt/plataforma-cursos/backup.env   # RESTIC_REPOSITORY, RESTIC_PASSWORD, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY
+
+   Guarde a RESTIC_PASSWORD também no seu gerenciador de senhas: sem ela o backup não abre.
+3. Agende (crontab -e do deploy):
+
+     30 3 * * * /usr/local/bin/plataforma-cursos-backup producao >> /opt/plataforma-cursos/backup.log 2>&1
+     45 3 * * * /usr/local/bin/plataforma-cursos-backup homolog  >> /opt/plataforma-cursos/backup.log 2>&1
+
+4. Faça o teste de restauração da seção 2 do docs/operacao.md.
+```
+
+### 2. Alertas e monitoramento
+
+```text
+==> OPERAÇÃO — ETAPA 2 DE 2: ALERTAS (docs/operacao.md, seção 3)
+
+1. Em /opt/plataforma-cursos/producao/.env e homolog/.env, preencha ALERTA_EMAIL (quem recebe os
+   alertas de jobs com erro e de disco quase cheio). Vale no próximo deploy.
+2. Crie um monitor externo gratuito (UptimeRobot ou Better Stack), a cada 5 minutos, em
+   https://aluno.celke.uno/actuator/health, com aviso por e-mail e celular.
+```
+
 ## Verificação
 
 Dentro de `backend/` (Docker rodando e `ffmpeg` no PATH):

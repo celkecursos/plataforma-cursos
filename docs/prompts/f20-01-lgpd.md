@@ -4597,6 +4597,21 @@ git pull
 git switch -c feature/lgpd
 ```
 
+## Orientações para o usuário
+
+Esta etapa tem passos que só o usuário faz, fora do código (no navegador, no painel da Hostinger, no DNS, no GitHub ou na VPS). Depois de gravar os arquivos e passar na **Verificação**, **mostre no terminal**, para o usuário, cada bloco abaixo **exatamente como está**, um de cada vez, na ordem. Depois de cada bloco, pare e espere o usuário confirmar que concluiu antes de mostrar o próximo. Quando ele informar um valor (o IP da VPS, por exemplo), use-o nos blocos seguintes no lugar de `<ip-da-vps>`.
+
+### Política de privacidade
+
+```text
+==> LGPD — PUBLICAR A POLÍTICA DE PRIVACIDADE
+
+1. Abra docs/politica-privacidade-modelo.md, troque o que está entre [colchetes] pelos dados da
+   empresa (razão social, CNPJ, endereço, encarregado e e-mail) e revise com quem cuida do jurídico.
+2. No ADM → Termos, publique o texto como nova versão da Política de privacidade: os usuários aceitam
+   no próximo acesso.
+```
+
 ## Verificação
 
 - `./mvnw verify` e as jornadas `-Pe2e`; no `web/`, format, lint, typecheck, test, build e `npm run e2e`.

@@ -371,12 +371,15 @@ apelidos `producao-api`, `producao-garage`, `homolog-api` e `homolog-garage`.
 | `media.celke.uno` | produção | público (URLs assinadas) |
 | `homolog-aluno.celke.uno`, `homolog-adm.celke.uno`, `homolog-media.celke.uno` | homologação | só `HOMOLOG_IPS`, `noindex`, com Swagger |
 
-## 1. No painel da Hostinger
+## 1. Contratar a VPS na Hostinger
 
-1. Anote o IP da VPS.
-2. Firewall da VPS: libere só 22, 80 e 443 (TCP) e 443 (UDP). O `ufw` faz o mesmo dentro da VPS; o
+1. Contrate a VPS pelo link https://celke.com.br/page/hostinger e use o cupom **CELKE** no pagamento.
+   Escolha o plano **KVM 2** (2 vCPU, 8 GB de RAM) com o sistema **Ubuntu 24.04**, sem painel de
+   controle, e defina uma senha forte para o root (ela só vale até o passo 4).
+2. No painel da Hostinger, anote o IP da VPS.
+3. Firewall da VPS: libere só 22, 80 e 443 (TCP) e 443 (UDP). O `ufw` faz o mesmo dentro da VPS; o
    painel é a segunda camada.
-3. Ative o backup/snapshot semanal do painel (não substitui o backup fora da VPS da fase de operação).
+4. Ative o backup/snapshot semanal do painel (não substitui o backup fora da VPS da fase de operação).
 
 ## 2. DNS de celke.uno
 
@@ -830,6 +833,63 @@ jobs:
 ## Antes de executar
 
 Etapas 1.1 a 1.8 concluídas.
+
+
+## Orientações para o usuário
+
+Esta etapa tem passos que só o usuário faz, fora do código (no navegador, no painel da Hostinger, no DNS, no GitHub ou na VPS). Depois de gravar os arquivos e passar na **Verificação**, **mostre no terminal**, para o usuário, cada bloco abaixo **exatamente como está**, um de cada vez, na ordem. Depois de cada bloco, pare e espere o usuário confirmar que concluiu antes de mostrar o próximo. Quando ele informar um valor (o IP da VPS, por exemplo), use-o nos blocos seguintes no lugar de `<ip-da-vps>`.
+
+### 1. Script de deploy e acesso às imagens
+
+```text
+==> DEPLOY AUTOMÁTICO — ETAPA 1 DE 3: NA VPS (docs/vps.md, passos 5 e 7)
+
+1. Instale o script de deploy (do seu computador, na raiz do repositório):
+
+     scp infra/scripts/deploy.sh <seu-usuario>@<ip-da-vps>:/tmp/
+     ssh <seu-usuario>@<ip-da-vps> 'sudo install -o root -g root -m 755 /tmp/deploy.sh /usr/local/bin/plataforma-cursos-deploy && rm /tmp/deploy.sh'
+
+2. No GitHub, crie um token clássico só com read:packages (Settings → Developer settings →
+   Personal access tokens) e, na VPS, como deploy (sudo -iu deploy):
+
+     echo "<token>" | docker login ghcr.io -u <usuario-github> --password-stdin
+```
+
+### 2. Secrets e variável no GitHub
+
+```text
+==> DEPLOY AUTOMÁTICO — ETAPA 2 DE 3: GITHUB (docs/vps.md, passo 8)
+
+Com a conta dona do repositório, em Settings → Secrets and variables → Actions:
+
+  Secrets
+    VPS_HOST          o IP da VPS
+    VPS_SSH_KEY       o conteúdo de ~/.ssh/plataforma-cursos-deploy (a chave PRIVADA do deploy)
+    VPS_KNOWN_HOSTS   a saída de: ssh-keyscan -t ed25519 <ip-da-vps>
+
+  Variables
+    DEPLOY_ATIVO      true   (sem ela, o pipeline pula os deploys)
+
+Opcional: em Settings → Environments → production, ative "Required reviewers" para o deploy da
+produção esperar a sua aprovação.
+```
+
+### 3. Primeira subida
+
+```text
+==> DEPLOY AUTOMÁTICO — ETAPA 3 DE 3: PRIMEIRA SUBIDA (docs/vps.md, passos 9 e 10)
+
+1. Abra o PR de feature/base-projeto para homolog, espere o pipeline ficar verde e faça o merge:
+   a homologação é implantada.
+2. Valide a homologação e abra o PR de homolog para main: a produção é implantada.
+3. Com os dois ambientes no ar, suba o Caddy na VPS, como deploy:
+
+     cd /opt/plataforma-cursos
+     docker compose -f caddy/compose.yml --env-file caddy/.env --project-directory caddy up -d
+
+4. Crie o administrador de cada ambiente: comandos no passo 9 do docs/vps.md.
+5. Confira com os comandos do passo 10 (health, HSTS, portas fechadas, root recusado).
+```
 
 ## Verificação
 

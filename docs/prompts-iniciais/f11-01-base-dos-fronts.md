@@ -424,12 +424,15 @@ container `web` (área do aluno na porta 8081, ADM na 8082).
 | `media.celke.uno` | produção | público (URLs assinadas) |
 | `homolog-aluno.celke.uno`, `homolog-adm.celke.uno`, `homolog-media.celke.uno` | homologação | só `HOMOLOG_IPS`, `noindex`, com Swagger |
 
-## 1. No painel da Hostinger
+## 1. Contratar a VPS na Hostinger
 
-1. Anote o IP da VPS.
-2. Firewall da VPS: libere só 22, 80 e 443 (TCP) e 443 (UDP). O `ufw` faz o mesmo dentro da VPS; o
+1. Contrate a VPS pelo link https://celke.com.br/page/hostinger e use o cupom **CELKE** no pagamento.
+   Escolha o plano **KVM 2** (2 vCPU, 8 GB de RAM) com o sistema **Ubuntu 24.04**, sem painel de
+   controle, e defina uma senha forte para o root (ela só vale até o passo 4).
+2. No painel da Hostinger, anote o IP da VPS.
+3. Firewall da VPS: libere só 22, 80 e 443 (TCP) e 443 (UDP). O `ufw` faz o mesmo dentro da VPS; o
    painel é a segunda camada.
-3. Ative o backup/snapshot semanal do painel (não substitui o backup fora da VPS da fase de operação).
+4. Ative o backup/snapshot semanal do painel (não substitui o backup fora da VPS da fase de operação).
 
 ## 2. DNS de celke.uno
 
@@ -3750,6 +3753,28 @@ Fase 10 concluída e integrada na `homolog`. Crie a branch a partir dela:
 git switch homolog
 git pull
 git switch -c feature/web-base
+```
+
+## Orientações para o usuário
+
+Esta etapa tem passos que só o usuário faz, fora do código (no navegador, no painel da Hostinger, no DNS, no GitHub ou na VPS). Depois de gravar os arquivos e passar na **Verificação**, **mostre no terminal**, para o usuário, cada bloco abaixo **exatamente como está**, um de cada vez, na ordem. Depois de cada bloco, pare e espere o usuário confirmar que concluiu antes de mostrar o próximo. Quando ele informar um valor (o IP da VPS, por exemplo), use-o nos blocos seguintes no lugar de `<ip-da-vps>`.
+
+### Atualizar o Caddy da VPS
+
+```text
+==> FRONTS NA VPS (docs/vps.md, seção 11, "Atualizar o Caddy")
+
+Depois que o deploy desta etapa estiver no ar nos DOIS ambientes (o Caddy novo manda as páginas
+para o container web, que só existe a partir desta versão):
+
+1. Do seu computador, copie o Caddyfile e a pasta sites/ de infra/caddy/ para
+   /opt/plataforma-cursos/caddy/ na VPS.
+2. Na VPS, como deploy:
+
+     cd /opt/plataforma-cursos
+     docker compose -f caddy/compose.yml --env-file caddy/.env --project-directory caddy up -d --force-recreate
+
+3. Confira: curl -s https://aluno.celke.uno/ | grep -o '<title>.*</title>' mostra a área do aluno.
 ```
 
 ## Verificação
