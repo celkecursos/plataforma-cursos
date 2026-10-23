@@ -772,11 +772,12 @@ services:
       api:
         condition: service_healthy
     healthcheck:
-      # O worker regrava este arquivo a cada 10 s (não tem servidor HTTP para health check)
+      # O worker regrava este arquivo a cada 10 s (não tem servidor HTTP para health check). A carência
+      # cobre a partida do Spring com pouca CPU (meia CPU na homologação passa de um minuto)
       test: ["CMD-SHELL", "find /tmp/worker-batimento -mmin -1 | grep -q ."]
       interval: 10s
       timeout: 3s
-      start_period: 30s
+      start_period: 120s
       retries: 3
 
   postgres:
