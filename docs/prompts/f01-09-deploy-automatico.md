@@ -574,14 +574,20 @@ aprovação.
 1. Abra um PR de `feature/base-projeto` para `homolog`, espere o pipeline ficar verde e faça o merge.
    O pipeline publica as imagens no GHCR e implanta a homologação (é a primeira subida dela: sem backup
    e sem versão anterior).
-2. Depois de validar a homologação, abra o PR de `homolog` para `main` e faça o merge: o pipeline
-   implanta a produção.
-3. Com os dois ambientes no ar (as redes deles existem), suba o Caddy na VPS, como `deploy`:
+2. Suba o Caddy na VPS, como `deploy`. Ele se liga às redes dos dois ambientes, e a da produção só nasce
+   no deploy dela: na primeira vez, crie essa rede com os rótulos do Docker Compose (o deploy da produção
+   a adota depois). Até lá, os endereços da produção respondem 502.
 
    ```bash
    cd /opt/plataforma-cursos
+   docker network inspect plataforma-cursos-producao > /dev/null 2>&1 || docker network create \
+     --label com.docker.compose.network=default --label com.docker.compose.project=plataforma-cursos-producao \
+     plataforma-cursos-producao
    docker compose -f caddy/compose.yml --env-file caddy/.env --project-directory caddy up -d
    ```
+
+3. Valide a homologação (passo 10, nos endereços `homolog-*`) e abra o PR de `homolog` para `main`:
+   o pipeline implanta a produção.
 
 4. Crie o administrador de cada ambiente (a senha é pedida no terminal):
 
@@ -881,13 +887,17 @@ produção esperar a sua aprovação.
 
 1. Abra o PR de feature/base-projeto para homolog, espere o pipeline ficar verde e faça o merge:
    a homologação é implantada.
-2. Valide a homologação e abra o PR de homolog para main: a produção é implantada.
-3. Com os dois ambientes no ar, suba o Caddy na VPS, como deploy:
+2. Suba o Caddy na VPS, como deploy. Na primeira vez a rede da produção ainda não existe: o comando
+   cria (o deploy da produção a adota depois) e os endereços da produção respondem 502 até lá.
 
      cd /opt/plataforma-cursos
+     docker network inspect plataforma-cursos-producao > /dev/null 2>&1 || docker network create \
+       --label com.docker.compose.network=default --label com.docker.compose.project=plataforma-cursos-producao \
+       plataforma-cursos-producao
      docker compose -f caddy/compose.yml --env-file caddy/.env --project-directory caddy up -d
 
-4. Crie o administrador de cada ambiente: comandos no passo 9 do docs/vps.md.
+3. Crie o administrador da homologação (passo 9 do docs/vps.md) e valide nos endereços homolog-*.
+4. Abra o PR de homolog para main: a produção é implantada. Crie o administrador da produção.
 5. Confira com os comandos do passo 10 (health, HSTS, portas fechadas, root recusado).
 ```
 
