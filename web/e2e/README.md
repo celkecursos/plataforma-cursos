@@ -46,12 +46,12 @@ O resto deste documento é referência: não é preciso ler tudo para rodar o pr
 
 ## O que é e o que não é testado aqui
 
-| Camada             | Cobre                                                                                                  | Onde                                                                            |
-| :----------------- | :----------------------------------------------------------------------------------------------------- | :------------------------------------------------------------------------------ |
-| Unidade (front)    | funções puras, componentes, cliente HTTP                                                               | `{aluno,adm,compartilhado}/src/**/*.test.ts(x)`, `site/app/**/*.test.ts` e `scripts/**/*.test.ts` — `npm test` |
-| Backend            | regra, rotas, segurança, banco, fila                                                                   | `backend/src/test` — `./mvnw verify`                                            |
-| Jornadas da API    | API pelo Caddy, worker, Garage e e-mail, sem navegador                                                 | `backend/src/e2e` — `./mvnw verify -Pe2e`                                       |
-| **E2E dos fronts** | **telas de verdade**: navegação, formulários, mensagens, sessão por cookie, vídeo tocando, site renderizado | **aqui**                                                                        |
+| Camada             | Cobre                                                                                                       | Onde                                                                                                           |
+| :----------------- | :---------------------------------------------------------------------------------------------------------- | :------------------------------------------------------------------------------------------------------------- |
+| Unidade (front)    | funções puras, componentes, cliente HTTP                                                                    | `{aluno,adm,compartilhado}/src/**/*.test.ts(x)`, `site/app/**/*.test.ts` e `scripts/**/*.test.ts` — `npm test` |
+| Backend            | regra, rotas, segurança, banco, fila                                                                        | `backend/src/test` — `./mvnw verify`                                                                           |
+| Jornadas da API    | API pelo Caddy, worker, Garage e e-mail, sem navegador                                                      | `backend/src/e2e` — `./mvnw verify -Pe2e`                                                                      |
+| **E2E dos fronts** | **telas de verdade**: navegação, formulários, mensagens, sessão por cookie, vídeo tocando, site renderizado | **aqui**                                                                                                       |
 
 **Regra de negócio não sobe para cá.** Se o caso é de cálculo, validação ou permissão, ele tem teste no
 backend ou de unidade; aqui fica o que só o navegador prova (a tela mostra o erro certo, o vídeo toca, o
