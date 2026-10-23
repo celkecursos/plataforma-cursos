@@ -8,15 +8,22 @@ import {
   type ReactNode,
 } from 'react';
 import { api } from '../api/cliente.ts';
-import type { Sessao, Usuario } from '../api/tipos.ts';
+import type { DesafioSegundoFator, Sessao, Usuario } from '../api/tipos.ts';
+
+/** Primeira etapa do login: a sessão aberta ou, para o administrador, o desafio do segundo fator. */
+export type ResultadoEntrada =
+  { tipo: 'sessao'; usuario: Usuario } | { tipo: 'desafio'; desafio: DesafioSegundoFator };
 
 type Estado =
   { status: 'carregando' } | { status: 'anonimo' } | { status: 'autenticado'; usuario: Usuario };
 
 interface ContextoSessao {
   estado: Estado;
-  /** Entra com e-mail e senha; erro da API (credenciais, e-mail não confirmado, limite) é lançado. */
-  entrar: (email: string, senha: string) => Promise<Usuario>;
+  /**
+   * Entra com e-mail e senha; erro da API (credenciais, e-mail não confirmado, limite) é lançado. O
+   * administrador recebe o desafio do segundo fator, concluído pelo componente `SegundoFator`.
+   */
+  entrar: (email: string, senha: string) => Promise<ResultadoEntrada>;
   sair: () => Promise<void>;
 }
 
@@ -39,14 +46,15 @@ export function ProvedorSessao({ children }: { children: ReactNode }) {
     return parar;
   }, []);
 
-  const entrar = useCallback(async (email: string, senha: string) => {
-    const sessao = await api.post<Sessao>(
+  const entrar = useCallback(async (email: string, senha: string): Promise<ResultadoEntrada> => {
+    const resposta = await api.post<Sessao | DesafioSegundoFator>(
       '/api/auth/login',
       { email, senha },
       { semRenovar: true },
     );
-    api.definirSessao(sessao);
-    return sessao.usuario;
+    if ('desafio' in resposta) return { tipo: 'desafio', desafio: resposta };
+    api.definirSessao(resposta);
+    return { tipo: 'sessao', usuario: resposta.usuario };
   }, []);
 
   const sair = useCallback(async () => {

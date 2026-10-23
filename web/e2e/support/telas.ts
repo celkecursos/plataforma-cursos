@@ -1,10 +1,18 @@
 import { expect, type Page } from '@playwright/test';
+import { codigoTotp } from './totp.ts';
 
 /** Preenche e envia o TelaLogin do kole-react. */
 export async function entrarPelaTela(page: Page, email: string, senha: string): Promise<void> {
   await page.getByRole('textbox', { name: 'E-mail', exact: true }).fill(email);
   await page.getByRole('textbox', { name: 'Senha', exact: true }).fill(senha);
   await page.getByRole('button', { name: 'Entrar' }).click();
+}
+
+/** Segunda etapa do login do admin do seed: o código do aplicativo autenticador. */
+export async function confirmarSegundoFator(page: Page, codigo = codigoTotp()): Promise<void> {
+  await expect(page.getByRole('heading', { name: 'Verificação em duas etapas' })).toBeVisible();
+  await page.getByRole('textbox', { name: 'Código do aplicativo' }).fill(codigo);
+  await page.getByRole('button', { name: 'Confirmar' }).click();
 }
 
 /**

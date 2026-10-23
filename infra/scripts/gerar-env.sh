@@ -16,6 +16,7 @@ hex() { openssl rand -hex "$1"; }
 sed -E \
   -e "s|^POSTGRES_PASSWORD=.*|POSTGRES_PASSWORD=$(hex 24)|" \
   -e "s|^JWT_SEGREDO=.*|JWT_SEGREDO=$(openssl rand -base64 48)|" \
+  -e "s|^TOTP_CHAVE=.*|TOTP_CHAVE=$(openssl rand -base64 32)|" \
   -e "s|^PAGAMENTOS_CHAVE=.*|PAGAMENTOS_CHAVE=$(openssl rand -base64 32)|" \
   -e "s|^GARAGE_RPC_SECRET=.*|GARAGE_RPC_SECRET=$(hex 32)|" \
   -e "s|^GARAGE_ADMIN_TOKEN=.*|GARAGE_ADMIN_TOKEN=$(hex 32)|" \

@@ -10,6 +10,7 @@ import br.com.celke.cursos.pagamento.domain.GatewayPagamento;
 import br.com.celke.cursos.pagamento.domain.ResultadoTeste;
 import br.com.celke.cursos.pagamento.domain.TipoGateway;
 import br.com.celke.cursos.pagamento.infra.GatewayRepository;
+import br.com.celke.cursos.shared.cripto.CifraSegredos;
 import br.com.celke.cursos.shared.erro.NaoEncontradoException;
 import java.time.Clock;
 import java.time.Instant;

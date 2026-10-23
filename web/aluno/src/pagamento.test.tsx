@@ -7,6 +7,7 @@ import {
   resultado,
   RetornoPagamentoPagina,
 } from './paginas/pagamento/RetornoPagamentoPagina.tsx';
+import { checkoutSeguro } from './paginas/pagamento/ComprarPagina.tsx';
 import type { StatusPedido } from './tipos.ts';
 
 describe('resultado do pedido na página de retorno', () => {
@@ -118,5 +119,15 @@ describe('código do pedido na página de retorno', () => {
     abrir('/pagamento/retorno?xcod=abc');
     expect(await screen.findByText('Pagamento confirmado')).toBeInTheDocument();
     expect(fetchMock.mock.calls[0]![0]).toBe('/api/pagamentos/pedidos/abc');
+  });
+});
+
+describe('checkoutSeguro', () => {
+  it('só aceita HTTPS', () => {
+    expect(checkoutSeguro('https://pay.hotmart.com/X123?off=abc')).toBe(true);
+    expect(checkoutSeguro('http://pay.hotmart.com/X123')).toBe(false);
+    expect(checkoutSeguro('javascript:alert(1)')).toBe(false);
+    expect(checkoutSeguro('nao-e-url')).toBe(false);
+    expect(checkoutSeguro(null)).toBe(false);
   });
 });

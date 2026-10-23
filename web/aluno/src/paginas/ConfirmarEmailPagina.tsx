@@ -1,10 +1,11 @@
 import { Alerta, Botao, Carregando, CampoEmail } from '@celke/kole-react';
 import { useEffect, useRef, useState } from 'react';
-import { Link, useSearchParams } from 'react-router';
+import { Link } from 'react-router';
 import { api } from '@compartilhado/api/cliente.ts';
 import { mensagemDeErro } from '@compartilhado/api/erros.ts';
 import type { Mensagem } from '@compartilhado/api/tipos.ts';
 import { LayoutConta } from '@compartilhado/ui/LayoutConta.tsx';
+import { useTokenDaUrl } from '@compartilhado/ui/useTokenDaUrl.ts';
 import { erroEmail } from '@compartilhado/ui/validacao.ts';
 import { CAMINHOS } from '../caminhos.ts';
 
@@ -12,8 +13,7 @@ type Estado = { tipo: 'confirmando' } | { tipo: 'confirmado' } | { tipo: 'erro';
 
 /** Destino do link enviado no cadastro: confirma o e-mail e, se o link venceu, permite pedir outro. */
 export function ConfirmarEmailPagina() {
-  const [parametros] = useSearchParams();
-  const token = parametros.get('token');
+  const token = useTokenDaUrl();
   const [estado, setEstado] = useState<Estado>(
     token
       ? { tipo: 'confirmando' }

@@ -56,6 +56,9 @@ restaurar.sh homolog                                                            
 Se algo falhar no meio, a API e o worker **continuam parados de propósito** (subir com o banco pela
 metade é pior): corrija e rode de novo.
 
+O dump traz as tabelas, não os papéis do PostgreSQL: a subida depois da restauração passa pelo serviço
+`migracao`, que recria o usuário da aplicação e as permissões dele.
+
 ### Teste de restauração (feito e repetido a cada trimestre)
 
 Testado na stack de e2e, com um repositório restic local:
@@ -166,14 +169,46 @@ Quando o HLS passar de ~40 GB, ou se a banda da VPS virar gargalo, os vídeos v�
 
 | Capítulo | Situação |
 |---|---|
-| V2 Autenticação | Senha mínima de 10 (aluno) / 12 (admin), máximo 128, Argon2; bloqueio após falhas por e-mail e por e-mail + IP; limite por IP nas rotas de conta; recuperação com token de uso único e resposta igual para e-mail existente ou não |
-| V3 Sessão | Access token de 10 minutos; refresh opaco em cookie `HttpOnly; Secure; SameSite=Strict; Path=/api/auth`, sem `Domain`; rotação com detecção de reuso (revoga a família); logout e "sair de todos"; troca de senha encerra todas as sessões |
-| V4 Controle de acesso | Tudo negado por padrão; rotas públicas declaradas com método; papel no filtro e no `@PreAuthorize`; acesso ao conteúdo só pela `AcessoAulaPolicy`; recursos de outro usuário respondem 404; chaves de upload com o id do dono (IDOR) |
+| V2 Autenticação | Senha mínima de 10 (aluno) / 12 (admin), máximo 128, Argon2; recusa as senhas mais comuns e vazadas (lista de ~117 mil), as que contêm o nome ou o e-mail e as sequências e repetições; medidor de força nas telas; **segundo fator (TOTP) obrigatório para administradores**, com códigos de recuperação de uso único; bloqueio após falhas por e-mail e por e-mail + IP (o código errado do segundo fator conta como falha); limite por IP nas rotas de conta; recuperação com token de uso único e resposta igual para e-mail existente ou não |
+| V3 Sessão | Access token de 10 minutos; refresh opaco em cookie `HttpOnly; Secure; SameSite=Strict; Path=/api/auth`, sem `Domain`; rotação com detecção de reuso (revoga a família); logout e "sair de todos"; troca de senha encerra todas as sessões; o ADM bloqueia a conta ou encerra as sessões e o access token já emitido deixa de valer na hora (conferido a cada requisição, 30 s em memória); token de link de e-mail sai da barra de endereço depois de lido |
+| V4 Controle de acesso | Tudo negado por padrão; rotas públicas declaradas com método e conferidas por um teste que varre todas as rotas; papel no filtro e no `@PreAuthorize`; acesso ao conteúdo só pela `AcessoAulaPolicy`; recursos de outro usuário respondem 404; chaves de upload com o id do dono (IDOR); limite por usuário nas gravações (120 por minuto) e no checkout (10 por hora); a compra só abre o pedido com a confirmação do aluno; checkout só em HTTPS nos domínios da Hotmart |
 | V5 Entrada e saída | Bean Validation em todo corpo; Markdown com HTML escapado e sanitizado (lista fechada); conteúdo dos arquivos conferido pela assinatura real; imagens regravadas sem metadados; ffmpeg por lista de argumentos |
 | V7 Erros e logs | ProblemDetail sem stack trace nem causa; id de correlação; auditoria de login; log de acesso aos vídeos com retenção |
 | V8 Dados | Bucket privado, só URLs pré-assinadas curtas; certificado validado sem e-mail nem ids; segredos só nos `.env` e nos secrets |
 | V9 Comunicação | HTTPS automático pelo Caddy, HSTS; CORS do bucket com as origens exatas |
-| V10 Código malicioso / V14 Configuração | Trivy no pipeline (críticos com correção quebram o build); versões fixas de imagens e dependências; usuário não-root nos containers; Swagger e Actuator fora da produção |
+| V10 Código malicioso / V14 Configuração | Trivy no pipeline (críticos com correção quebram o build); `npm audit` das dependências do navegador (alta ou crítica quebra o build); Dependabot semanal para Maven, npm, GitHub Actions e imagens Docker; versões fixas de imagens e dependências; usuário não-root nos containers; Swagger e Actuator fora da produção; a API e o worker entram no banco com um usuário que só lê e grava dados (o dono do schema fica para as migrations) |
+
+### Segundo fator dos administradores
+
+- Todo usuário com o papel `ADMIN` entra em duas etapas: a senha certa devolve um desafio (válido por
+  5 minutos, sem sessão nem cookie) e a sessão só abre com o código de 6 dígitos do aplicativo
+  autenticador (Google Authenticator, Microsoft Authenticator, 1Password...).
+- No primeiro acesso, a tela mostra o QR code; o primeiro código certo ativa o segundo fator e mostra
+  **uma vez** os 10 códigos de recuperação (cada um vale uma entrada sem o celular).
+- O segredo fica cifrado no banco (AES-256-GCM, chave `TOTP_CHAVE` do `.env`); o mesmo código não vale
+  duas vezes; cada etapa fica na auditoria de login (`SEGUNDO_FATOR_PENDENTE`, `SEGUNDO_FATOR_INVALIDO`,
+  `SEGUNDO_FATOR_CADASTRADO`, `CODIGO_RECUPERACAO`).
+- Perdeu o celular e os códigos? Na VPS, como `deploy`:
+
+  ```bash
+  cd /opt/plataforma-cursos/producao
+  docker compose -p plataforma-cursos-producao -f compose.prod.yml run --rm api redefinir-2fa admin@celke.com.br
+  ```
+
+  O comando apaga o segundo fator e encerra as sessões; o próximo login pede o cadastro de novo.
+- Trocar a `TOTP_CHAVE` invalida todos os segredos: rode o `redefinir-2fa` para cada administrador.
+
+### Usuário do banco da aplicação
+
+- O serviço `migracao` (mesma imagem da API, comando `migrar`) roda a cada deploy com o dono do schema
+  (`POSTGRES_USER`), aplica as migrations e, no `afterMigrate.sql`, cria (na primeira vez) e libera o
+  usuário da aplicação (`POSTGRES_APP_USER`): `SELECT`, `INSERT`, `UPDATE` e `DELETE` nas tabelas, uso
+  das sequências, sem criar, alterar ou apagar tabelas e sem acesso ao histórico do Flyway.
+- A API e o worker sobem só depois dele, com `POSTGRES_APP_USER`/`POSTGRES_APP_PASSWORD`. Uma injeção
+  de SQL ou uma conta roubada da aplicação não derruba tabelas nem apaga a trilha de auditoria (o
+  gatilho continua barrando `UPDATE` e `DELETE` nela).
+- O `deploy.sh` acrescenta ao `.env` as variáveis novas (`POSTGRES_APP_USER`, `POSTGRES_APP_PASSWORD`,
+  `TOTP_CHAVE`) que ainda não existirem, com valores aleatórios.
 
 ### Varreduras
 

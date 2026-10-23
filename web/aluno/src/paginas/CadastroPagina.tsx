@@ -10,6 +10,7 @@ import {
   erroEmail,
   erroObrigatorio,
   erroSenhaNova,
+  SENHA_MINIMA_ALUNO,
   semErros,
 } from '@compartilhado/ui/validacao.ts';
 import { CAMINHOS } from '../caminhos.ts';
@@ -113,7 +114,9 @@ export function CadastroPagina() {
         aoMudar={setSenha}
         erro={erros.senha}
         obrigatorio
-        dica="Pelo menos 10 caracteres."
+        dica="Pelo menos 10 caracteres, sem o seu nome ou e-mail e fora das senhas mais usadas."
+        forca
+        politica={{ minimo: SENHA_MINIMA_ALUNO }}
         autoComplete="new-password"
       />
       <CampoSenha

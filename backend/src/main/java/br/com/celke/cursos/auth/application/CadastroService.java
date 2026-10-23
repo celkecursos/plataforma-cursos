@@ -2,8 +2,10 @@ package br.com.celke.cursos.auth.application;
 
 import br.com.celke.cursos.auth.domain.TipoToken;
 import br.com.celke.cursos.shared.email.EmailService;
+import br.com.celke.cursos.shared.erro.CampoInvalidoException;
 import br.com.celke.cursos.shared.erro.ConflitoException;
 import br.com.celke.cursos.usuario.application.UsuarioService;
+import br.com.celke.cursos.usuario.domain.PoliticaSenha;
 import br.com.celke.cursos.usuario.domain.Usuario;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
@@ -48,6 +50,11 @@ public class CadastroService {
      */
     @Transactional
     public void cadastrar(String nome, String email, String senha) {
+        // A política vale antes de tudo: a recusa não depende de a conta existir (não revela quem tem cadastro)
+        String problema = PoliticaSenha.validar(senha, PoliticaSenha.MINIMO_ALUNO, nome, email);
+        if (problema != null) {
+            throw new CampoInvalidoException("senha", problema);
+        }
         Optional<Usuario> existente = usuarioService.buscarPorEmail(email);
         if (existente.isPresent()) {
             tratarEmailExistente(existente.get());

@@ -1,16 +1,22 @@
 package br.com.celke.cursos.usuario.application;
 
 import br.com.celke.cursos.shared.erro.ConflitoException;
+import br.com.celke.cursos.shared.erro.NaoEncontradoException;
 import br.com.celke.cursos.usuario.domain.Papel;
 import br.com.celke.cursos.usuario.domain.Usuario;
 import br.com.celke.cursos.usuario.infra.UsuarioRepository;
 import java.time.Clock;
 import java.util.Collection;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -110,6 +116,40 @@ public class UsuarioService {
     @Transactional(readOnly = true)
     public Map<Long, Usuario> buscarPorIds(Collection<Long> ids) {
         return repository.findAllById(ids).stream().collect(Collectors.toMap(Usuario::getId, Function.identity()));
+    }
+
+    /** Lista do ADM, ordenada por nome. */
+    @Transactional(readOnly = true)
+    public Page<Usuario> listar(String busca, Papel papel, Boolean ativo, Pageable pagina) {
+        String termo = busca == null || busca.isBlank()
+                ? null
+                : "%" + busca.strip().toLowerCase(Locale.ROOT).replaceAll("[%_\\\\]", "") + "%";
+        Pageable ordenada = PageRequest.of(pagina.getPageNumber(), pagina.getPageSize(), Sort.by("nome", "id"));
+        return repository.buscar(termo, papel, ativo, ordenada);
+    }
+
+    @Transactional
+    public Usuario bloquear(Long id) {
+        Usuario usuario =
+                repository.findById(id).orElseThrow(() -> new NaoEncontradoException("Usuário não encontrado."));
+        usuario.bloquear(clock.instant());
+        return usuario;
+    }
+
+    @Transactional
+    public Usuario desbloquear(Long id) {
+        Usuario usuario =
+                repository.findById(id).orElseThrow(() -> new NaoEncontradoException("Usuário não encontrado."));
+        usuario.desbloquear(clock.instant());
+        return usuario;
+    }
+
+    @Transactional
+    public Usuario encerrarSessoes(Long id) {
+        Usuario usuario =
+                repository.findById(id).orElseThrow(() -> new NaoEncontradoException("Usuário não encontrado."));
+        usuario.encerrarSessoes(clock.instant());
+        return usuario;
     }
 
     /** Regrava o hash quando ele usa um algoritmo antigo (ex.: BCrypt vindo do sistema legado). */

@@ -37,8 +37,13 @@ TAG=
 POSTGRES_DB=plataforma_cursos
 POSTGRES_USER=plataforma_cursos
 POSTGRES_PASSWORD=$(hex 24)
+# Usuário da API e do worker: só lê e grava dados (o dono do schema fica para as migrations)
+POSTGRES_APP_USER=plataforma_cursos_app
+POSTGRES_APP_PASSWORD=$(hex 24)
 
 JWT_SEGREDO=$(openssl rand -base64 48)
+# Segundo fator dos administradores (trocar exige cadastrar o aplicativo de novo: redefinir-2fa)
+TOTP_CHAVE=$(openssl rand -base64 32)
 AUTH_ORIGENS=$ALUNO,$ADM
 FRONT_ALUNO_URL=$ALUNO
 

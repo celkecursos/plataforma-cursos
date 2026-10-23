@@ -1,6 +1,7 @@
 import { expect, type APIRequestContext } from '@playwright/test';
 import { ADMIN_SEED, ADM_URL, ALUNO_URL, SENHA_SEED } from './config.ts';
 import { stamp } from './dados.ts';
+import { codigoTotp } from './totp.ts';
 
 /** Cliente da API com o token de uma conta, para montar dados de teste sem passar pelas telas. */
 export interface ClienteApi {
@@ -16,8 +17,16 @@ export async function clienteApi(
   senha = SENHA_SEED,
   base = ADM_URL,
 ): Promise<ClienteApi> {
-  const login = await request.post(`${base}/api/auth/login`, { data: { email, senha } });
+  let login = await request.post(`${base}/api/auth/login`, { data: { email, senha } });
   if (!login.ok()) throw new Error(`Login de ${email} recusado: ${login.status()}`);
+  const { desafio } = (await login.json()) as { desafio?: string };
+  if (desafio) {
+    // Admin do seed: segunda etapa com o código do aplicativo autenticador
+    login = await request.post(`${base}/api/auth/segundo-fator`, {
+      data: { desafio, codigo: codigoTotp() },
+    });
+    if (!login.ok()) throw new Error(`Segundo fator de ${email} recusado: ${login.status()}`);
+  }
   const { accessToken } = (await login.json()) as { accessToken: string };
   const headers = { Authorization: `Bearer ${accessToken}` };
 

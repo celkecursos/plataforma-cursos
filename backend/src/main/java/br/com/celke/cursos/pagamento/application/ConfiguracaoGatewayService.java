@@ -4,9 +4,9 @@ import br.com.celke.cursos.pagamento.domain.CampoConfiguracao;
 import br.com.celke.cursos.pagamento.domain.ConfiguracaoGateway;
 import br.com.celke.cursos.pagamento.domain.Gateway;
 import br.com.celke.cursos.pagamento.domain.TipoCampo;
+import br.com.celke.cursos.shared.cripto.CifraSegredos;
 import br.com.celke.cursos.shared.erro.ConflitoException;
 import br.com.celke.cursos.shared.erro.ErroCampo;
-import java.net.URI;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -139,19 +139,10 @@ public class ConfiguracaoGatewayService {
         if (campo.tipo() == TipoCampo.SELECAO && !campo.opcoes().contains(valor)) {
             return "Escolha uma das opções: " + String.join(", ", campo.opcoes()) + ".";
         }
-        if (campo.tipo() == TipoCampo.URL && !urlValida(valor)) {
-            return "Informe um endereço começando com https://.";
+        if (campo.tipo() == TipoCampo.URL) {
+            return CampoConfiguracao.erroUrl(valor, campo.hostsPermitidos());
         }
         return null;
-    }
-
-    private static boolean urlValida(String valor) {
-        try {
-            URI uri = URI.create(valor);
-            return ("https".equals(uri.getScheme()) || "http".equals(uri.getScheme())) && uri.getHost() != null;
-        } catch (IllegalArgumentException e) {
-            return false;
-        }
     }
 
     private static String limpo(String valor) {

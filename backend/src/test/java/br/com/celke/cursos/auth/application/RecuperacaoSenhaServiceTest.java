@@ -10,9 +10,11 @@ import static org.mockito.Mockito.when;
 
 import br.com.celke.cursos.auth.domain.TipoToken;
 import br.com.celke.cursos.shared.email.EmailService;
+import br.com.celke.cursos.shared.erro.CampoInvalidoException;
 import br.com.celke.cursos.support.fixtures.UsuarioFixture;
 import br.com.celke.cursos.usuario.application.UsuarioService;
 import br.com.celke.cursos.usuario.domain.Papel;
+import br.com.celke.cursos.usuario.domain.PoliticaSenha;
 import br.com.celke.cursos.usuario.domain.Usuario;
 import java.time.Duration;
 import java.util.Map;
@@ -103,6 +105,7 @@ class RecuperacaoSenhaServiceTest {
     @DisplayName("redefinir troca a senha, confirma o e-mail e encerra todas as sessões")
     void redefinir() {
         Usuario ana = ana();
+        when(tokens.dono("abc", TipoToken.RECUPERACAO_SENHA)).thenReturn(Optional.of(7L));
         when(tokens.consumir("abc", TipoToken.RECUPERACAO_SENHA)).thenReturn(Optional.of(7L));
         when(usuarioService.buscarPorId(7L)).thenReturn(Optional.of(ana));
 
@@ -116,7 +119,7 @@ class RecuperacaoSenhaServiceTest {
     @Test
     @DisplayName("token inválido é recusado sem trocar a senha nem encerrar sessões")
     void tokenInvalido() {
-        when(tokens.consumir("abc", TipoToken.RECUPERACAO_SENHA)).thenReturn(Optional.empty());
+        when(tokens.dono("abc", TipoToken.RECUPERACAO_SENHA)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> service.redefinir("abc", "nova-senha-da-ana"))
                 .isInstanceOf(LinkInvalidoException.class);
@@ -125,9 +128,22 @@ class RecuperacaoSenhaServiceTest {
     }
 
     @Test
+    @DisplayName("senha fora da política é recusada no campo sem gastar o link")
+    void senhaFraca() {
+        when(tokens.dono("abc", TipoToken.RECUPERACAO_SENHA)).thenReturn(Optional.of(7L));
+        when(usuarioService.buscarPorId(7L)).thenReturn(Optional.of(ana()));
+
+        assertThatThrownBy(() -> service.redefinir("abc", "1234567890"))
+                .isInstanceOf(CampoInvalidoException.class)
+                .hasMessage(PoliticaSenha.COMUM);
+        verify(tokens, never()).consumir(anyString(), any());
+        verify(usuarioService, never()).trocarSenha(any(), any());
+    }
+
+    @Test
     @DisplayName("conta desativada depois do pedido não troca a senha")
     void contaInativa() {
-        when(tokens.consumir("abc", TipoToken.RECUPERACAO_SENHA)).thenReturn(Optional.of(7L));
+        when(tokens.dono("abc", TipoToken.RECUPERACAO_SENHA)).thenReturn(Optional.of(7L));
         when(usuarioService.buscarPorId(7L)).thenReturn(Optional.of(UsuarioFixture.inativo(ana())));
 
         assertThatThrownBy(() -> service.redefinir("abc", "nova-senha-da-ana"))

@@ -178,6 +178,17 @@ export type StatusPedido =
   | 'EXPIRADO';
 
 /** Resposta do checkout: ir para a página do meio de pagamento ou montar o formulário embutido. */
+/** Oferta à venda mostrada antes de abrir o pedido (`ResumoOferta`). */
+export interface ResumoOferta {
+  id: number;
+  titulo: string;
+  precoCentavos: number;
+  moeda: string;
+  curso: string;
+  turma: string;
+  meioPagamento: string;
+}
+
 export interface Checkout {
   pedido: string;
   tipo: 'REDIRECIONAMENTO' | 'EMBUTIDO';

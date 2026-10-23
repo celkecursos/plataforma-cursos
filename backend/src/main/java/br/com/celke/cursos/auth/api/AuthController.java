@@ -1,11 +1,19 @@
 package br.com.celke.cursos.auth.api;
 
+import br.com.celke.cursos.auth.api.SegundoFatorDtos.CadastroRequest;
+import br.com.celke.cursos.auth.api.SegundoFatorDtos.CadastroResponse;
+import br.com.celke.cursos.auth.api.SegundoFatorDtos.ConfirmacaoRequest;
+import br.com.celke.cursos.auth.api.SegundoFatorDtos.DesafioResponse;
 import br.com.celke.cursos.auth.application.AuthService;
+import br.com.celke.cursos.auth.application.AuthService.Desafio;
 import br.com.celke.cursos.auth.application.AuthService.Sessao;
 import br.com.celke.cursos.auth.application.SessaoInvalidaException;
 import br.com.celke.cursos.shared.web.OrigemRequisicao;
 import br.com.celke.cursos.usuario.application.UsuarioService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
@@ -44,9 +52,43 @@ public class AuthController {
     @PostMapping("/login")
     @Operation(
             summary = "Entrar com e-mail e senha",
-            description = "Devolve o access token e grava o refresh token em cookie.")
-    public ResponseEntity<SessaoResponse> login(@Valid @RequestBody LoginRequest request, HttpServletRequest http) {
-        return comCookie(authService.entrar(request.email(), request.senha(), OrigemRequisicao.de(http)));
+            description = "Devolve o access token e grava o refresh token em cookie. Para administradores, "
+                    + "devolve o desafio do segundo fator (sem sessão): a entrada termina em "
+                    + "POST /api/auth/segundo-fator.")
+    @ApiResponse(
+            responseCode = "200",
+            description = "Sessão aberta ou desafio do segundo fator",
+            content = @Content(schema = @Schema(oneOf = {SessaoResponse.class, DesafioResponse.class})))
+    public ResponseEntity<?> login(@Valid @RequestBody LoginRequest request, HttpServletRequest http) {
+        return switch (authService.entrar(request.email(), request.senha(), OrigemRequisicao.de(http))) {
+            case Sessao sessao -> comCookie(sessao);
+            case Desafio desafio -> ResponseEntity.ok(DesafioResponse.de(desafio));
+        };
+    }
+
+    @PostMapping("/segundo-fator/cadastro")
+    @Operation(
+            summary = "Cadastrar o aplicativo autenticador",
+            description = "Primeiro acesso do administrador: devolve o segredo e o endereço do QR code. "
+                    + "O cadastro só vale depois do primeiro código certo.")
+    public CadastroResponse cadastrarSegundoFator(@Valid @RequestBody CadastroRequest request) {
+        return CadastroResponse.de(authService.cadastrarSegundoFator(request.desafio()));
+    }
+
+    @PostMapping("/segundo-fator")
+    @Operation(
+            summary = "Concluir a entrada com o segundo fator",
+            description = "Confere o código do aplicativo (ou um código de recuperação), devolve o access "
+                    + "token e grava o refresh token em cookie. Na ativação, devolve os códigos de recuperação.")
+    public ResponseEntity<SessaoResponse> concluirSegundoFator(
+            @Valid @RequestBody ConfirmacaoRequest request, HttpServletRequest http) {
+        var sessao = authService.concluirSegundoFator(
+                request.desafio(), request.codigo(), request.codigoRecuperacao(), OrigemRequisicao.de(http));
+        return ResponseEntity.ok()
+                .header(
+                        HttpHeaders.SET_COOKIE,
+                        cookieRefresh.criar(sessao.sessao().refresh().token()).toString())
+                .body(SessaoResponse.de(sessao));
     }
 
     @PostMapping("/refresh")

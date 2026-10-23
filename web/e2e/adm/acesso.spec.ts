@@ -1,7 +1,7 @@
 import { ADMIN_SEED, ALUNO_SEED, SENHA_SEED } from '../support/config.ts';
 import { emailNovo } from '../support/dados.ts';
 import { expect, test } from '../support/sessoes.ts';
-import { entrarPelaTela } from '../support/telas.ts';
+import { confirmarSegundoFator, entrarPelaTela } from '../support/telas.ts';
 
 test.describe('ADM', () => {
   test('com a sessão do admin, abre o painel com o menu da administração', async ({
@@ -14,12 +14,23 @@ test.describe('ADM', () => {
     );
   });
 
-  test('o admin entra pela tela e volta para onde ia', async ({ page }) => {
+  test('o admin entra pela tela, com o código do aplicativo, e volta para onde ia', async ({
+    page,
+  }) => {
     await page.goto('/');
     await expect(page).toHaveURL(/\/entrar\?voltar=/);
     await entrarPelaTela(page, ADMIN_SEED, SENHA_SEED);
+    await confirmarSegundoFator(page);
     await expect(page).toHaveURL('/');
     await expect(page.getByRole('link', { name: 'Painel' })).toBeVisible();
+  });
+
+  test('código errado do aplicativo mostra o erro e não entra', async ({ page }) => {
+    await page.goto('/entrar');
+    await entrarPelaTela(page, ADMIN_SEED, SENHA_SEED);
+    await confirmarSegundoFator(page, '000000');
+    await expect(page.getByText('Código inválido.', { exact: false })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Verificação em duas etapas' })).toBeVisible();
   });
 
   test('um aluno é barrado na entrada e a sessão dele é encerrada', async ({ page }) => {

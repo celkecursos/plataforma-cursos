@@ -13,6 +13,9 @@ public final class E2eConfig {
 
     public static final String SENHA_SEED = System.getProperty("e2e.senha-seed", "123456A#b123");
 
+    /** Segredo (Base32) do aplicativo autenticador do admin do seed ({@code SEED_E2E_TOTP}). */
+    public static final String TOTP_SEED = System.getProperty("e2e.totp-seed", "JBSWY3DPEHPK3PXPJBSWY3DPEHPK3PXP");
+
     public static final String HOST_ALUNO = "aluno.localhost";
     public static final String HOST_ADM = "adm.localhost";
 

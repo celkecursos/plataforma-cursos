@@ -2,9 +2,15 @@ import { Alerta, Botao, CampoSenha } from '@celke/kole-react';
 import { useState } from 'react';
 import { Link, useSearchParams } from 'react-router';
 import { api } from '@compartilhado/api/cliente.ts';
-import { mensagemDeErro } from '@compartilhado/api/erros.ts';
+import { ErroApi, mensagemDeErro } from '@compartilhado/api/erros.ts';
 import { LayoutConta } from '@compartilhado/ui/LayoutConta.tsx';
-import { erroConfirmacao, erroSenhaNova, semErros } from '@compartilhado/ui/validacao.ts';
+import { useTokenDaUrl } from '@compartilhado/ui/useTokenDaUrl.ts';
+import {
+  erroConfirmacao,
+  erroSenhaNova,
+  SENHA_MINIMA_ALUNO,
+  semErros,
+} from '@compartilhado/ui/validacao.ts';
 import { CAMINHOS } from '../caminhos.ts';
 
 /**
@@ -13,7 +19,7 @@ import { CAMINHOS } from '../caminhos.ts';
  */
 export function RedefinirSenhaPagina() {
   const [parametros] = useSearchParams();
-  const token = parametros.get('token');
+  const token = useTokenDaUrl();
   const primeiraSenha = parametros.get('origem') === 'pagamento';
   const [senha, setSenha] = useState('');
   const [confirmacao, setConfirmacao] = useState('');
@@ -64,7 +70,9 @@ export function RedefinirSenhaPagina() {
       await api.post('/api/auth/redefinir-senha', { token, senha });
       setPronto(true);
     } catch (erro) {
-      setErroGeral(mensagemDeErro(erro));
+      const doCampo = erro instanceof ErroApi ? erro.erroDoCampo('senha') : undefined;
+      if (doCampo) setErros({ senha: doCampo });
+      else setErroGeral(mensagemDeErro(erro));
     } finally {
       setEnviando(false);
     }
@@ -87,7 +95,9 @@ export function RedefinirSenhaPagina() {
         aoMudar={setSenha}
         erro={erros.senha}
         obrigatorio
-        dica="Pelo menos 10 caracteres."
+        dica="Pelo menos 10 caracteres, sem o seu nome ou e-mail e fora das senhas mais usadas."
+        forca
+        politica={{ minimo: SENHA_MINIMA_ALUNO }}
         autoComplete="new-password"
       />
       <CampoSenha

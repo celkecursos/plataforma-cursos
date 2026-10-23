@@ -51,6 +51,9 @@ public class SecurityConfig {
                         // Autenticação: login e renovação/saída pelo cookie de refresh
                         .requestMatchers(HttpMethod.POST, "/api/auth/login", "/api/auth/refresh", "/api/auth/logout")
                         .permitAll()
+                        // Segunda etapa do login dos administradores: autenticada pelo desafio da primeira
+                        .requestMatchers(HttpMethod.POST, "/api/auth/segundo-fator", "/api/auth/segundo-fator/cadastro")
+                        .permitAll()
                         // Conta: cadastro, confirmação de e-mail e recuperação de senha
                         .requestMatchers(
                                 HttpMethod.POST,

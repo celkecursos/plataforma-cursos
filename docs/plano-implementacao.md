@@ -575,6 +575,22 @@ Prompt: [`docs/prompts/f17-01-auditoria-e-logs.md`](prompts/f17-01-auditoria-e-l
 - [x] Logs da API e do worker também em arquivo, no volume `logs`: um por dia, 180 dias ou 2 GB por serviço
 - [x] Testes unitários, de integração e Playwright
 
+### Fase 18 — `feature/seguranca`
+
+Prompt: [`docs/prompts/f18-01-seguranca.md`](prompts/f18-01-seguranca.md). Operação:
+[`docs/operacao.md`](operacao.md), seção 7.
+
+- [x] Segundo fator (TOTP, RFC 6238) obrigatório para administradores: desafio depois da senha, cadastro por QR code, códigos de recuperação de uso único, segredo cifrado (`TOTP_CHAVE`), código sem reuso, comando `redefinir-2fa`
+- [x] Usuário do banco só de dados para a API e o worker; migrations com o dono do schema no serviço `migracao` (comando `migrar`), que cria e libera o usuário da aplicação
+- [x] Política de senha: lista de senhas comuns e vazadas, nome e e-mail, sequências e repetições; medidor de força nas telas
+- [x] Limite por usuário nas gravações e no checkout
+- [x] Dependabot (Maven, npm, Actions, Docker) e `npm audit` no pipeline
+- [x] ADM → Segurança → Usuários: busca, bloquear e desbloquear, encerrar as sessões (o access token já emitido deixa de valer na hora), tudo na auditoria
+- [x] Checkout só em HTTPS nos domínios da Hotmart; a compra só abre o pedido com a confirmação do aluno
+- [x] Token dos links de e-mail sai da barra de endereço depois de lido
+- [x] Teste que varre todas as rotas da API: só as públicas declaradas respondem sem login
+- [x] Testes unitários, de integração e Playwright
+
 ---
 
 ## 5. Mapa fase → capítulos do tutorial
@@ -602,3 +618,4 @@ O conteúdo de cada capítulo está em [capitulos.md](capitulos.md).
 | 15 | `feature/migracao-legado` | 37 |
 | 16 | `feature/pagamentos` | 38–40 |
 | 17 | `feature/auditoria` | 41 |
+| 18 | `feature/seguranca` | 42, 43 |

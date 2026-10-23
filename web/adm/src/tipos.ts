@@ -385,3 +385,21 @@ export function opcoes<V extends string>(mapa: Record<V, Rotulo | string>) {
     return { valor, rotulo: typeof item === 'string' ? item : item.rotulo };
   });
 }
+
+/** Conta na lista do ADM (`UsuarioAdm`). */
+export interface UsuarioAdm {
+  id: number;
+  nome: string;
+  email: string;
+  papeis: ('ALUNO' | 'ADMIN')[];
+  ativo: boolean;
+  emailConfirmado: boolean;
+  segundoFatorAtivo: boolean;
+  sessoesEncerradasEm: string | null;
+  criadoEm: string;
+}
+
+export const PAPEIS: Record<'ALUNO' | 'ADMIN', string> = {
+  ALUNO: 'Aluno',
+  ADMIN: 'Administrador',
+};

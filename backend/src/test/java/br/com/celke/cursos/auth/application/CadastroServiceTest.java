@@ -85,8 +85,8 @@ class CadastroServiceTest {
     void emailExistente() {
         when(usuarioService.buscarPorEmail("ana@celke.uno")).thenReturn(Optional.of(ana()));
 
-        service.cadastrar("Outra Pessoa", "ana@celke.uno", "outra-senha-qualquer");
-        service.cadastrar("Outra Pessoa", "ana@celke.uno", "outra-senha-qualquer");
+        service.cadastrar("Outra Pessoa", "ana@celke.uno", "girassol-azul-77");
+        service.cadastrar("Outra Pessoa", "ana@celke.uno", "girassol-azul-77");
 
         verify(usuarioService, never()).cadastrarAluno(any(), any(), any());
         verify(emailService, times(1))

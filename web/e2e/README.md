@@ -105,20 +105,25 @@ requisições por IP.
 
 **Variáveis** (padrões de `infra/e2e.env`; só mude se subir a stack com outras portas):
 
-| Variável          | Padrão                         | Uso                                       |
-| :---------------- | :----------------------------- | :---------------------------------------- |
-| `E2E_ALUNO_URL`   | `http://aluno.localhost:8088`  | área do aluno                             |
-| `E2E_ADM_URL`     | `http://adm.localhost:8088`    | ADM                                       |
-| `E2E_SITE_URL`    | `http://cursos.localhost:8088` | site público                              |
-| `E2E_MAILPIT_URL` | `http://localhost:8026`        | e-mails (links de confirmação e de senha) |
-| `E2E_SENHA_SEED`  | `123456A#b123`                 | senha das contas do seed                  |
-| `E2E_SLOWMO`      | `0`                            | câmera lenta, em ms entre ações           |
+| Variável          | Padrão                             | Uso                                                 |
+| :---------------- | :--------------------------------- | :-------------------------------------------------- |
+| `E2E_ALUNO_URL`   | `http://aluno.localhost:8088`      | área do aluno                                       |
+| `E2E_ADM_URL`     | `http://adm.localhost:8088`        | ADM                                                 |
+| `E2E_SITE_URL`    | `http://cursos.localhost:8088`     | site público                                        |
+| `E2E_MAILPIT_URL` | `http://localhost:8026`            | e-mails (links de confirmação e de senha)           |
+| `E2E_SENHA_SEED`  | `123456A#b123`                     | senha das contas do seed                            |
+| `E2E_TOTP_SEED`   | `JBSWY3DPEHPK3PXPJBSWY3DPEHPK3PXP` | segredo do aplicativo autenticador do admin do seed |
+| `E2E_SLOWMO`      | `0`                                | câmera lenta, em ms entre ações                     |
 
 ## Contas e sessão
 
 - **Seed da stack** (criado pela API no perfil `e2e`): `admin@celke.com.br` e
   `aluno@celke.com.br`, senha `123456A#b123`. São **só leitura**: nenhum teste troca a senha,
   sai ou mexe no perfil delas.
+- **Segundo fator do admin**: o admin do seed já tem o aplicativo autenticador cadastrado com o segredo
+  de `SEED_E2E_TOTP`; `support/totp.ts` calcula o código como o celular, e as fixtures e o
+  `confirmarSegundoFator` (`support/telas.ts`) passam pela segunda etapa. Na stack de e2e o mesmo código
+  vale mais de uma vez (os testes entram várias vezes no mesmo intervalo de 30 s).
 - **Sessão nova por teste**: as fixtures `comoAdmin` e `comoAluno` (`support/sessoes.ts`) entram pela API
   no contexto do navegador; ao abrir a página, o app renova a sessão pelo cookie `HttpOnly`. Não há
   sessão gravada: o refresh token é rotativo e um token reutilizado derruba a sessão inteira.
@@ -141,8 +146,10 @@ requisições por IP.
 
 **ADM** (`e2e/adm/`)
 
-- **`acesso.spec.ts`** — entrada do admin, volta para onde ia, senha errada; aluno barrado na tela e na
-  API do ADM.
+- **`acesso.spec.ts`** — entrada do admin com o código do aplicativo, volta para onde ia, código errado,
+  senha errada; aluno barrado na tela e na API do ADM.
+- **`usuarios.spec.ts`** — bloqueio de um aluno (não entra mais) e desbloqueio; o admin sem as ações na
+  própria linha.
 - **`conteudo.spec.ts`** — cursos (validação, slug repetido, capa em formato errado, exclusão com
   turmas, filtro), conteúdo da turma (reordenar, inativar, exclusão com aulas) e aula (vídeo recusado na
   tela e pela API, edição, arquivo de apoio recusado).
@@ -169,9 +176,9 @@ requisições por IP.
   revisar, anterior e próxima, arquivo de apoio, fórum da aula, certificado (bloqueado → emitido →
   validado); sem matrícula, matrícula futura, arquivar.
 - **`perfil.spec.ts`** — troca de nome, foto (formato errado recusado) e senha.
-- **`compra.spec.ts`** — compra pelo botão do site com a Hotmart interceptada: aprovada (o curso
-  aparece), reembolso (o curso some), boleto aguardando, e o "Comprar" sem login que volta para a compra
-  depois de entrar.
+- **`compra.spec.ts`** — compra pelo botão do site com a Hotmart interceptada: a página mostra curso e
+  valor e só abre o pedido no "Ir para o pagamento"; aprovada (o curso aparece), reembolso (o curso
+  some), boleto aguardando, e o "Comprar" sem login que volta para a compra depois de entrar.
 
 **Site** (`e2e/site/`)
 
@@ -182,8 +189,9 @@ requisições por IP.
 
 **Apoio** (`e2e/support/`): `config.ts` (endereços e trava), `api.ts` (montar dados pela API),
 `sessoes.ts` (fixtures de sessão), `contas.ts` e `mailpit.ts` (contas confirmadas pelo e-mail),
-`telas.ts` (login pela tela, termos, escolher opção do `CampoSelect`), `amostras.ts` (arquivos de
-amostra), `pagamentos.ts` (Hotmart e notificações).
+`telas.ts` (login pela tela, segundo fator, termos, escolher opção do `CampoSelect`), `totp.ts` (código
+do aplicativo autenticador), `amostras.ts` (arquivos de amostra), `pagamentos.ts` (Hotmart e
+notificações).
 
 ## Lighthouse do site
 

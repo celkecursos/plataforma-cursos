@@ -23,7 +23,10 @@ export const NAV: SecaoNav[] = [
   },
   {
     rotulo: 'Segurança',
-    itens: [{ rotulo: 'Auditoria', icone: 'shield-check', rota: CAMINHOS.auditoria }],
+    itens: [
+      { rotulo: 'Usuários', icone: 'users', rota: CAMINHOS.usuarios },
+      { rotulo: 'Auditoria', icone: 'shield-check', rota: CAMINHOS.auditoria },
+    ],
   },
 ];
 

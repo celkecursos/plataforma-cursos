@@ -23,7 +23,7 @@ public class CriarAdminService {
         if (email == null || !email.contains("@")) {
             throw new IllegalArgumentException("E-mail inválido.");
         }
-        String problemaSenha = PoliticaSenha.validar(senha, PoliticaSenha.MINIMO_ADMIN);
+        String problemaSenha = PoliticaSenha.validar(senha, PoliticaSenha.MINIMO_ADMIN, nome, email);
         if (problemaSenha != null) {
             throw new IllegalArgumentException(problemaSenha);
         }

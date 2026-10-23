@@ -10,17 +10,24 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import br.com.celke.cursos.auth.application.AuthService.Desafio;
+import br.com.celke.cursos.auth.application.AuthService.Sessao;
 import br.com.celke.cursos.auth.application.RefreshTokenService.RefreshEmitido;
+import br.com.celke.cursos.auth.application.SegundoFatorService.Verificacao;
 import br.com.celke.cursos.auth.application.TokenAcessoService.TokenAcesso;
 import br.com.celke.cursos.auth.domain.ResultadoLogin;
+import br.com.celke.cursos.auth.domain.TipoToken;
 import br.com.celke.cursos.shared.erro.MuitasTentativasException;
 import br.com.celke.cursos.shared.web.OrigemRequisicao;
 import br.com.celke.cursos.support.fixtures.UsuarioFixture;
 import br.com.celke.cursos.usuario.application.UsuarioService;
 import br.com.celke.cursos.usuario.domain.Papel;
 import br.com.celke.cursos.usuario.domain.Usuario;
+import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.ZoneOffset;
+import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -55,6 +62,12 @@ class AuthServiceTest {
     @Mock
     private AuditoriaLoginService auditoriaLoginService;
 
+    @Mock
+    private SegundoFatorService segundoFatorService;
+
+    @Mock
+    private TokenUsoUnicoService tokens;
+
     private AuthService service;
 
     @BeforeEach
@@ -67,7 +80,10 @@ class AuthServiceTest {
                 tokenAcessoService,
                 refreshTokenService,
                 bloqueioLoginService,
-                auditoriaLoginService);
+                auditoriaLoginService,
+                segundoFatorService,
+                tokens,
+                Clock.fixed(Instant.parse("2026-01-10T12:00:00Z"), ZoneOffset.UTC));
     }
 
     private static Usuario ana() {
@@ -83,7 +99,7 @@ class AuthServiceTest {
         when(refreshTokenService.emitir(7L)).thenReturn(new RefreshEmitido("refresh", 7L, EXPIRA));
         when(tokenAcessoService.emitir(ana)).thenReturn(new TokenAcesso("jwt", EXPIRA));
 
-        var sessao = service.entrar("ana@celke.uno", "senha-certa", ORIGEM);
+        var sessao = (Sessao) service.entrar("ana@celke.uno", "senha-certa", ORIGEM);
 
         assertThat(sessao.acesso().valor()).isEqualTo("jwt");
         assertThat(sessao.refresh().token()).isEqualTo("refresh");
@@ -223,5 +239,76 @@ class AuthServiceTest {
 
         verify(refreshTokenService).revogarFamiliaDoToken("refresh");
         verify(refreshTokenService).revogarTodas(7L);
+    }
+
+    private static Usuario admin() {
+        return UsuarioFixture.usuario(9, "admin@celke.uno", "{argon2}hash-do-admin", Papel.ADMIN);
+    }
+
+    @Test
+    @DisplayName("admin com a senha certa recebe o desafio, sem sessão, e o bloqueio não zera")
+    void adminRecebeDesafio() {
+        Usuario admin = admin();
+        when(usuarioService.buscarPorEmail("admin@celke.uno")).thenReturn(Optional.of(admin));
+        when(passwordEncoder.matches("senha-certa", "{argon2}hash-do-admin")).thenReturn(true);
+        when(tokens.emitir(9L, TipoToken.DESAFIO_SEGUNDO_FATOR)).thenReturn(Optional.of("desafio"));
+        when(tokens.validade(TipoToken.DESAFIO_SEGUNDO_FATOR)).thenReturn(Duration.ofMinutes(5));
+        when(segundoFatorService.ativo(9L)).thenReturn(false);
+
+        var entrada = service.entrar("admin@celke.uno", "senha-certa", ORIGEM);
+
+        assertThat(entrada).isEqualTo(new Desafio("desafio", true, Instant.parse("2026-01-10T12:05:00Z")));
+        verify(auditoriaLoginService)
+                .registrar("admin@celke.uno", admin, ResultadoLogin.SEGUNDO_FATOR_PENDENTE, ORIGEM);
+        verify(refreshTokenService, never()).emitir(anyLong());
+        verify(bloqueioLoginService, never()).registrarSucesso(anyString(), anyString());
+    }
+
+    @Test
+    @DisplayName("código errado conta falha, audita e não gasta o desafio")
+    void codigoErrado() {
+        Usuario admin = admin();
+        when(tokens.dono("desafio", TipoToken.DESAFIO_SEGUNDO_FATOR)).thenReturn(Optional.of(9L));
+        when(usuarioService.buscarPorId(9L)).thenReturn(Optional.of(admin));
+        when(segundoFatorService.verificar(admin, "000000", null)).thenReturn(new Verificacao(null, List.of()));
+
+        assertThatThrownBy(() -> service.concluirSegundoFator("desafio", "000000", null, ORIGEM))
+                .isInstanceOf(CodigoInvalidoException.class);
+        verify(auditoriaLoginService)
+                .registrar("admin@celke.uno", admin, ResultadoLogin.SEGUNDO_FATOR_INVALIDO, ORIGEM);
+        verify(bloqueioLoginService).registrarFalha("admin@celke.uno", "203.0.113.7");
+        verify(tokens, never()).consumir(anyString(), any());
+        verify(refreshTokenService, never()).emitir(anyLong());
+    }
+
+    @Test
+    @DisplayName("código certo gasta o desafio, zera o bloqueio, audita e abre a sessão")
+    void codigoCerto() {
+        Usuario admin = admin();
+        when(tokens.dono("desafio", TipoToken.DESAFIO_SEGUNDO_FATOR)).thenReturn(Optional.of(9L));
+        when(tokens.consumir("desafio", TipoToken.DESAFIO_SEGUNDO_FATOR)).thenReturn(Optional.of(9L));
+        when(usuarioService.buscarPorId(9L)).thenReturn(Optional.of(admin));
+        when(segundoFatorService.verificar(admin, "123456", null))
+                .thenReturn(new Verificacao(ResultadoLogin.SEGUNDO_FATOR_CADASTRADO, List.of("abcde-fghjk")));
+        when(refreshTokenService.emitir(9L)).thenReturn(new RefreshEmitido("refresh", 9L, EXPIRA));
+        when(tokenAcessoService.emitir(admin)).thenReturn(new TokenAcesso("jwt", EXPIRA));
+
+        var sessao = service.concluirSegundoFator("desafio", "123456", null, ORIGEM);
+
+        assertThat(sessao.sessao().acesso().valor()).isEqualTo("jwt");
+        assertThat(sessao.codigosRecuperacao()).containsExactly("abcde-fghjk");
+        verify(auditoriaLoginService)
+                .registrar("admin@celke.uno", admin, ResultadoLogin.SEGUNDO_FATOR_CADASTRADO, ORIGEM);
+        verify(bloqueioLoginService).registrarSucesso("admin@celke.uno", "203.0.113.7");
+    }
+
+    @Test
+    @DisplayName("desafio vencido, usado ou de conta inativa é recusado")
+    void desafioInvalido() {
+        when(tokens.dono("velho", TipoToken.DESAFIO_SEGUNDO_FATOR)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> service.concluirSegundoFator("velho", "123456", null, ORIGEM))
+                .isInstanceOf(DesafioInvalidoException.class);
+        assertThatThrownBy(() -> service.cadastrarSegundoFator("velho")).isInstanceOf(DesafioInvalidoException.class);
     }
 }

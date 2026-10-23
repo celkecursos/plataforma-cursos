@@ -18,6 +18,11 @@ spring:
       ddl-auto: validate
   flyway:
     enabled: true
+    # Usuário da API e do worker (só dados): criado e liberado pelo afterMigrate.sql quando informado.
+    # Em branco (desenvolvimento), a aplicação usa o próprio dono do schema
+    placeholders:
+      usuario_app: ${DB_APP_USERNAME:}
+      senha_app: ${DB_APP_PASSWORD:}
   data:
     web:
       pageable:
@@ -97,6 +102,12 @@ app:
     cookie-seguro: true
     # Origens do front que podem renovar e encerrar a sessão (separadas por vírgula)
     origens-permitidas: ${AUTH_ORIGENS:}
+    segundo-fator:
+      # Chave AES-256 dos segredos do aplicativo autenticador dos administradores: 32 bytes em Base64
+      # (openssl rand -base64 32). Trocar a chave exige cadastrar o aplicativo de novo (redefinir-2fa)
+      chave: ${TOTP_CHAVE:}
+      emissor: Plataforma de Cursos
+      rejeitar-reuso: true
   conta:
     # Área do aluno: base dos links enviados por e-mail
     url-aluno: ${FRONT_ALUNO_URL:}
@@ -112,6 +123,11 @@ app:
     # Contadores de falha zeram depois de uma hora sem novas falhas
     janela-falhas: PT1H
     bloqueio: PT15M
+  limites-usuario:
+    # Gravações (POST, PUT, PATCH, DELETE) de um usuário logado a cada minuto, em todas as rotas
+    escritas-por-minuto: 120
+    # Pedidos abertos no meio de pagamento por um usuário a cada hora
+    checkouts-por-hora: 10
   armazenamento:
     # Endereço usado pela aplicação (rede interna)
     endpoint: ${S3_ENDPOINT:}

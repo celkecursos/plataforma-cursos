@@ -30,3 +30,4 @@ Ao final de cada prompt, confira a seção **Verificação** dele antes de segui
 | 20 | [Operação: backup, alertas e segurança](f10-01-operacao.md) | 10 | `feature/operacao` |
 | 21 | [Pagamentos: multi-gateway e Hotmart](f16-01-pagamentos-hotmart.md) | 16 | `feature/pagamentos` |
 | 22 | [Auditoria das ações e logs persistentes](f17-01-auditoria-e-logs.md) | 17 | `feature/auditoria` |
+| 23 | [Segurança: segundo fator, menos privilégio e senhas fortes](f18-01-seguranca.md) | 18 | `feature/seguranca` |

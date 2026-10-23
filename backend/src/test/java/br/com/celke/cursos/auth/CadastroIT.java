@@ -86,7 +86,7 @@ class CadastroIT extends IntegrationTest {
     void emailJaCadastrado() {
         UsuarioTeste existente = criarUsuario(Papel.ALUNO);
 
-        assertThat(cadastrar("Outra Pessoa", existente.email(), "outra-senha-qualquer"))
+        assertThat(cadastrar("Outra Pessoa", existente.email(), "girassol-azul-77"))
                 .hasStatus(HttpStatus.ACCEPTED)
                 .bodyJson()
                 .extractingPath("$.mensagem")
@@ -97,7 +97,7 @@ class CadastroIT extends IntegrationTest {
                 .isEqualTo("Tentativa de cadastro com o seu e-mail");
         assertThat(contasCom(existente.email())).isEqualTo(1);
         entrar(existente.email(), existente.senha());
-        assertThat(tentarLogin(existente.email(), "outra-senha-qualquer")).hasStatus(HttpStatus.UNAUTHORIZED);
+        assertThat(tentarLogin(existente.email(), "girassol-azul-77")).hasStatus(HttpStatus.UNAUTHORIZED);
     }
 
     @Test

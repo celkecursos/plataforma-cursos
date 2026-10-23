@@ -1,8 +1,11 @@
 import { TelaLogin } from '@celke/kole-react';
+import { useState } from 'react';
 import { Link, Navigate, useNavigate, useSearchParams } from 'react-router';
 import { mensagemDeErro } from '@compartilhado/api/erros.ts';
+import type { DesafioSegundoFator } from '@compartilhado/api/tipos.ts';
 import { destinoAposLogin } from '@compartilhado/sessao/RotaPrivada.tsx';
 import { useSessao } from '@compartilhado/sessao/ProvedorSessao.tsx';
+import { SegundoFator } from '@compartilhado/sessao/SegundoFator.tsx';
 import { CAMINHOS } from '../caminhos.ts';
 import { MARCA } from '../marca.ts';
 
@@ -16,7 +19,21 @@ export function EntrarPagina() {
     ? `?voltar=${encodeURIComponent(parametros.get('voltar')!)}`
     : '';
 
+  // Administrador que entra pela área do aluno também passa pelo segundo fator
+  const [desafio, setDesafio] = useState<DesafioSegundoFator>();
+
   if (estado.status === 'autenticado') return <Navigate to={destino} replace />;
+
+  if (desafio) {
+    return (
+      <SegundoFator
+        marca="Plataforma de Cursos"
+        desafio={desafio}
+        aoConcluir={() => navigate(destino, { replace: true })}
+        aoVoltar={() => setDesafio(undefined)}
+      />
+    );
+  }
 
   return (
     <TelaLogin
@@ -47,7 +64,11 @@ export function EntrarPagina() {
       }
       aoEntrar={async ({ usuario, senha }) => {
         try {
-          await entrar(usuario.trim(), senha);
+          const resultado = await entrar(usuario.trim(), senha);
+          if (resultado.tipo === 'desafio') {
+            setDesafio(resultado.desafio);
+            return;
+          }
           navigate(destino, { replace: true });
         } catch (erro) {
           return { erro: mensagemDeErro(erro) };

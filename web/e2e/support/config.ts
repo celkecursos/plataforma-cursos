@@ -7,6 +7,8 @@ export const MAILPIT_URL = process.env['E2E_MAILPIT_URL'] ?? 'http://localhost:8
 export const SENHA_SEED = process.env['E2E_SENHA_SEED'] ?? '123456A#b123';
 export const ADMIN_SEED = 'admin@celke.com.br';
 export const ALUNO_SEED = 'aluno@celke.com.br';
+/** Segredo (Base32) do aplicativo autenticador do admin do seed (`SEED_E2E_TOTP`). */
+export const TOTP_SEED = process.env['E2E_TOTP_SEED'] ?? 'JBSWY3DPEHPK3PXPJBSWY3DPEHPK3PXP';
 
 // Trava: os testes criam contas e trocam senhas; só rodam contra a stack local (*.localhost)
 for (const url of [ALUNO_URL, ADM_URL, SITE_URL]) {

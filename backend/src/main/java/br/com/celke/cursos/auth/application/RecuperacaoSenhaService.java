@@ -2,7 +2,10 @@ package br.com.celke.cursos.auth.application;
 
 import br.com.celke.cursos.auth.domain.TipoToken;
 import br.com.celke.cursos.shared.email.EmailService;
+import br.com.celke.cursos.shared.erro.CampoInvalidoException;
 import br.com.celke.cursos.usuario.application.UsuarioService;
+import br.com.celke.cursos.usuario.domain.Papel;
+import br.com.celke.cursos.usuario.domain.PoliticaSenha;
 import br.com.celke.cursos.usuario.domain.Usuario;
 import java.util.Map;
 import java.util.Optional;
@@ -41,14 +44,23 @@ public class RecuperacaoSenhaService {
     }
 
     /**
-     * Troca a senha pelo link. Também confirma o e-mail (o link chegou à caixa do dono) e encerra
-     * todas as sessões, inclusive a de quem tiver descoberto a senha antiga.
+     * Troca a senha pelo link. A política (com o mínimo do papel: admin exige mais) é conferida antes de
+     * usar o link, para a pessoa poder tentar outra senha. Também confirma o e-mail (o link chegou à
+     * caixa do dono) e encerra todas as sessões, inclusive a de quem tiver descoberto a senha antiga.
      */
     @Transactional
     public void redefinir(String token, String novaSenha) {
-        Long usuarioId = tokens.consumir(token, TipoToken.RECUPERACAO_SENHA).orElseThrow(LinkInvalidoException::new);
-        Usuario usuario =
-                usuarioService.buscarPorId(usuarioId).filter(Usuario::isAtivo).orElseThrow(LinkInvalidoException::new);
+        Usuario usuario = tokens.dono(token, TipoToken.RECUPERACAO_SENHA)
+                .flatMap(usuarioService::buscarPorId)
+                .filter(Usuario::isAtivo)
+                .orElseThrow(LinkInvalidoException::new);
+        int minimo =
+                usuario.getPapeis().contains(Papel.ADMIN) ? PoliticaSenha.MINIMO_ADMIN : PoliticaSenha.MINIMO_ALUNO;
+        String problema = PoliticaSenha.validar(novaSenha, minimo, usuario.getNome(), usuario.getEmail());
+        if (problema != null) {
+            throw new CampoInvalidoException("senha", problema);
+        }
+        tokens.consumir(token, TipoToken.RECUPERACAO_SENHA).orElseThrow(LinkInvalidoException::new);
         usuarioService.trocarSenha(usuario, novaSenha);
         usuarioService.confirmarEmail(usuario);
         refreshTokenService.revogarTodas(usuario.getId());

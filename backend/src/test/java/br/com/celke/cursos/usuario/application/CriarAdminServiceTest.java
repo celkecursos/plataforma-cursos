@@ -32,9 +32,10 @@ class CriarAdminServiceTest {
     @Test
     @DisplayName("cria o usuário só com o papel ADMIN")
     void criaAdmin() {
-        service.criar("Admin", "admin@celke.uno", "senha-longa-do-admin");
+        service.criar("Admin", "admin@celke.uno", "girassol-azul-do-lago");
 
-        verify(usuarioService).criarConfirmado("Admin", "admin@celke.uno", "senha-longa-do-admin", Set.of(Papel.ADMIN));
+        verify(usuarioService)
+                .criarConfirmado("Admin", "admin@celke.uno", "girassol-azul-do-lago", Set.of(Papel.ADMIN));
     }
 
     @ParameterizedTest(name = "{0}")
