@@ -176,6 +176,8 @@ requisições por IP.
   revisar, anterior e próxima, arquivo de apoio, fórum da aula, certificado (bloqueado → emitido →
   validado); sem matrícula, matrícula futura, arquivar.
 - **`perfil.spec.ts`** — troca de nome, foto (formato errado recusado) e senha.
+- **`privacidade.spec.ts`** — baixar a cópia dos dados (JSON com a conta) e excluir a conta (validação,
+  e-mail de confirmação, a conta não entra mais).
 - **`compra.spec.ts`** — compra pelo botão do site com a Hotmart interceptada: a página mostra curso e
   valor e só abre o pedido no "Ir para o pagamento"; aprovada (o curso aparece), reembolso (o curso
   some), boleto aguardando, e o "Comprar" sem login que volta para a compra depois de entrar.

@@ -27,10 +27,11 @@ import {
 } from '@compartilhado/ui/validacao.ts';
 import { CAMINHOS } from '../../caminhos.ts';
 import type { EnvioSimples, Perfil } from '../../tipos.ts';
+import { Privacidade } from './Privacidade.tsx';
 
 const FOTO_MAXIMA = 5 * 1024 * 1024;
 
-/** Dados do aluno: nome, foto e troca de senha. */
+/** Dados do aluno: nome, foto, troca de senha e privacidade (cópia dos dados e exclusão da conta). */
 export function PerfilPagina() {
   const perfil = useCarregar(() => api.get<Perfil>('/api/perfil'), []);
   if (perfil.erro && !perfil.dados) return <Alerta severidade="err" mensagem={perfil.erro} />;
@@ -41,6 +42,7 @@ export function PerfilPagina() {
       <Dados perfil={perfil.dados} aoMudar={perfil.definir} />
       <Foto perfil={perfil.dados} aoMudar={perfil.definir} />
       <TrocarSenha />
+      <Privacidade />
     </div>
   );
 }

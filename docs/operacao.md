@@ -111,6 +111,8 @@ Falha no envio de e-mail não gera alerta por e-mail (iria pela mesma fila): apa
 - **Uploads abandonados** (`uploads/` do bucket): a regra de expiração do bucket apaga em 2 dias, e os
   uploads em partes não concluídos em 1 dia. Os envios aceitos saem de `uploads/` na confirmação.
 - **Log de acesso aos vídeos**: o worker apaga todo dia o que passou de 180 dias.
+- **Auditoria de login** (e-mail, IP, navegador de cada tentativa): o worker apaga todo dia o que passou
+  de 180 dias (`app.auth.auditoria-login.retencao`).
 - **Dados da homologação**: quando acumular lixo de testes,
   `docker compose -p plataforma-cursos-homolog -f compose.prod.yml -f compose.homolog.yml down -v`
   e o próximo deploy da `homolog` recria tudo vazio (crie o admin de novo com `criar-admin`).
@@ -133,6 +135,31 @@ do aluno, cadastro e worker): **quem** (usuário do token; vazio para visitante 
 - **Só inclusão**: o banco recusa `UPDATE` e `DELETE` na tabela (gatilho). A única exclusão é a retenção,
   feita pelo worker aos domingos, que apaga o que passou de **5 anos** (`app.auditoria.retencao`).
 - Login e tentativas de login continuam na `auditoria_login`; acesso a vídeo na `acessos_video`.
+
+## 4.2 LGPD: direitos do titular e retenção
+
+- **Baixar meus dados** (`GET /api/perfil/dados`, perfil do aluno → Privacidade): JSON com a conta e uma
+  seção por módulo (`matriculas`, `progresso`, `forum`, `certificados`, `pedidos`, `aceitesTermos`,
+  `entradas`, `acessosVideo`). Cada módulo responde pelas próprias tabelas (`shared/lgpd/DadosPessoais`):
+  módulo novo com dado pessoal implementa a interface.
+- **Excluir minha conta** (`POST /api/perfil/exclusao`, senha + "EXCLUIR"; administradores não se
+  excluem por aqui): aviso por e-mail para o endereço da conta; apagados progresso, certificados (com o
+  PDF), foto, sessões, links de e-mail e segundo fator; conta anonimizada (`Conta excluída`,
+  `excluida-<id>@conta-excluida.invalid`, sem senha, inativa); pedidos sem e-mail e nome. Ficam, pelo
+  prazo legal: matrículas e pedidos (5 anos), aceites dos termos, entradas e acessos aos vídeos (180
+  dias), a trilha de auditoria (5 anos, com o antes da anonimização) e os backups (até 6 meses).
+- **Política de privacidade**: o modelo em [`politica-privacidade-modelo.md`](politica-privacidade-modelo.md)
+  traz os dados, as finalidades, as bases legais e os prazos acima; publique pelo ADM → Termos depois da
+  revisão jurídica. Mudou um prazo na configuração? Mude o texto publicado.
+
+| Dado | Retenção | Onde |
+|---|---|---|
+| Trilha de auditoria | 5 anos | `app.auditoria.retencao` (worker, semanal) |
+| Auditoria de login | 180 dias | `app.auth.auditoria-login.retencao` (worker, diária) |
+| Acessos aos vídeos | 180 dias | `app.video.retencao-log-acesso` (worker, diária) |
+| Corpo das notificações de pagamento | 180 dias | `app.pagamentos.retencao-payload` (worker) |
+| Logs da API e do worker | 180 dias ou 2 GB | volume `logs` |
+| Backups | 7 diários, 4 semanais, 6 mensais | `backup.sh` (restic) |
 
 ## 5. Quanto vídeo cabe no disco
 

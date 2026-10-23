@@ -1,7 +1,7 @@
 # Prompts iniciais
 
 Prompts para criar a Plataforma de Cursos do zero com o Claude Code, do repositório vazio até o
-projeto completo: backend, fronts, site, infraestrutura, pagamentos, auditoria, segurança e documentação.
+projeto completo: backend, fronts, site, infraestrutura, pagamentos, auditoria, segurança, privacidade e documentação.
 
 Como usar:
 
@@ -45,3 +45,4 @@ cria ou altera o `web/package.json`.
 | 25 | [Pagamentos: multi-gateway e Hotmart](f16-01-pagamentos-hotmart.md) | 16 | `feature/pagamentos` |
 | 26 | [Auditoria das ações e logs persistentes](f17-01-auditoria-e-logs.md) | 17 | `feature/auditoria` |
 | 27 | [Segurança: segundo fator, menos privilégio e senhas fortes](f18-01-seguranca.md) | 18 | `feature/seguranca` |
+| 28 | [LGPD: cópia dos dados, exclusão da conta e política de privacidade](f19-01-lgpd.md) | 19 | `feature/lgpd` |

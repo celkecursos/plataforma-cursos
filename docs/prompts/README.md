@@ -31,3 +31,4 @@ Ao final de cada prompt, confira a seção **Verificação** dele antes de segui
 | 21 | [Pagamentos: multi-gateway e Hotmart](f16-01-pagamentos-hotmart.md) | 16 | `feature/pagamentos` |
 | 22 | [Auditoria das ações e logs persistentes](f17-01-auditoria-e-logs.md) | 17 | `feature/auditoria` |
 | 23 | [Segurança: segundo fator, menos privilégio e senhas fortes](f18-01-seguranca.md) | 18 | `feature/seguranca` |
+| 24 | [LGPD: cópia dos dados, exclusão da conta e política de privacidade](f19-01-lgpd.md) | 19 | `feature/lgpd` |

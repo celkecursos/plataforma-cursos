@@ -43,7 +43,9 @@ export function EntrarPagina() {
       descricao={
         parametros.get('senha') === 'alterada'
           ? 'Senha alterada. Entre com a nova senha.'
-          : 'Acesse seus cursos, aulas e certificados.'
+          : parametros.get('conta') === 'excluida'
+            ? 'Sua conta foi excluída. Enviamos a confirmação para o seu e-mail.'
+            : 'Acesse seus cursos, aulas e certificados.'
       }
       apresentacao={{
         chamada: 'Plataforma de Cursos',

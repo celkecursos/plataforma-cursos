@@ -591,6 +591,18 @@ Prompt: [`docs/prompts/f18-01-seguranca.md`](prompts/f18-01-seguranca.md). Opera
 - [x] Teste que varre todas as rotas da API: só as públicas declaradas respondem sem login
 - [x] Testes unitários, de integração e Playwright
 
+### Fase 19 — `feature/lgpd`
+
+Prompt: [`docs/prompts/f19-01-lgpd.md`](prompts/f19-01-lgpd.md). Operação:
+[`docs/operacao.md`](operacao.md), seção 4.2. Modelo da política:
+[`docs/politica-privacidade-modelo.md`](politica-privacidade-modelo.md).
+
+- [x] Baixar meus dados: JSON com a conta e uma seção por módulo (`DadosPessoais` em cada módulo)
+- [x] Excluir minha conta: senha e confirmação, aviso por e-mail, conta anonimizada, progresso, certificados, foto, sessões e segundo fator apagados, pedidos sem e-mail e nome; o que tem prazo legal fica
+- [x] Retenção da auditoria de login (180 dias)
+- [x] Modelo da política de privacidade com dados, finalidades, bases legais e os prazos aplicados pelo sistema
+- [x] Perfil do aluno → Privacidade; testes de integração e Playwright
+
 ---
 
 ## 5. Mapa fase → capítulos do tutorial
@@ -619,3 +631,4 @@ O conteúdo de cada capítulo está em [capitulos.md](capitulos.md).
 | 16 | `feature/pagamentos` | 38–40 |
 | 17 | `feature/auditoria` | 41 |
 | 18 | `feature/seguranca` | 42, 43 |
+| 19 | `feature/lgpd` | 44 |
