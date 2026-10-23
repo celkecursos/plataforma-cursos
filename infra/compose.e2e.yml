@@ -35,8 +35,8 @@ services:
       target: site
     environment:
       SITE_URL: http://cursos.localhost:8088
-      # Curso publicado pelo teste aparece em segundos
-      SITE_INTERVALO: "3"
+      # Curso publicado pelo teste aparece em até um segundo
+      SITE_CACHE_SEGUNDOS: "1"
 
   migracao:
     image: plataforma-cursos-api:e2e

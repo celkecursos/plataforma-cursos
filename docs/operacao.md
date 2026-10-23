@@ -91,7 +91,7 @@ Falha no envio de e-mail não gera alerta por e-mail (iria pela mesma fila): apa
 ## 4. Logs e limpeza
 
 - **Logs do Docker** com rotação em todos os serviços (`json-file`, 5 arquivos de 10 MB por container):
-  no máximo ~250 MB por ambiente, poucos dias de histórico. Os logs da API e do worker são JSON (ECS) com o id de correlação e o `@timestamp` no horário de Brasília (`-03:00`); o gerador do site e o `deploy.log` usam o mesmo fuso.
+  no máximo ~250 MB por ambiente, poucos dias de histórico. Os logs da API e do worker são JSON (ECS) com o id de correlação e o `@timestamp` no horário de Brasília (`-03:00`); o site e o `deploy.log` usam o mesmo fuso.
 - **Logs persistentes da API e do worker**: além do console, cada um grava o mesmo JSON em
   `/var/log/plataforma-cursos/api.log` e `worker.log`, no volume `logs` do ambiente (sobrevive a deploy e
   recriação do container). Um arquivo por dia de Brasília, comprimido (`api.log.2026-10-22.0.gz`), novo

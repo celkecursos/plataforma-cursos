@@ -680,3 +680,21 @@ Fica antes do frontend porque precisa estar pronta antes de entrarem dados reais
 - **Testes:** integração da exportação e da exclusão (dados anonimizados, sessões encerradas, auditoria mantida, e-mail enviado) e da retenção; Playwright de baixar os dados e excluir a conta.
 - **Entrega:** um aluno baixa os dados e exclui a conta pelo perfil; a política publicada bate com o sistema.
 
+---
+
+## Parte 14 — Site dinâmico
+
+### Cap. 45 — Site em React com renderização no servidor
+
+**Fase:** 21 · **Prompt:** [f21-01](prompts/f21-01-site-react-ssr.md)
+
+- **Objetivo:** o site público mostra sempre o que está na API, com o mesmo HTML completo para os buscadores e uma interface moderna.
+- **Conteúdo:**
+  - Estático gerado de tempos em tempos × renderização no servidor a cada requisição: o que muda para o SEO (nada, o HTML chega pronto) e para o conteúdo (na hora, sem esperar a próxima geração).
+  - React Router em modo framework: `loader` no servidor, `meta` com canônico, Open Graph e `noindex` na homologação, `headers` de cache, `ErrorBoundary` com 404 de verdade, rotas de recurso para `sitemap.xml` e `robots.txt`.
+  - Streaming para o navegador e a página inteira de uma vez para os robôs (`isbot`); CSP com nonce por requisição.
+  - Cache curto das leituras da API no servidor e o que muda no Caddy (o `site` atende na porta 3000).
+  - Layout moderno com os tokens da `@celke/kole-react`, tema escuro e movimento reduzido; busca do catálogo no navegador depois da hidratação.
+  - Cursos de exemplo pela API do ADM, com capa gerada no próprio script.
+- **Testes:** funções de SEO (unidade), Playwright do site (meta tags, 404, busca, certificado) e Lighthouse no pipeline.
+- **Entrega:** o site publica um curso assim que ele é publicado no ADM, com Lighthouse 100 nas quatro categorias.

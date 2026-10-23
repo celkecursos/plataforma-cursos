@@ -47,3 +47,4 @@ cria ou altera o `web/package.json`.
 | 27 | [Imagens no fórum de dúvidas](f18-01-anexos-no-forum.md) | 18 | `feature/forum-anexos` |
 | 28 | [Segurança: segundo fator, menos privilégio e senhas fortes](f19-01-seguranca.md) | 19 | `feature/seguranca` |
 | 29 | [LGPD: cópia dos dados, exclusão da conta e política de privacidade](f20-01-lgpd.md) | 20 | `feature/lgpd` |
+| 30 | [Site em React com renderização no servidor](f21-01-site-react-ssr.md) | 21 | `feature/site-layout` |

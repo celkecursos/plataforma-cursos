@@ -1,7 +1,7 @@
 ---
 paths:
   - "web/**"
-description: Padrões dos fronts (área do aluno e ADM em React) e do site público gerado. Carrega ao tocar web/.
+description: Padrões dos fronts (área do aluno e ADM em React) e do site público (React com renderização no servidor). Carrega ao tocar web/.
 ---
 
 # Fronts e site (`web/`)
@@ -22,7 +22,8 @@ web/
   compartilhado/src/   cliente da API, sessão, componentes e utilitários usados pelos dois fronts
   aluno/src/           área do aluno: rotas, layout, páginas
   adm/src/             ADM: rotas, layout, páginas
-  site/                gerador do site público (HTML a partir da API)
+  site/                site público: React Router em modo framework, renderizado no servidor (SEO)
+  scripts/             scripts de apoio rodados no Node (ex.: cursos de exemplo pela API do ADM)
   e2e/                 Playwright: specs por projeto (aluno, adm, site) e apoio em support/
 ```
 
@@ -31,7 +32,8 @@ web/
 - **Use o componente da biblioteca** (`@celke/kole-react`) antes de criar um; não reestilize por dentro
   as classes internas dela. Faltou algo? componha por fora ou pergunte.
 - **Toda chamada à API passa pelo cliente de `compartilhado/src/api`**: ele põe o token, renova a
-  sessão pelo cookie e transforma o `ProblemDetail` em erro tipado. Nada de `fetch` solto.
+  sessão pelo cookie e transforma o `ProblemDetail` em erro tipado. Nada de `fetch` solto. Exceção: o
+  site (no servidor, em `site/app/api.server.ts`) e os `scripts/`, que rodam no Node e buscam a API direto.
 - **Access token só em memória**; o refresh fica no cookie `HttpOnly`. Nunca `localStorage` para token.
 - Erro de validação do backend (`erros[]` com `campo`) aparece no campo certo do formulário.
 - Toda tela tem os estados carregando, vazio e erro.

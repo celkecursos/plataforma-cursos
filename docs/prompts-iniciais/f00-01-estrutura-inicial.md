@@ -64,6 +64,7 @@ target/
 # Node
 node_modules/
 dist/
+.react-router/
 coverage/
 playwright-report/
 test-results/
@@ -245,7 +246,7 @@ plataforma-cursos/
 │   ├── compartilhado/           cliente HTTP, sessão, rotas protegidas, validação
 │   ├── aluno/
 │   ├── adm/
-│   ├── site/                    gerador do site público (Node, sem dependências)
+│   ├── site/                    site público (React Router com renderização no servidor)
 │   ├── e2e/                     Playwright contra a stack de e2e
 │   ├── Dockerfile               build dos fronts + Caddy interno (aluno :8081, ADM :8082)
 │   └── Caddyfile
@@ -728,6 +729,18 @@ Prompt: [`docs/prompts/f20-01-lgpd.md`](prompts/f20-01-lgpd.md). Operação:
 - [x] Modelo da política de privacidade com dados, finalidades, bases legais e os prazos aplicados pelo sistema
 - [x] Perfil do aluno → Privacidade; testes de integração e Playwright
 
+### Fase 21 — `feature/site-layout`
+
+Prompt: [`docs/prompts/f21-01-site-react-ssr.md`](prompts/f21-01-site-react-ssr.md).
+
+- [x] Site em React Router (modo framework) com renderização no servidor a cada requisição: HTML completo para os buscadores, hidratado no navegador; o container `site` vira um servidor Node na porta 3000 (o `web` deixa de servir a 8083)
+- [x] Leituras da API com cache curto em memória (`SITE_CACHE_SEGUNDOS`, 30 s), 404 de verdade para curso inexistente, CSP com nonce por requisição
+- [x] Layout moderno: topo fixo, abertura com ilustração, vantagens, cursos em destaque, como funciona, página do curso com coluna de compra fixa e conteúdo por módulo, rodapé, tema escuro
+- [x] Busca no catálogo direto no navegador (sem acento e sem diferenciar maiúsculas)
+- [x] Favicon da `@celke/kole-react` nos três fronts
+- [x] Script `npm run cursos-exemplo` que cria cursos publicados de exemplo pela API do ADM
+- [x] Testes unitários do SEO, Playwright do site e Lighthouse (metas da Fase 14)
+
 ---
 
 ## 5. Mapa fase → capítulos do tutorial
@@ -758,6 +771,7 @@ O conteúdo de cada capítulo está em [capitulos.md](capitulos.md).
 | 18 | `feature/forum-anexos` | 26 |
 | 19 | `feature/seguranca` | 42, 43 |
 | 20 | `feature/lgpd` | 44 |
+| 21 | `feature/site-layout` | 45 |
 `````
 
 ### 5. `docs/capitulos.md`
@@ -1446,6 +1460,25 @@ Fica antes do frontend porque precisa estar pronta antes de entrarem dados reais
 - **Segurança:** a exclusão exige a senha e a palavra de confirmação; o access token cai na hora; administrador não se exclui por aqui.
 - **Testes:** integração da exportação e da exclusão (dados anonimizados, sessões encerradas, auditoria mantida, e-mail enviado) e da retenção; Playwright de baixar os dados e excluir a conta.
 - **Entrega:** um aluno baixa os dados e exclui a conta pelo perfil; a política publicada bate com o sistema.
+
+---
+
+## Parte 14 — Site dinâmico
+
+### Cap. 45 — Site em React com renderização no servidor
+
+**Fase:** 21 · **Prompt:** [f21-01](prompts/f21-01-site-react-ssr.md)
+
+- **Objetivo:** o site público mostra sempre o que está na API, com o mesmo HTML completo para os buscadores e uma interface moderna.
+- **Conteúdo:**
+  - Estático gerado de tempos em tempos × renderização no servidor a cada requisição: o que muda para o SEO (nada, o HTML chega pronto) e para o conteúdo (na hora, sem esperar a próxima geração).
+  - React Router em modo framework: `loader` no servidor, `meta` com canônico, Open Graph e `noindex` na homologação, `headers` de cache, `ErrorBoundary` com 404 de verdade, rotas de recurso para `sitemap.xml` e `robots.txt`.
+  - Streaming para o navegador e a página inteira de uma vez para os robôs (`isbot`); CSP com nonce por requisição.
+  - Cache curto das leituras da API no servidor e o que muda no Caddy (o `site` atende na porta 3000).
+  - Layout moderno com os tokens da `@celke/kole-react`, tema escuro e movimento reduzido; busca do catálogo no navegador depois da hidratação.
+  - Cursos de exemplo pela API do ADM, com capa gerada no próprio script.
+- **Testes:** funções de SEO (unidade), Playwright do site (meta tags, 404, busca, certificado) e Lighthouse no pipeline.
+- **Entrega:** o site publica um curso assim que ele é publicado no ADM, com Lighthouse 100 nas quatro categorias.
 `````
 
 ### 6. Os próprios prompts

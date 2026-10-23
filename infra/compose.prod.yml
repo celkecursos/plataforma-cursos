@@ -1,8 +1,8 @@
 # Stack de um ambiente dos servidores (produção ou homologação): API, worker, fronts (web), gerador
-# do site público (site), PostgreSQL e Garage.
+# do site público (site, React renderizado no servidor), PostgreSQL e Garage.
 # Imagens publicadas no GHCR com a tag do commit (TAG); nenhuma porta publicada. O Caddy (projeto
-# próprio, em caddy/) chega à API, aos fronts e ao Garage pela rede plataforma-cursos-<AMBIENTE>,
-# pelos apelidos <AMBIENTE>-api, <AMBIENTE>-web e <AMBIENTE>-garage. Todas as variáveis vêm do .env do ambiente.
+# próprio, em caddy/) chega à API, aos fronts, ao site e ao Garage pela rede plataforma-cursos-<AMBIENTE>,
+# pelos apelidos <AMBIENTE>-api, <AMBIENTE>-web, <AMBIENTE>-site e <AMBIENTE>-garage. Todas as variáveis vêm do .env do ambiente.
 #
 #   Produção:    docker compose -p plataforma-cursos-producao -f compose.prod.yml up -d --wait
 #   Homologação: docker compose -p plataforma-cursos-homolog -f compose.prod.yml -f compose.homolog.yml up -d --wait
@@ -141,8 +141,6 @@ services:
     environment:
       # Origem dos vídeos e arquivos na Content-Security-Policy dos fronts
       MIDIA_ORIGEM: ${S3_ENDPOINT_PUBLICO:?defina S3_ENDPOINT_PUBLICO}
-    volumes:
-      - site:/srv/site:ro
     networks:
       default:
         aliases:
@@ -152,7 +150,8 @@ services:
         limits:
           memory: 64M
 
-  # Gera o site público (cursos.*) a partir da API ao subir e a cada SITE_INTERVALO segundos
+  # Site público (cursos.*): React renderizado no servidor a cada requisição, lendo a API do ambiente
+  # pela rede interna (com cache curto em memória)
   site:
     logging: *logging
     image: ${IMAGEM_SITE:-ghcr.io/celkecursos/plataforma-cursos-site}:${TAG:?defina TAG}
@@ -163,16 +162,19 @@ services:
       # Em branco, deriva do FRONT_ALUNO_URL (aluno.celke.uno → cursos.celke.uno)
       SITE_URL: ${SITE_URL:-}
       SITE_INDEXAVEL: ${SITE_INDEXAVEL:-true}
-      SITE_INTERVALO: ${SITE_INTERVALO:-300}
-    volumes:
-      - site:/site
+      # Origem das capas (URLs pré-assinadas do Garage), liberada na Content-Security-Policy
+      MIDIA_ORIGEM: ${S3_ENDPOINT_PUBLICO:?defina S3_ENDPOINT_PUBLICO}
     depends_on:
       api:
         condition: service_healthy
+    networks:
+      default:
+        aliases:
+          - ${AMBIENTE:?defina AMBIENTE}-site
     deploy:
       resources:
         limits:
-          memory: 128M
+          memory: 256M
 
   postgres:
     logging: *logging
@@ -229,6 +231,5 @@ networks:
 volumes:
   postgres:
   garage:
-  site:
   # Logs da API e do worker em arquivo (o log do Docker roda em poucos dias)
   logs:

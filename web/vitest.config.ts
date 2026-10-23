@@ -9,7 +9,11 @@ export default defineConfig({
   },
   test: {
     environment: 'jsdom',
-    include: ['{aluno,adm,compartilhado}/src/**/*.test.{ts,tsx}', 'site/**/*.test.ts'],
+    include: [
+      '{aluno,adm,compartilhado}/src/**/*.test.{ts,tsx}',
+      'site/app/**/*.test.ts',
+      'scripts/**/*.test.ts',
+    ],
     setupFiles: ['./compartilhado/src/testes/configuracao.ts'],
     css: false,
   },
