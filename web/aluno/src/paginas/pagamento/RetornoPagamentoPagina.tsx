@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router';
 import { api } from '@compartilhado/api/cliente.ts';
 import { mensagemDeErro } from '@compartilhado/api/erros.ts';
+import { useSessao } from '@compartilhado/sessao/ProvedorSessao.tsx';
 import { LayoutConta } from '@compartilhado/ui/LayoutConta.tsx';
 import { CAMINHOS, caminhoTurma } from '../../caminhos.ts';
 import type { SituacaoPedido, StatusPedido } from '../../tipos.ts';
@@ -28,19 +29,22 @@ export function resultado(status: StatusPedido): Resultado {
 
 /**
  * Página de obrigado do meio de pagamento (`?pedido=<código>` ou `?xcod=<código>`): consulta o pedido a cada 3 segundos
- * por até 2 minutos, até a notificação chegar.
+ * por até 2 minutos, até a notificação chegar. Quem volta do meio de pagamento abre a página do zero: a
+ * consulta espera a sessão ser retomada pelo cookie, senão sai sem login e a API não devolve a turma.
  */
 export function RetornoPagamentoPagina() {
   const [parametros] = useSearchParams();
   // `xcod`: o código do pedido como a Hotmart o repassa à página de obrigado
   const codigo = parametros.get('pedido') ?? parametros.get('xcod');
   const navigate = useNavigate();
+  const { estado: sessao } = useSessao();
+  const sessaoPronta = sessao.status !== 'carregando';
   const [situacao, setSituacao] = useState<SituacaoPedido>();
   const [erro, setErro] = useState<string>();
   const [esgotou, setEsgotou] = useState(false);
 
   useEffect(() => {
-    if (!codigo) return;
+    if (!codigo || !sessaoPronta) return;
     let ativo = true;
     const inicio = Date.now();
     let espera: ReturnType<typeof setTimeout>;
@@ -67,7 +71,7 @@ export function RetornoPagamentoPagina() {
       ativo = false;
       clearTimeout(espera);
     };
-  }, [codigo]);
+  }, [codigo, sessaoPronta]);
 
   if (!codigo || erro) {
     return (
