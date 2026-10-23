@@ -8,7 +8,7 @@
 Estamos começando o projeto **Plataforma de Cursos**: uma plataforma de cursos online com área do
 aluno, painel administrativo e site. O backend será em Java 25 com Spring Boot 4.1 e PostgreSQL 18,
 os vídeos ficarão num armazenamento S3 (Garage) convertidos para HLS com ffmpeg, o frontend será em
-React usando a biblioteca `@celke/ui`, e a infraestrutura usará Docker, Caddy, GitHub Actions e deploy
+React usando a biblioteca `@celke/kole-react`, e a infraestrutura usará Docker, Caddy, GitHub Actions e deploy
 numa VPS.
 
 Nesta etapa, crie apenas os arquivos iniciais na raiz do repositório. Não crie código, pastas de
@@ -26,7 +26,7 @@ como tutorial.
 
 - **Backend:** Java 25, Spring Boot 4.1, PostgreSQL 18
 - **Vídeos:** armazenamento S3 (Garage) com conversão para HLS via ffmpeg
-- **Frontend:** React com [`@celke/ui`](https://github.com/celkecursos/layout-proprio-biblioteca)
+- **Frontend:** React com [`@celke/kole-react`](https://github.com/celkecursos/kole-react)
 - **Infraestrutura:** Docker, Caddy, GitHub Actions, deploy em VPS
 
 ## Branches

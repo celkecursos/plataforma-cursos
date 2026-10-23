@@ -8,7 +8,7 @@
 Estamos começando o projeto **Plataforma de Cursos**: uma plataforma de cursos online com área do
 aluno, painel administrativo e site. O backend será em Java 25 com Spring Boot 4.1 e PostgreSQL 18,
 os vídeos ficarão num armazenamento S3 (Garage) convertidos para HLS com ffmpeg, o frontend será em
-React usando a biblioteca `@celke/ui`, e a infraestrutura usará Docker, Caddy, GitHub Actions e deploy
+React usando a biblioteca `@celke/kole-react`, e a infraestrutura usará Docker, Caddy, GitHub Actions e deploy
 numa VPS.
 
 Nesta etapa, crie apenas os arquivos iniciais: o `README.md`, o `.gitignore`, o plano de
@@ -26,7 +26,7 @@ como tutorial.
 
 - **Backend:** Java 25, Spring Boot 4.1, PostgreSQL 18
 - **Vídeos:** armazenamento S3 (Garage) com conversão para HLS via ffmpeg
-- **Frontend:** React com [`@celke/ui`](https://github.com/celkecursos/layout-proprio-biblioteca)
+- **Frontend:** React com [`@celke/kole-react`](https://github.com/celkecursos/kole-react)
 - **Infraestrutura:** Docker, Caddy, GitHub Actions, deploy em VPS
 
 ## Branches
@@ -83,14 +83,14 @@ Crie com exatamente este conteúdo:
 # Plano de implementação — Plataforma de Cursos
 
 Sistema do aluno (cursos, aulas em vídeo, fórum, certificado) com backend Java, frontend React
-usando `@celke/ui`, tudo em Docker numa VPS da Hostinger. Este plano também é o roteiro do tutorial:
+usando `@celke/kole-react`, tudo em Docker numa VPS da Hostinger. Este plano também é o roteiro do tutorial:
 cada fase vira uma branch e um ou mais capítulos.
 
 **Prompts:** cada etapa implementada tem um prompt em [`docs/prompts/`](prompts/README.md). Executados
 na ordem do índice, eles recriam o projeto do zero.
 
 **Ordem de trabalho:** primeiro todo o backend (com infraestrutura, CI e deploy), depois o frontend,
-quando o `@celke/ui` já estiver publicado no npm.
+com a `@celke/kole-react` instalada do GitHub (commit fixo no `package.json`).
 
 ---
 
@@ -106,7 +106,7 @@ quando o `@celke/ui` já estiver publicado no npm.
 | Acesso ao S3 | Somente AWS SDK v2 com path-style; trocar de servidor = trocar endpoint no `.env` |
 | Vídeo | Upload direto por URL pré-assinada → ffmpeg → HLS 720p + 1080p → playlist reescrita pela API com segmentos assinados |
 | E-mail | **SMTP da Iagente** |
-| Frontend | Workspace npm com `site`, `aluno`, `adm`; `@celke/ui` instalado **do npm** (publicado antes da fase de front) |
+| Frontend | Pacote único em `web/` com `aluno`, `adm` e o gerador do `site`; `@celke/kole-react` instalada **do GitHub** com commit fixo |
 | Hospedagem | Tudo em Docker na VPS (2 vCPU, 8 GB, 100 GB NVMe); Caddy com HTTPS automático serve os fronts e faz proxy de `/api` |
 | Ambientes | Produção + homologação leve na mesma VPS |
 | Branches | `main` (produção), `homolog` (homologação), `feature/nome` e `fix/nome` temporárias, `hotfix/nome` a partir da `main` |
@@ -601,7 +601,7 @@ Capítulo 35.
 
 - [x] Meus cursos em abas (ativos, arquivados, expirados), arquivar/desarquivar
 - [x] Turma com módulos, aulas, arquivos do módulo e progresso (vistas e revisar)
-- [x] Aula: player HLS (hls.js; token só nas playlists da API) com retomada e envio da posição, anterior/próxima, vista/revisar, arquivos, fórum da aula (pergunta e resposta; anexo de imagem fica para depois)
+- [x] Aula: player HLS (hls.js; token só nas playlists da API) com retomada e envio da posição, anterior/próxima, vista/revisar, arquivos, fórum da aula (pergunta e resposta; as imagens nas mensagens entram na Fase 18)
 - [x] Certificado (situação, emissão com o nome completo, PDF), lista de certificados e perfil (nome, foto, senha)
 - [x] e2e (Playwright, caminho feliz e infeliz): login → turma → aula → vídeo toca até o fim → vista → progresso da turma; retomada, revisar, navegação, download do arquivo, fórum, certificado (bloqueado → emitido → validado), perfil; sem matrícula, matrícula futura, arquivar
 
@@ -657,6 +657,16 @@ Prompt: [`docs/prompts/f17-01-auditoria-e-logs.md`](prompts/f17-01-auditoria-e-l
 - [x] Logs da API e do worker também em arquivo, no volume `logs`: um por dia, 180 dias ou 2 GB por serviço
 - [x] Testes unitários, de integração e Playwright
 
+### Fase 18 — `feature/forum-anexos`
+
+Prompt: [`docs/prompts/f18-01-anexos-no-forum.md`](prompts/f18-01-anexos-no-forum.md).
+
+- [x] Imagens na pergunta e na resposta do aluno: escolher, arrastar ou colar um print (no texto também), com prévia, remover e progresso do envio
+- [x] Tipo, tamanho e quantidade conferidos em todos os caminhos (o `accept` do seletor não filtra arrastar e colar): JPEG ou PNG, até 5 MB, até 3 por mensagem
+- [x] Envio direto ao armazenamento só ao publicar (a API apaga o envio ao processá-lo; uma nova tentativa envia de novo)
+- [x] Imagens publicadas na pergunta e nas respostas, para o aluno e na moderação do ADM, com visualizador em tela cheia
+- [x] Testes unitários e Playwright (caminho feliz e infeliz)
+
 ---
 
 ## 5. Mapa fase → capítulos do tutorial
@@ -676,7 +686,7 @@ O conteúdo de cada capítulo está em [capitulos.md](capitulos.md).
 | 8 | `feature/certificado` | 27 |
 | 9 | `feature/perfil-termos` | 28 |
 | 10 | `feature/operacao` | 29–31 |
-| — | repositório do `@celke/ui` | 32 |
+| — | repositório da `@celke/kole-react` | 32 |
 | 11 | `feature/web-base` | 33 |
 | 12 | `feature/web-adm` | 34 |
 | 13 | `feature/web-aluno` | 35 |
@@ -684,6 +694,7 @@ O conteúdo de cada capítulo está em [capitulos.md](capitulos.md).
 | 15 | `feature/migracao-legado` | 37 |
 | 16 | `feature/pagamentos` | 38–40 |
 | 17 | `feature/auditoria` | 41 |
+| 18 | `feature/forum-anexos` | 26 |
 `````
 
 ### 4. `docs/capitulos.md`
@@ -713,7 +724,7 @@ capítulo.
 | 5. Vídeo | 19–24 | 4, 5 |
 | 6. Restante do domínio | 25–28 | 6–9 |
 | 7. Operação | 29–31 | 10 |
-| 8. Frontend com `@celke/ui` | 32–36 | 11–14 |
+| 8. Frontend com `@celke/kole-react` | 32–36 | 11–14 |
 | 9. Migração do legado (opcional) | 37 | 15 |
 | 10. Vendas e pagamentos | 38–40 | 16 |
 | 11. Auditoria e logs | 41 | 17 |
@@ -1176,16 +1187,16 @@ Fica antes do frontend porque precisa estar pronta antes de entrarem dados reais
 
 ---
 
-## Parte 8 — Frontend com `@celke/ui`
+## Parte 8 — Frontend com `@celke/kole-react`
 
-### Cap. 32 — Componentes da área do aluno no `@celke/ui`
+### Cap. 32 — A biblioteca `@celke/kole-react`
 
-**Pré-requisito do frontend** (feito no repositório da biblioteca)
+**Pré-requisito do frontend** (repositório da biblioteca)
 
-- **Objetivo:** a biblioteca publicada no npm com tudo que a área do aluno precisa.
-- **Conteúdo:** `PlayerVideo` (hls.js, token no `xhrSetup`, retomar posição, enviar progresso), `CardCurso`, `ListaAulas` e componentes de fórum.
-- **Testes:** componentes testados com Vitest.
-- **Entrega:** nova versão do `@celke/ui` publicada no npm.
+- **Objetivo:** conhecer a biblioteca de layout usada pelos fronts e como instalá-la.
+- **Conteúdo:** moldura (`Estrutura`, `TelaLogin`), formulários, tabelas, diálogos, avisos e o visualizador de arquivos; instalação do GitHub (`github:celkecursos/kole-react#<commit>`). Os componentes próprios da área do aluno (player de vídeo, lista de aulas, fórum, campo de imagens) ficam no app.
+- **Testes:** componentes testados com Vitest no repositório da biblioteca.
+- **Entrega:** commit da biblioteca fixado no `web/package.json`.
 
 ### Cap. 33 — Workspace web e a biblioteca
 
@@ -1193,8 +1204,8 @@ Fica antes do frontend porque precisa estar pronta antes de entrarem dados reais
 
 - **Objetivo:** base dos três frontends servida pelo Caddy.
 - **Conteúdo:**
-  - Workspace npm com `site`, `aluno` e `adm` (Vite + React + TypeScript).
-  - `@celke/ui` instalado do npm com versão fixa.
+  - Pacote único em `web/` com `aluno` e `adm` (Vite + React + TypeScript); o `site` entra na Fase 14.
+  - `@celke/kole-react` instalada do GitHub com commit fixo.
   - Client HTTP com token em memória, refresh silencioso e fila de requisições durante o refresh; proteção de rotas por papel; tratamento de termo pendente.
   - Telas de login, cadastro, confirmação de e-mail e recuperação de senha.
   - Imagem `web`: build dos fronts + Caddy servindo `/srv/site`, `/srv/aluno` e `/srv/adm`; proxy do Vite `/api` no desenvolvimento.
@@ -1207,7 +1218,7 @@ Fica antes do frontend porque precisa estar pronta antes de entrarem dados reais
 **Fase:** 12
 
 - **Objetivo:** o admin opera a plataforma pelo navegador.
-- **Conteúdo:** cursos, turmas, módulos e aulas (com reordenação por arrastar); upload de vídeo multipart com progresso e status de processamento; arquivos de apoio, matrículas, moderação do fórum e termos.
+- **Conteúdo:** cursos, turmas, módulos e aulas (reordenação pelos botões subir e descer); upload de vídeo multipart com progresso e status de processamento; arquivos de apoio, matrículas, moderação do fórum e termos.
 - **Testes:** Playwright do admin criando um curso completo e enviando um vídeo curto até "pronto".
 - **Entrega:** curso publicado inteiramente pelo ADM.
 
@@ -1216,7 +1227,7 @@ Fica antes do frontend porque precisa estar pronta antes de entrarem dados reais
 **Fase:** 13
 
 - **Objetivo:** a experiência completa do aluno.
-- **Conteúdo:** dashboard de cursos; página da turma com progresso; aula com player, lista lateral, anterior/próxima, vista/revisar, arquivos e fórum; certificados e perfil.
+- **Conteúdo:** dashboard de cursos; página da turma com progresso; aula com player, lista lateral, anterior/próxima, vista/revisar, arquivos e fórum (com imagens nas perguntas e respostas, Fase 18); certificados e perfil.
 - **Testes:** Testing Library e Playwright (login → turma → aula → vídeo toca → marca como vista → progresso atualizado).
 - **Entrega:** aluno assiste a uma aula do início ao fim.
 
@@ -1226,9 +1237,9 @@ Fica antes do frontend porque precisa estar pronta antes de entrarem dados reais
 
 - **Objetivo:** vitrine pública rápida e bem indexada.
 - **Conteúdo:**
-  - React com pré-renderização estática (cada página vira um HTML) em `cursos.celke.uno`.
-  - Home, catálogo, página do curso (dados da API no build), validar certificado e páginas legais.
-  - Layout novo com os mesmos tokens visuais do `@celke/ui`.
+  - Pré-renderização estática (cada página vira um HTML) em `cursos.celke.uno`, gerada pelo container `site` a partir da API do próprio ambiente ao subir e a cada 5 minutos.
+  - Home, catálogo, página do curso, validar certificado e páginas legais.
+  - Layout novo com os mesmos tokens visuais da `@celke/kole-react`.
   - SEO: meta tags, Open Graph, sitemap, `robots.txt`.
 - **Testes:** meta de Lighthouse verificada no pipeline.
 - **Entrega:** site publicado com a nota de Lighthouse atingida.

@@ -15,6 +15,7 @@ import { ErroApi, mensagemDeErro } from '@compartilhado/api/erros.ts';
 import type { Pagina } from '@compartilhado/api/tipos.ts';
 import { useCarregar } from '@compartilhado/api/useCarregar.ts';
 import { dataHora } from '@compartilhado/ui/formato.ts';
+import { GaleriaImagens } from '@compartilhado/ui/GaleriaImagens.tsx';
 import { useAcao } from '@compartilhado/ui/useAcao.ts';
 import type { Topico, TopicoResumo, Turma } from '../../tipos.ts';
 
@@ -187,6 +188,7 @@ function PainelTopico({
           </div>
           {/* HTML já filtrado pela API (Markdown → HTML seguro) */}
           <div className="pc-texto-longo" dangerouslySetInnerHTML={{ __html: t.corpoHtml }} />
+          <GaleriaImagens imagens={t.anexos} de={t.autorNome} />
 
           <h3 className="pc-subtitulo">Respostas ({t.respostas.length})</h3>
           {t.respostas.map((r) => (
@@ -217,6 +219,7 @@ function PainelTopico({
                 />
               </header>
               <div dangerouslySetInnerHTML={{ __html: r.corpoHtml }} />
+              <GaleriaImagens imagens={r.anexos} de={r.autorNome} />
             </article>
           ))}
 
