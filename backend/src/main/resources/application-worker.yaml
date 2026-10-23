@@ -1,0 +1,18 @@
+# Worker: processa a fila (transcodificação de vídeo, e-mails) e não atende HTTP
+spring:
+  main:
+    web-application-type: none
+    # Sem servidor HTTP e com threads virtuais, nada segura a JVM: mantém o processo vivo
+    keep-alive: true
+  # As migrations são aplicadas pela API
+  flyway:
+    enabled: false
+
+app:
+  fila:
+    consumidor-ativo: true
+    # Arquivo regravado a cada 10 s; o healthcheck do Docker confere se mudou no último minuto
+    arquivo-batimento: /tmp/worker-batimento
+  video:
+    # O ffmpeg roda com prioridade baixa: a API e o banco, no mesmo servidor, continuam respondendo
+    prefixo-comando: nice,-n,10

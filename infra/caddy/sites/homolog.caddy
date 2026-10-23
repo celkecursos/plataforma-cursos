@@ -1,0 +1,24 @@
+# Homologação: restrita por IP, fora dos buscadores e com o Swagger
+{$HOMOLOG_HOST_ALUNO} {
+	import seguranca
+	import homolog
+	import app_com_docs homolog 8081
+}
+
+{$HOMOLOG_HOST_ADM} {
+	import seguranca
+	import homolog
+	import app_com_docs homolog 8082
+}
+
+{$HOMOLOG_HOST_MEDIA} {
+	import seguranca
+	import homolog
+	import midia homolog
+}
+
+{$HOMOLOG_HOST_SITE} {
+	import seguranca
+	import homolog
+	import site homolog
+}

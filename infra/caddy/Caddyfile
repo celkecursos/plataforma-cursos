@@ -1,0 +1,98 @@
+# Porta de entrada da plataforma. Um Caddy só atende os dois ambientes da VPS: cada site está em
+# sites/<ambiente>.caddy e chega à API, aos fronts e ao Garage do seu ambiente pelos apelidos
+# <ambiente>-api, <ambiente>-web e <ambiente>-garage. Com "https://..." o Caddy emite o certificado
+# sozinho; com "http://..." atende sem TLS (e2e).
+{
+	admin off
+	email {$ACME_EMAIL:nao-configurado@celke.uno}
+}
+
+# Headers de segurança em todas as respostas
+(seguranca) {
+	header {
+		X-Content-Type-Options nosniff
+		Referrer-Policy strict-origin-when-cross-origin
+		# Respostas só podem ser carregadas por páginas do mesmo site (aluno, adm e mídia são subdomínios dele)
+		Cross-Origin-Resource-Policy same-site
+		Strict-Transport-Security "max-age=31536000"
+		-Server
+	}
+}
+
+# Um front (aluno ou ADM) com a sua API. Só a API e o health check chegam à API; o resto (Swagger,
+# outros endpoints do Actuator) nunca: vai para o container web, que serve o app React.
+# O X-Forwarded-For que o cliente mandar é substituído pelo IP real da conexão.
+# Argumentos: o ambiente (producao, homolog, e2e) e a porta do app no container web (8081 aluno, 8082 ADM).
+(app) {
+	@api path /api/* /actuator/health /actuator/health/*
+	handle @api {
+		reverse_proxy {args[0]}-api:8080 {
+			# Durante o deploy a API reinicia: segura a requisição em vez de responder 502
+			lb_try_duration 30s
+		}
+	}
+	handle {
+		reverse_proxy {args[0]}-web:{args[1]} {
+			lb_try_duration 30s
+		}
+	}
+}
+
+# Como (app), mas também com a documentação (Swagger): só na homologação
+(app_com_docs) {
+	@api path /api/* /actuator/health /actuator/health/* /v3/api-docs /v3/api-docs/* /swagger-ui.html /swagger-ui/*
+	handle @api {
+		reverse_proxy {args[0]}-api:8080 {
+			lb_try_duration 30s
+		}
+	}
+	handle {
+		reverse_proxy {args[0]}-web:{args[1]} {
+			lb_try_duration 30s
+		}
+	}
+}
+
+# Site público (cursos.*): só as leituras públicas da API (catálogo, capas, termos vigentes e
+# validação de certificado) chegam a ela; o resto é o site em React renderizado no servidor.
+# Argumento: o ambiente.
+(site) {
+	@api {
+		method GET HEAD
+		path /api/cursos /api/cursos/* /api/termos/vigentes /api/certificados/*
+	}
+	handle @api {
+		reverse_proxy {args[0]}-api:8080 {
+			lb_try_duration 30s
+		}
+	}
+	handle {
+		reverse_proxy {args[0]}-site:3000 {
+			lb_try_duration 30s
+		}
+	}
+}
+
+# Arquivos do bucket por URL pré-assinada (o host faz parte da assinatura e é repassado como veio)
+(midia) {
+	reverse_proxy {args[0]}-garage:3900
+}
+
+# Painel administrativo: só os IPs de ADM_IPS (separados por espaço)
+(somente_ips_adm) {
+	@fora not remote_ip {$ADM_IPS}
+	respond @fora "Acesso restrito." 403
+}
+
+# Homologação: só os IPs de HOMOLOG_IPS e fora dos buscadores. As notificações dos meios de pagamento
+# (Hotmart de teste) passam: vêm dos servidores deles e são autenticadas pela API (hottok)
+(homolog) {
+	header X-Robots-Tag "noindex, nofollow"
+	@fora {
+		not remote_ip {$HOMOLOG_IPS}
+		not path /api/pagamentos/webhooks/*
+	}
+	respond @fora "Acesso restrito." 403
+}
+
+import sites/*.caddy

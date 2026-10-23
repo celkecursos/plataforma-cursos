@@ -1,0 +1,50 @@
+# Deploy de um ambiente na VPS, chamado pelo pipeline depois do e2e. Secrets: VPS_HOST, VPS_SSH_KEY
+# (chave privada do usuário deploy) e VPS_KNOWN_HOSTS (impressão digital da VPS, de ssh-keyscan). O
+# environment (homolog ou production) permite exigir aprovação antes do deploy da produção.
+name: Deploy
+
+on:
+  workflow_call:
+    inputs:
+      ambiente:
+        description: producao ou homolog
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    name: Deploy (${{ inputs.ambiente }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: ${{ inputs.ambiente == 'producao' && 'production' || 'homolog' }}
+    # Um deploy por ambiente; nunca cancelado no meio
+    concurrency:
+      group: deploy-${{ inputs.ambiente }}
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Chave SSH e impressão digital da VPS
+        env:
+          SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+          KNOWN_HOSTS: ${{ secrets.VPS_KNOWN_HOSTS }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/deploy
+          chmod 600 ~/.ssh/deploy
+          printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
+
+      # A chave do deploy só executa o deploy.sh na VPS: os arquivos de compose vão pela entrada
+      # e o script recebe o ambiente e o SHA. Se a nova versão não ficar saudável, ele volta para a
+      # anterior e este passo falha.
+      - name: Implantar
+        env:
+          HOST: ${{ secrets.VPS_HOST }}
+          AMBIENTE: ${{ inputs.ambiente }}
+        run: |
+          tar -C infra -cz compose.prod.yml compose.homolog.yml garage/garage.toml \
+            | ssh -i ~/.ssh/deploy -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes \
+                deploy@"$HOST" "$AMBIENTE $GITHUB_SHA"

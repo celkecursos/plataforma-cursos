@@ -1,0 +1,21 @@
+# Produção
+{$PRODUCAO_HOST_ALUNO} {
+	import seguranca
+	import app producao 8081
+}
+
+{$PRODUCAO_HOST_ADM} {
+	import seguranca
+	import somente_ips_adm
+	import app producao 8082
+}
+
+{$PRODUCAO_HOST_MEDIA} {
+	import seguranca
+	import midia producao
+}
+
+{$PRODUCAO_HOST_SITE} {
+	import seguranca
+	import site producao
+}

@@ -1,0 +1,379 @@
+/* Telas fora da área logada (cadastro, confirmação, recuperação de senha): cartão centralizado
+   com os tokens da @celke/kole-react, nos dois temas. */
+.pc-conta {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 24px 16px;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-ui);
+}
+
+.pc-conta-cartao {
+  width: 100%;
+  max-width: 440px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-card);
+  padding: 32px 28px;
+  display: grid;
+  gap: 18px;
+}
+
+.pc-conta-marca {
+  font-size: var(--fs-caption);
+  color: var(--t2);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin: 0;
+}
+
+.pc-conta-titulo {
+  font-size: var(--fs-titulo);
+  margin: 0;
+}
+
+.pc-conta-descricao {
+  color: var(--t2);
+  margin: 0;
+}
+
+.pc-conta-form {
+  display: grid;
+  gap: 14px;
+}
+
+.pc-conta-rodape {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  justify-content: space-between;
+  font-size: var(--fs-corpo-2);
+}
+
+.pc-conta-rodape a,
+.pc-link {
+  color: var(--pri);
+}
+
+button.pc-link {
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+/* Segundo fator: QR code do aplicativo autenticador e códigos de recuperação */
+.pc-segundo-fator-qr {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  text-align: center;
+  font-size: var(--fs-corpo-2);
+}
+
+.pc-segundo-fator-qr img {
+  border-radius: 8px;
+  background: #fff;
+}
+
+.pc-codigos-recuperacao {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-family: var(--font-mono);
+  font-size: var(--fs-corpo);
+}
+
+.pc-codigos-recuperacao code {
+  display: block;
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  text-align: center;
+}
+
+.pc-pagina {
+  display: grid;
+  gap: 20px;
+}
+
+.pc-grade-cards {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+}
+
+/* Telas de gestão (ADM) */
+.pc-pilha {
+  display: grid;
+  gap: 16px;
+}
+
+.pc-linha {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+}
+
+.pc-linha-fim {
+  justify-content: flex-end;
+}
+
+.pc-filtros {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.pc-grade-detalhes {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  align-items: start;
+}
+
+.pc-dica {
+  color: var(--t2);
+  font-size: var(--fs-corpo-2);
+  margin: 0;
+}
+
+.pc-subtitulo {
+  font-size: var(--fs-corpo);
+  margin: 8px 0 0;
+}
+
+.pc-texto-longo {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  margin: 0;
+}
+
+.pc-texto-longo :where(p, ul, ol, h1, h2, h3) {
+  white-space: normal;
+}
+
+.pc-capa {
+  max-width: min(360px, 100%);
+  border-radius: var(--r-card);
+}
+
+.pc-lista-aulas {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding-left: 20px;
+}
+
+.pc-lista-aulas li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+}
+
+.pc-aula-titulo {
+  background: none;
+  border: 0;
+  padding: 0;
+  font: inherit;
+  cursor: pointer;
+  text-align: left;
+}
+
+.pc-arquivos {
+  display: grid;
+  gap: 10px;
+  border-top: 1px solid var(--border);
+  padding-top: 12px;
+}
+
+.pc-resposta {
+  border: 1px solid var(--border);
+  border-radius: var(--r-card);
+  padding: 12px 14px;
+  display: grid;
+  gap: 8px;
+}
+
+.pc-resposta-oculta {
+  opacity: 0.6;
+}
+
+/* Área do aluno */
+.pc-player video {
+  width: 100%;
+  max-height: 70vh;
+  background: #000;
+  border-radius: var(--r-card);
+}
+
+.pc-progresso-turma {
+  display: grid;
+  gap: 4px;
+  max-width: 520px;
+}
+
+.pc-navegacao-aulas {
+  justify-content: space-between;
+}
+
+.pc-formulario-estreito {
+  max-width: 420px;
+}
+
+/* Pagamentos (ADM) */
+.pc-codigo {
+  font-family: var(--font-mono, monospace);
+  font-size: var(--fs-corpo-2);
+  overflow-wrap: anywhere;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 4px 8px;
+}
+
+.pc-passos {
+  margin: 0;
+  padding-left: 20px;
+  display: grid;
+  gap: 6px;
+}
+
+.pc-json {
+  font-family: var(--font-mono, monospace);
+  font-size: var(--fs-corpo-2);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  max-height: 420px;
+  overflow: auto;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 12px;
+  margin: 0;
+}
+
+.pc-linha-tempo {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+}
+
+.pc-linha-tempo li {
+  display: grid;
+  gap: 2px;
+  border-left: 3px solid var(--border);
+  padding-left: 12px;
+}
+
+/* Imagens das mensagens do fórum: escolha (CampoImagens) e exibição (GaleriaImagens) */
+.pc-imagens {
+  display: grid;
+  gap: 8px;
+}
+
+.pc-imagens-zona {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  padding: 12px;
+  border: 1px dashed var(--border-2);
+  border-radius: var(--r-card);
+}
+
+.pc-imagens-zona-sobre {
+  border-color: var(--pri);
+  background: var(--pri-bg);
+}
+
+.pc-imagens-erros {
+  color: var(--err-fg);
+  font-size: var(--fs-corpo-2);
+}
+
+.pc-imagens-erros p {
+  margin: 0;
+}
+
+.pc-imagens-lista,
+.pc-galeria {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.pc-imagens-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-card);
+  max-width: 100%;
+}
+
+.pc-imagens-item img {
+  width: 56px;
+  height: 56px;
+  object-fit: cover;
+  border-radius: var(--r-field);
+}
+
+.pc-imagens-texto {
+  display: grid;
+  gap: 2px;
+  min-width: 120px;
+}
+
+.pc-imagens-nome {
+  overflow-wrap: anywhere;
+  font-size: var(--fs-corpo-2);
+}
+
+.pc-galeria button {
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--r-card);
+  background: none;
+  cursor: zoom-in;
+  overflow: hidden;
+}
+
+.pc-galeria img {
+  display: block;
+  width: 140px;
+  height: 100px;
+  object-fit: cover;
+}
+
+/* Resumo da compra antes de ir ao meio de pagamento */
+.pc-resumo-compra {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 6px 16px;
+  margin: 0;
+}
+
+.pc-resumo-compra dt {
+  color: var(--t2);
+}
+
+.pc-resumo-compra dd {
+  margin: 0;
+  font-weight: 600;
+}

@@ -1,0 +1,90 @@
+{
+  "id": "6c4e6a5b-0000-4000-8000-000000000009",
+  "creation_date": 1761140009000,
+  "event": "PURCHASE_EXPIRED",
+  "version": "2.0.0",
+  "data": {
+    "product": {
+      "id": 4774438,
+      "ucode": "0d3b5d0a-5f0e-4bd2-9a4b-6d1f0c2b9e11",
+      "name": "Curso de Teste",
+      "warranty_date": "2026-11-21T00:00:00Z",
+      "has_co_production": false,
+      "is_physical_product": false
+    },
+    "affiliates": [
+      {
+        "affiliate_code": "Q58388177J",
+        "name": "Afiliado de Teste"
+      }
+    ],
+    "buyer": {
+      "email": "comprador.teste@example.com",
+      "name": "Comprador de Teste",
+      "first_name": "Comprador",
+      "last_name": "de Teste",
+      "checkout_phone": "5511999990000",
+      "document": "12345678909",
+      "document_type": "CPF",
+      "address": {
+        "country": "Brasil",
+        "country_iso": "BR",
+        "zipcode": "01001000"
+      }
+    },
+    "producer": {
+      "name": "Produtor de Teste",
+      "document": "11222333000181",
+      "legal_nature": "Pessoa Jurídica"
+    },
+    "commissions": [
+      {
+        "value": 14.95,
+        "source": "MARKETPLACE",
+        "currency_value": "BRL"
+      },
+      {
+        "value": 182.05,
+        "source": "PRODUCER",
+        "currency_value": "BRL"
+      }
+    ],
+    "purchase": {
+      "approved_date": 1761140000000,
+      "full_price": {
+        "value": 197.0,
+        "currency_value": "BRL"
+      },
+      "price": {
+        "value": 197.0,
+        "currency_value": "BRL"
+      },
+      "checkout_country": {
+        "name": "Brasil",
+        "iso": "BR"
+      },
+      "buyer_ip": "200.100.50.25",
+      "origin": {
+        "xcod": "XCOD_DO_PEDIDO",
+        "sck": "plataforma"
+      },
+      "original_offer_price": {
+        "value": 197.0,
+        "currency_value": "BRL"
+      },
+      "order_date": 1761139900000,
+      "status": "EXPIRED",
+      "transaction": "HP17715690036014",
+      "payment": {
+        "installments_number": 1,
+        "type": "CREDIT_CARD"
+      },
+      "offer": {
+        "code": "k2pasun0"
+      },
+      "invoice_by": "HOTMART",
+      "is_funnel": false,
+      "business_model": "I"
+    }
+  }
+}

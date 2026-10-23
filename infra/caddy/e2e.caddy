@@ -1,0 +1,30 @@
+# Sites da stack de e2e (montado em /etc/caddy/sites só nela): HTTP em *.localhost
+http://aluno.localhost {
+	import seguranca
+	import app e2e 8081
+}
+
+http://adm.localhost {
+	import seguranca
+	import app e2e 8082
+}
+
+http://cursos.localhost {
+	import seguranca
+	import site e2e
+}
+
+http://media.localhost {
+	# Os mesmos headers do (seguranca), menos o Cross-Origin-Resource-Policy same-site: para o
+	# navegador, cada *.localhost é um site diferente (o TLD desconhecido conta como sufixo público) e
+	# as imagens da mídia não carregariam no aluno, no ADM e no site. Nos servidores, *.celke.uno é um
+	# site só e vale o (seguranca) completo.
+	header {
+		X-Content-Type-Options nosniff
+		Referrer-Policy strict-origin-when-cross-origin
+		Cross-Origin-Resource-Policy cross-origin
+		Strict-Transport-Security "max-age=31536000"
+		-Server
+	}
+	import midia e2e
+}

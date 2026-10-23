@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<title>Certificado</title>
+<style>
+    @page { size: A4 landscape; margin: 18mm; }
+    body { font-family: serif; color: #1f2933; text-align: center; }
+    .moldura { border: 3px double #3b4a5a; padding: 22mm 18mm; height: 130mm; }
+    .titulo { font-size: 34pt; letter-spacing: 6pt; margin: 0 0 10mm 0; color: #3b4a5a; }
+    .texto { font-size: 15pt; line-height: 1.6; margin: 0; }
+    .nome { font-size: 26pt; font-weight: bold; margin: 8mm 0; }
+    .curso { font-weight: bold; }
+    .rodape { margin-top: 14mm; font-size: 10pt; color: #52606d; }
+    .codigo { font-family: monospace; font-size: 12pt; letter-spacing: 2pt; color: #1f2933; }
+</style>
+</head>
+<body>
+<div class="moldura">
+    <p class="titulo">CERTIFICADO</p>
+    <p class="texto">Certificamos que</p>
+    <p class="nome" th:text="${nome}">Nome do aluno</p>
+    <p class="texto">
+        concluiu o curso <span class="curso" th:text="${curso}">Curso</span>
+        (turma <span th:text="${turma}">Turma</span>)<span th:if="${cargaHoraria != null}">, com carga horária de
+        <span th:text="${cargaHoraria}">40</span> horas</span>,
+        em <span th:text="${emitidoEm}">1º de janeiro de 2026</span>.
+    </p>
+    <p class="rodape">
+        Código de validação: <span class="codigo" th:text="${codigo}">XXXX-XXXX-XXXX</span><br />
+        Confira a autenticidade informando o código na página de validação de certificados da plataforma.
+    </p>
+</div>
+</body>
+</html>

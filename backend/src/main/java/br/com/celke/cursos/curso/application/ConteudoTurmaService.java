@@ -1,0 +1,168 @@
+package br.com.celke.cursos.curso.application;
+
+import br.com.celke.cursos.curso.domain.Aula;
+import br.com.celke.cursos.curso.domain.Curso;
+import br.com.celke.cursos.curso.domain.Modulo;
+import br.com.celke.cursos.curso.domain.StatusConteudo;
+import br.com.celke.cursos.curso.domain.StatusCurso;
+import br.com.celke.cursos.curso.domain.StatusTurma;
+import br.com.celke.cursos.curso.domain.Turma;
+import br.com.celke.cursos.curso.infra.AulaRepository;
+import br.com.celke.cursos.curso.infra.ModuloRepository;
+import br.com.celke.cursos.curso.infra.TurmaRepository;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+/**
+ * Consultas ao conteúdo exportadas para os outros módulos (matrícula, vídeo, progresso...), que não
+ * acessam os repositórios do curso. Devolve só dados prontos, sem entidades com carregamento tardio.
+ * O conteúdo visível é sempre o ativo: módulo e aula {@code ATIVO}, na ordem.
+ */
+@Service
+public class ConteudoTurmaService {
+
+    private final TurmaRepository turmas;
+    private final ModuloRepository modulos;
+    private final AulaRepository aulas;
+    private final CapaCursoService capaCursoService;
+
+    public ConteudoTurmaService(
+            TurmaRepository turmas, ModuloRepository modulos, AulaRepository aulas, CapaCursoService capaCursoService) {
+        this.turmas = turmas;
+        this.modulos = modulos;
+        this.aulas = aulas;
+        this.capaCursoService = capaCursoService;
+    }
+
+    @Transactional(readOnly = true)
+    public Optional<TurmaResumo> turma(Long turmaId) {
+        return turmas.comCurso(List.of(turmaId)).stream().findFirst().map(this::resumo);
+    }
+
+    /** Turmas indexadas pelo id, numa consulta só; ids inexistentes ficam fora do mapa. */
+    @Transactional(readOnly = true)
+    public Map<Long, TurmaResumo> turmas(Collection<Long> turmaIds) {
+        return turmas.comCurso(turmaIds).stream()
+                .map(this::resumo)
+                .collect(Collectors.toMap(TurmaResumo::turmaId, Function.identity()));
+    }
+
+    /** Módulos ativos da turma, cada um com as aulas ativas, na ordem. */
+    @Transactional(readOnly = true)
+    public List<ModuloConteudo> conteudoAtivo(Long turmaId) {
+        List<Modulo> ativos = modulos.findByTurmaIdAndStatusOrderByOrdem(turmaId, StatusConteudo.ATIVO);
+        Map<Long, List<Aula>> aulasPorModulo = aulas
+                .findByModuloIdInAndStatusOrderByOrdem(
+                        ativos.stream().map(Modulo::getId).toList(), StatusConteudo.ATIVO)
+                .stream()
+                .collect(Collectors.groupingBy(aula -> aula.getModulo().getId()));
+        return ativos.stream()
+                .map(modulo -> new ModuloConteudo(
+                        modulo.getId(),
+                        modulo.getTitulo(),
+                        aulasPorModulo.getOrDefault(modulo.getId(), List.of()).stream()
+                                .map(aula -> new AulaConteudo(aula.getId(), aula.getTitulo(), aula.isGratuita()))
+                                .toList()))
+                .toList();
+    }
+
+    /** Regra do certificado da turma (percentual mínimo de aulas vistas e carga horária). */
+    @Transactional(readOnly = true)
+    public Optional<RegraCertificado> regraCertificado(Long turmaId) {
+        return turmas.findById(turmaId)
+                .map(t -> new RegraCertificado(t.getPercentualConclusao(), t.getCargaHorariaHoras()));
+    }
+
+    /** O módulo existe, em qualquer status (gestão dos arquivos pelo ADM). */
+    @Transactional(readOnly = true)
+    public boolean moduloExiste(Long moduloId) {
+        return modulos.existsById(moduloId);
+    }
+
+    /** Módulo ativo com a turma dele (arquivos do módulo); vazio se não existe ou está inativo. */
+    @Transactional(readOnly = true)
+    public Optional<ModuloContexto> moduloAtivo(Long moduloId) {
+        return modulos.findById(moduloId)
+                .filter(modulo -> modulo.getStatus() == StatusConteudo.ATIVO)
+                .map(modulo -> new ModuloContexto(
+                        modulo.getId(), modulo.getTitulo(), modulo.getTurma().getId()));
+    }
+
+    /** A aula existe, em qualquer status (gestão do vídeo e dos arquivos pelo ADM). */
+    @Transactional(readOnly = true)
+    public boolean aulaExiste(Long aulaId) {
+        return aulas.existsById(aulaId);
+    }
+
+    /** Aula ativa de módulo ativo, com o que a política de acesso precisa; vazio se não existe ou está inativa. */
+    @Transactional(readOnly = true)
+    public Optional<AulaContexto> aulaAtiva(Long aulaId) {
+        return aulas.comHierarquia(aulaId)
+                .filter(aula -> aula.getStatus() == StatusConteudo.ATIVO
+                        && aula.getModulo().getStatus() == StatusConteudo.ATIVO)
+                .map(aula -> {
+                    Turma turma = aula.getModulo().getTurma();
+                    return new AulaContexto(
+                            aula.getId(),
+                            aula.getTitulo(),
+                            aula.getDescricao(),
+                            aula.isGratuita(),
+                            turma.getId(),
+                            turma.getStatus(),
+                            turma.getCurso().getStatus());
+                });
+    }
+
+    private TurmaResumo resumo(Turma turma) {
+        Curso curso = turma.getCurso();
+        return new TurmaResumo(
+                turma.getId(),
+                turma.getNome(),
+                turma.getStatus(),
+                curso.getId(),
+                curso.getTitulo(),
+                curso.getSlug(),
+                curso.getStatus(),
+                capaCursoService.url(curso).map(Object::toString).orElse(null));
+    }
+
+    /** Turma com os dados do curso; {@code capaUrl} é temporária (vale uma hora). */
+    public record TurmaResumo(
+            Long turmaId,
+            String turmaNome,
+            StatusTurma turmaStatus,
+            Long cursoId,
+            String cursoTitulo,
+            String cursoSlug,
+            StatusCurso cursoStatus,
+            String capaUrl) {}
+
+    public record ModuloConteudo(Long id, String titulo, List<AulaConteudo> aulas) {}
+
+    public record AulaConteudo(Long id, String titulo, boolean gratuita) {}
+
+    public record ModuloContexto(Long id, String titulo, Long turmaId) {}
+
+    public record RegraCertificado(int percentualConclusao, Integer cargaHorariaHoras) {}
+
+    public record AulaContexto(
+            Long id,
+            String titulo,
+            String descricao,
+            boolean gratuita,
+            Long turmaId,
+            StatusTurma turmaStatus,
+            StatusCurso cursoStatus) {
+
+        /** Aula de degustação: gratuita, de turma ativa e de curso publicado (rascunho não vaza). */
+        public boolean aberta() {
+            return gratuita && turmaStatus == StatusTurma.ATIVA && cursoStatus == StatusCurso.PUBLICADO;
+        }
+    }
+}

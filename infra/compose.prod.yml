@@ -1,0 +1,235 @@
+# Stack de um ambiente dos servidores (produção ou homologação): API, worker, fronts (web), gerador
+# do site público (site, React renderizado no servidor), PostgreSQL e Garage.
+# Imagens publicadas no GHCR com a tag do commit (TAG); nenhuma porta publicada. O Caddy (projeto
+# próprio, em caddy/) chega à API, aos fronts, ao site e ao Garage pela rede plataforma-cursos-<AMBIENTE>,
+# pelos apelidos <AMBIENTE>-api, <AMBIENTE>-web, <AMBIENTE>-site e <AMBIENTE>-garage. Todas as variáveis vêm do .env do ambiente.
+#
+#   Produção:    docker compose -p plataforma-cursos-producao -f compose.prod.yml up -d --wait
+#   Homologação: docker compose -p plataforma-cursos-homolog -f compose.prod.yml -f compose.homolog.yml up -d --wait
+
+# Configuração compartilhada pela API e pelo worker
+x-app: &app
+  DB_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:?defina POSTGRES_DB}
+  # API e worker entram com o usuário da aplicação: só lê e grava dados (sem criar, alterar ou apagar
+  # tabelas). O dono do schema (POSTGRES_USER) só é usado pelas migrations, no serviço migracao
+  DB_USERNAME: ${POSTGRES_APP_USER:?defina POSTGRES_APP_USER}
+  DB_PASSWORD: ${POSTGRES_APP_PASSWORD:?defina POSTGRES_APP_PASSWORD}
+  SPRING_FLYWAY_ENABLED: "false"
+  JWT_SEGREDO: ${JWT_SEGREDO:?defina JWT_SEGREDO}
+  # Chave dos segredos do aplicativo autenticador (segundo fator dos administradores)
+  TOTP_CHAVE: ${TOTP_CHAVE:?defina TOTP_CHAVE}
+  AUTH_ORIGENS: ${AUTH_ORIGENS:?defina AUTH_ORIGENS}
+  FRONT_ALUNO_URL: ${FRONT_ALUNO_URL:?defina FRONT_ALUNO_URL}
+  S3_ENDPOINT: http://garage:3900
+  S3_ENDPOINT_PUBLICO: ${S3_ENDPOINT_PUBLICO:?defina S3_ENDPOINT_PUBLICO}
+  S3_BUCKET: ${S3_BUCKET:?defina S3_BUCKET}
+  S3_ACCESS_KEY: ${S3_ACCESS_KEY:?defina S3_ACCESS_KEY}
+  S3_SECRET_KEY: ${S3_SECRET_KEY:?defina S3_SECRET_KEY}
+  S3_CORS_ORIGENS: ${S3_CORS_ORIGENS:?defina S3_CORS_ORIGENS}
+  SMTP_HOST: ${SMTP_HOST:?defina SMTP_HOST}
+  SMTP_PORT: ${SMTP_PORT:-587}
+  SMTP_USERNAME: ${SMTP_USERNAME:-}
+  SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+  SMTP_AUTH: ${SMTP_AUTH:-true}
+  SMTP_STARTTLS: ${SMTP_STARTTLS:-true}
+  EMAIL_REMETENTE: ${EMAIL_REMETENTE:?defina EMAIL_REMETENTE}
+  LOGGING_STRUCTURED_FORMAT_CONSOLE: ecs
+  # Log também em arquivo, no volume logs: um por dia, guardado por 180 dias ou 2 GB por serviço
+  LOGGING_STRUCTURED_FORMAT_FILE: ecs
+  # Alertas do worker por e-mail (jobs com erro, disco quase cheio, chargeback); em branco, desligados
+  ALERTA_EMAIL: ${ALERTA_EMAIL:-}
+  # Chave dos segredos dos meios de pagamento; sem ela, o painel não grava credenciais
+  PAGAMENTOS_CHAVE: ${PAGAMENTOS_CHAVE:-}
+  APP_PAGAMENTOS_RECONCILIACAO_ATIVA: ${PAGAMENTOS_RECONCILIACAO:-false}
+
+# Logs do Docker com rotação: no máximo 5 arquivos de 10 MB por container
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "5"
+
+services:
+  # Aplica as migrations com o dono do schema e dá ao usuário da aplicação só o acesso aos dados
+  # (criado na primeira vez). Roda a cada deploy e termina; a API só sobe depois dele
+  migracao:
+    logging: *logging
+    image: ${IMAGEM_API:-ghcr.io/celkecursos/plataforma-cursos-api}:${TAG:?defina TAG}
+    command: ["migrar"]
+    restart: "no"
+    environment:
+      <<: *app
+      DB_USERNAME: ${POSTGRES_USER:?defina POSTGRES_USER}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:?defina POSTGRES_PASSWORD}
+      DB_APP_USERNAME: ${POSTGRES_APP_USER:?defina POSTGRES_APP_USER}
+      DB_APP_PASSWORD: ${POSTGRES_APP_PASSWORD:?defina POSTGRES_APP_PASSWORD}
+      SPRING_FLYWAY_ENABLED: "true"
+      JAVA_TOOL_OPTIONS: -Xmx256m
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  api:
+    logging: *logging
+    image: ${IMAGEM_API:-ghcr.io/celkecursos/plataforma-cursos-api}:${TAG:?defina TAG}
+    restart: unless-stopped
+    environment:
+      <<: *app
+      JAVA_TOOL_OPTIONS: -Xmx512m
+      LOGGING_FILE_NAME: /var/log/plataforma-cursos/api.log
+    volumes:
+      - logs:/var/log/plataforma-cursos
+    depends_on:
+      migracao:
+        condition: service_completed_successfully
+      postgres:
+        condition: service_healthy
+      garage:
+        condition: service_healthy
+    networks:
+      default:
+        aliases:
+          - ${AMBIENTE:?defina AMBIENTE}-api
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8080/actuator/health/readiness"]
+      interval: 5s
+      timeout: 3s
+      start_period: 30s
+      retries: 20
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+
+  worker:
+    logging: *logging
+    image: ${IMAGEM_WORKER:-ghcr.io/celkecursos/plataforma-cursos-worker}:${TAG:?defina TAG}
+    restart: unless-stopped
+    # No deploy, o job em andamento tem 30 s para terminar; uma conversão interrompida volta para a fila
+    # quando o lease vence (o worker o renova a cada minuto enquanto converte)
+    stop_grace_period: 30s
+    environment:
+      <<: *app
+      JAVA_TOOL_OPTIONS: -Xmx768m
+      LOGGING_FILE_NAME: /var/log/plataforma-cursos/worker.log
+    volumes:
+      - logs:/var/log/plataforma-cursos
+    depends_on:
+      # O worker sobe depois da API (que sobe depois das migrations)
+      api:
+        condition: service_healthy
+    healthcheck:
+      # O worker regrava este arquivo a cada 10 s (não tem servidor HTTP para health check). A carência
+      # cobre a partida do Spring com pouca CPU (meia CPU na homologação passa de um minuto)
+      test: ["CMD-SHELL", "find /tmp/worker-batimento -mmin -1 | grep -q ."]
+      interval: 10s
+      timeout: 3s
+      start_period: 120s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          # A transcodificação (ffmpeg) não pode tomar a CPU toda da VPS
+          cpus: "1.5"
+          memory: 2G
+
+  # Área do aluno (porta 8081) e ADM (8082), estáticos; a API é chamada no mesmo domínio (/api)
+  web:
+    logging: *logging
+    image: ${IMAGEM_WEB:-ghcr.io/celkecursos/plataforma-cursos-web}:${TAG:?defina TAG}
+    restart: unless-stopped
+    environment:
+      # Origem dos vídeos e arquivos na Content-Security-Policy dos fronts
+      MIDIA_ORIGEM: ${S3_ENDPOINT_PUBLICO:?defina S3_ENDPOINT_PUBLICO}
+    networks:
+      default:
+        aliases:
+          - ${AMBIENTE:?defina AMBIENTE}-web
+    deploy:
+      resources:
+        limits:
+          memory: 64M
+
+  # Site público (cursos.*): React renderizado no servidor a cada requisição, lendo a API do ambiente
+  # pela rede interna (com cache curto em memória)
+  site:
+    logging: *logging
+    image: ${IMAGEM_SITE:-ghcr.io/celkecursos/plataforma-cursos-site}:${TAG:?defina TAG}
+    restart: unless-stopped
+    environment:
+      API_URL: http://api:8080
+      FRONT_ALUNO_URL: ${FRONT_ALUNO_URL:?defina FRONT_ALUNO_URL}
+      # Em branco, deriva do FRONT_ALUNO_URL (aluno.celke.uno → cursos.celke.uno)
+      SITE_URL: ${SITE_URL:-}
+      SITE_INDEXAVEL: ${SITE_INDEXAVEL:-true}
+      # Origem das capas (URLs pré-assinadas do Garage), liberada na Content-Security-Policy
+      MIDIA_ORIGEM: ${S3_ENDPOINT_PUBLICO:?defina S3_ENDPOINT_PUBLICO}
+    depends_on:
+      api:
+        condition: service_healthy
+    networks:
+      default:
+        aliases:
+          - ${AMBIENTE:?defina AMBIENTE}-site
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+
+  postgres:
+    logging: *logging
+    image: postgres:18.6-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:?defina POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER:?defina POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?defina POSTGRES_PASSWORD}
+    volumes:
+      - postgres:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+
+  garage:
+    logging: *logging
+    image: dxflrs/garage:v2.4.1
+    restart: unless-stopped
+    command: ["/garage", "server", "--single-node", "--default-bucket"]
+    environment:
+      GARAGE_RPC_SECRET: ${GARAGE_RPC_SECRET:?defina GARAGE_RPC_SECRET}
+      GARAGE_ADMIN_TOKEN: ${GARAGE_ADMIN_TOKEN:?defina GARAGE_ADMIN_TOKEN}
+      GARAGE_DEFAULT_BUCKET: ${S3_BUCKET:?defina S3_BUCKET}
+      GARAGE_DEFAULT_ACCESS_KEY: ${S3_ACCESS_KEY:?defina S3_ACCESS_KEY}
+      GARAGE_DEFAULT_SECRET_KEY: ${S3_SECRET_KEY:?defina S3_SECRET_KEY}
+    volumes:
+      - ./garage/garage.toml:/etc/garage.toml:ro
+      - garage:/var/lib/garage
+    networks:
+      default:
+        aliases:
+          - ${AMBIENTE:?defina AMBIENTE}-garage
+    healthcheck:
+      test: ["CMD", "/garage", "status"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    deploy:
+      resources:
+        limits:
+          memory: 768M
+
+networks:
+  default:
+    name: plataforma-cursos-${AMBIENTE:?defina AMBIENTE}
+
+volumes:
+  postgres:
+  garage:
+  # Logs da API e do worker em arquivo (o log do Docker roda em poucos dias)
+  logs:

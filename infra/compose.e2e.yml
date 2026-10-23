@@ -1,0 +1,83 @@
+# e2e: a stack de um ambiente dos servidores (compose.prod.yml, com os fronts) e o Caddy dos
+# servidores, HTTP em *.localhost (sites de caddy/e2e.caddy), Mailpit no lugar do SMTP, imagens
+# construídas localmente e o seed do profile e2e. Projeto separado do ambiente local.
+#
+#   docker compose -f infra/compose.prod.yml -f infra/compose.e2e.yml --env-file infra/e2e.env up -d --build --wait
+#   docker compose -f infra/compose.prod.yml -f infra/compose.e2e.yml --env-file infra/e2e.env down -v
+name: plataforma-cursos-e2e
+
+services:
+  caddy:
+    image: caddy:2.11.7-alpine
+    ports:
+      - "127.0.0.1:${E2E_PORTA:?defina E2E_PORTA}:80"
+    volumes:
+      - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./caddy/e2e.caddy:/etc/caddy/sites/e2e.caddy:ro
+    depends_on:
+      api:
+        condition: service_healthy
+      web:
+        condition: service_healthy
+      site:
+        condition: service_healthy
+
+  web:
+    image: plataforma-cursos-web:e2e
+    build:
+      context: ../web
+      target: web
+
+  site:
+    image: plataforma-cursos-site:e2e
+    build:
+      context: ../web
+      target: site
+    environment:
+      SITE_URL: http://cursos.localhost:8088
+      # Curso publicado pelo teste aparece em até um segundo
+      SITE_CACHE_SEGUNDOS: "1"
+
+  migracao:
+    image: plataforma-cursos-api:e2e
+
+  api:
+    image: plataforma-cursos-api:e2e
+    build:
+      context: ../backend
+      target: api
+    environment:
+      SPRING_PROFILES_ACTIVE: api,e2e
+      SEED_E2E_SENHA: ${SEED_E2E_SENHA:?defina SEED_E2E_SENHA}
+      # Admin do seed com o segundo fator ativo; os testes calculam o código com este segredo
+      SEED_E2E_TOTP: ${SEED_E2E_TOTP:?defina SEED_E2E_TOTP}
+      # Os testes entram várias vezes no mesmo intervalo de 30 s
+      APP_AUTH_SEGUNDO_FATOR_REJEITAR_REUSO: "false"
+      # Todas as jornadas saem do mesmo IP
+      APP_LIMITES_REQUISICOES_POR_IP_POR_MINUTO: "300"
+      # O admin do seed grava em quase todas as jornadas
+      APP_LIMITES_USUARIO_ESCRITAS_POR_MINUTO: "3000"
+      APP_LIMITES_USUARIO_CHECKOUTS_POR_HORA: "300"
+      # URLs dos segmentos vencem em segundos: a jornada de entrega confere a expiração
+      APP_VIDEO_MARGEM_PLAYLIST: PT5S
+      # Sem chamar a Hotmart de verdade: o "Testar credenciais" recebe uma recusa
+      APP_PAGAMENTOS_HOTMART_URL_TOKEN: http://mailpit:8025/hotmart-indisponivel
+
+  worker:
+    image: plataforma-cursos-worker:e2e
+    build:
+      context: ../backend
+      target: worker
+    depends_on:
+      mailpit:
+        condition: service_healthy
+
+  mailpit:
+    image: axllent/mailpit:v1.31.6
+    ports:
+      - "127.0.0.1:${E2E_MAILPIT_PORTA:?defina E2E_MAILPIT_PORTA}:8025"
+    healthcheck:
+      test: ["CMD", "/mailpit", "readyz"]
+      interval: 5s
+      timeout: 3s
+      retries: 20

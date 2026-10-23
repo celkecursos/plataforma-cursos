@@ -1,0 +1,71 @@
+# Atualizações de dependências por Pull Request para a homolog: segurança assim que sai a correção e
+# versões novas uma vez por semana, agrupadas para não encher a fila de PRs. Cada PR passa pelo
+# pipeline completo (testes, e2e e varredura das imagens) antes do merge.
+version: 2
+updates:
+  - package-ecosystem: maven
+    directory: /backend
+    target-branch: homolog
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: America/Sao_Paulo
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: chore(deps)
+    groups:
+      backend-patch:
+        update-types: [patch, minor]
+
+  - package-ecosystem: npm
+    directory: /web
+    target-branch: homolog
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: America/Sao_Paulo
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: chore(deps)
+    groups:
+      web-patch:
+        update-types: [patch, minor]
+
+  - package-ecosystem: github-actions
+    directory: /
+    target-branch: homolog
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: America/Sao_Paulo
+    commit-message:
+      prefix: ci(deps)
+    groups:
+      actions:
+        patterns: ["*"]
+
+  # Imagens base dos Dockerfiles e dos compose (PostgreSQL, Garage, Caddy, Mailpit)
+  - package-ecosystem: docker
+    directories: [/backend, /web]
+    target-branch: homolog
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: America/Sao_Paulo
+    commit-message:
+      prefix: chore(deps)
+
+  - package-ecosystem: docker-compose
+    directories: [/infra, /infra/caddy]
+    target-branch: homolog
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: America/Sao_Paulo
+    commit-message:
+      prefix: chore(deps)
