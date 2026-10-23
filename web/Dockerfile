@@ -4,7 +4,7 @@
 #   web  (padrão):      Caddy interno com a área do aluno (8081) e o ADM (8082)
 # O Caddy da VPS manda /api para a API, cursos.* para o site e o resto para o container web.
 
-FROM node:24.11-bookworm-slim AS build
+FROM node:26.11-bookworm-slim AS build
 RUN apt-get update -q && apt-get install -y -q --no-install-recommends git ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 # O lock guarda o kole-react como git+ssh; o repositório é público e é baixado por HTTPS
@@ -18,7 +18,7 @@ RUN npm run build
 RUN npm prune --omit=dev --no-audit --no-fund
 
 # Site público: o servidor do React Router com o build do site
-FROM node:24.19-alpine AS site
+FROM node:26.11-alpine AS site
 # Correções do sistema; npm e yarn saem da imagem (o servidor não instala nada)
 RUN apk upgrade --no-cache \
     && rm -rf /usr/local/lib/node_modules/npm /usr/local/bin/npm /usr/local/bin/npx \
