@@ -39,9 +39,16 @@ jobs:
           java-version: "25"
           cache: maven
 
-      # A transcodificação de vídeo é testada com o ffmpeg de verdade
+      # A transcodificação de vídeo é testada com o ffmpeg de verdade; o apt só roda quando a imagem do
+      # runner não traz o ffmpeg
       - name: Instalar ffmpeg
-        run: sudo apt-get update -q && sudo apt-get install -y -q --no-install-recommends ffmpeg
+        timeout-minutes: 10
+        run: |
+          if command -v ffmpeg > /dev/null && command -v ffprobe > /dev/null; then
+            ffmpeg -version | head -1
+          else
+            sudo apt-get update -q && sudo apt-get install -y -q --no-install-recommends ffmpeg
+          fi
 
       # Unitários, integração (Testcontainers), cobertura mínima e formatação
       - name: Verificar
@@ -86,6 +93,9 @@ jobs:
           git config --global url."https://github.com/".insteadOf "ssh://git@github.com/"
           npm ci --no-audit --no-fund
 
+      # Falha com vulnerabilidade alta ou crítica nas dependências que vão para o navegador
+      - name: Auditoria das dependências
+        run: npm audit --omit=dev --audit-level=high
       - run: npm run format:check
       - run: npm run lint
       - run: npm run typecheck

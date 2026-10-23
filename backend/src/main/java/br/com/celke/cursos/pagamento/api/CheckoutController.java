@@ -38,6 +38,14 @@ public class CheckoutController {
                 .body(CheckoutResponse.de(checkoutService.iniciar(Long.valueOf(jwt.getSubject()), request.ofertaId())));
     }
 
+    @GetMapping("/ofertas/{id}")
+    @Operation(
+            summary = "Oferta a confirmar",
+            description = "Curso, turma, título e preço de uma oferta à venda, mostrados antes de abrir o pedido.")
+    public CheckoutService.ResumoOferta oferta(@PathVariable Long id) {
+        return checkoutService.resumo(id);
+    }
+
     @GetMapping("/pedidos/{codigo}")
     @Operation(
             summary = "Situação do pedido",

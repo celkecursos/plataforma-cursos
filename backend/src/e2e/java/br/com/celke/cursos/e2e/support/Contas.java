@@ -6,7 +6,7 @@ package br.com.celke.cursos.e2e.support;
  */
 public final class Contas {
 
-    public static final String SENHA = "senha-da-conta-e2e";
+    public static final String SENHA = "girassol-azul-da-jornada";
 
     private Contas() {}
 

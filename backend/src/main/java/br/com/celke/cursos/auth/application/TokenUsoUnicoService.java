@@ -23,6 +23,9 @@ public class TokenUsoUnicoService {
 
     private static final Logger LOG = LoggerFactory.getLogger(TokenUsoUnicoService.class);
 
+    /** Tempo para digitar o código do aplicativo depois de acertar a senha. */
+    static final Duration VALIDADE_DESAFIO = Duration.ofMinutes(5);
+
     private final TokenUsoUnicoRepository repository;
     private final ContaProperties props;
     private final Clock clock;
@@ -39,7 +42,7 @@ public class TokenUsoUnicoService {
         Instant agora = clock.instant();
         long naUltimaHora =
                 repository.countByUsuarioIdAndTipoAndCriadoEmAfter(usuarioId, tipo, agora.minus(Duration.ofHours(1)));
-        if (naUltimaHora >= props.emailsPorHora()) {
+        if (tipo.porEmail() && naUltimaHora >= props.emailsPorHora()) {
             LOG.warn("Limite de e-mails de {} atingido para o usuário {}", tipo, usuarioId);
             return Optional.empty();
         }
@@ -47,6 +50,19 @@ public class TokenUsoUnicoService {
         String token = TokenSeguro.gerar();
         repository.save(new TokenUsoUnico(usuarioId, tipo, TokenSeguro.hash(token), agora.plus(validade(tipo)), agora));
         return Optional.of(token);
+    }
+
+    /** Dono de um token ainda válido, sem usá-lo (para conferir regras antes de consumir); trava o token. */
+    @Transactional
+    public Optional<Long> dono(String token, TipoToken tipo) {
+        if (token == null || token.isBlank()) {
+            return Optional.empty();
+        }
+        Instant agora = clock.instant();
+        return repository
+                .findByHash(TokenSeguro.hash(token))
+                .filter(t -> t.podeSerUsado(tipo, agora))
+                .map(TokenUsoUnico::getUsuarioId);
     }
 
     /** Usa o token e devolve o id do dono; vazio se o token não existe, já foi usado, expirou ou é de outro tipo. */
@@ -69,6 +85,7 @@ public class TokenUsoUnicoService {
         return switch (tipo) {
             case CONFIRMACAO_EMAIL -> props.validadeConfirmacao();
             case RECUPERACAO_SENHA -> props.validadeRecuperacao();
+            case DESAFIO_SEGUNDO_FATOR -> VALIDADE_DESAFIO;
         };
     }
 }

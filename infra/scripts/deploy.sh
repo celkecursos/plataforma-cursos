@@ -83,8 +83,24 @@ subir() {
   compose up -d --pull missing --wait --wait-timeout "$TEMPO_ESPERA" --remove-orphans
 }
 
+# Segredos que uma versão nova passou a exigir: gerados uma vez, no primeiro deploy que precisa deles
+completar_env() {
+  local nome valor
+  for nome in POSTGRES_APP_USER POSTGRES_APP_PASSWORD TOTP_CHAVE; do
+    grep -q "^$nome=" .env && continue
+    case "$nome" in
+      POSTGRES_APP_USER) valor=plataforma_cursos_app ;;
+      POSTGRES_APP_PASSWORD) valor=$(openssl rand -hex 24) ;;
+      TOTP_CHAVE) valor=$(openssl rand -base64 32) ;;
+    esac
+    echo "$nome=$valor" >> .env
+    log "$nome acrescentado ao .env"
+  done
+}
+
 ANTERIOR=$(tag_atual)
 log "início (versão atual: ${ANTERIOR:-nenhuma})"
+completar_env
 
 # 1. Arquivos da nova versão: só os nomes esperados são extraídos
 NOVA="versoes/$TAG"

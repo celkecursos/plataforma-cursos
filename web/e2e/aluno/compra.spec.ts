@@ -50,6 +50,10 @@ async function comprarPeloSite(page: Page, email: string): Promise<URL> {
     await expect(page.getByText('R$ 197,00')).toBeVisible({ timeout: 1_000 });
   }).toPass({ timeout: 30_000 });
   await page.getByRole('link', { name: 'Comprar' }).click();
+  // Abrir a página não cria pedido: o aluno confere o curso e o valor e confirma
+  await expect(page.getByRole('heading', { name: 'Confirmar a compra' })).toBeVisible();
+  await expect(page.getByText('R$ 197,00')).toBeVisible();
+  await page.getByRole('button', { name: 'Ir para o pagamento' }).click();
   await expect(page.getByRole('heading', { name: 'Checkout da Hotmart' })).toBeVisible();
   expect(checkout?.pathname).toBe(`/${produto}`);
   expect(checkout?.searchParams.get('off')).toBe('e2e');
@@ -139,5 +143,6 @@ test('sem login, Comprar leva à entrada e volta para a compra depois de entrar'
   await page.getByRole('textbox', { name: 'E-mail', exact: true }).fill(email);
   await page.getByRole('textbox', { name: 'Senha', exact: true }).fill(SENHA_NOVA);
   await page.getByRole('button', { name: 'Entrar' }).click();
+  await page.getByRole('button', { name: 'Ir para o pagamento' }).click();
   await expect(page.getByRole('heading', { name: 'Checkout da Hotmart' })).toBeVisible();
 });

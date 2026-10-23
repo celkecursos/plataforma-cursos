@@ -57,6 +57,48 @@
   color: var(--pri);
 }
 
+button.pc-link {
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+/* Segundo fator: QR code do aplicativo autenticador e códigos de recuperação */
+.pc-segundo-fator-qr {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  text-align: center;
+  font-size: var(--fs-corpo-2);
+}
+
+.pc-segundo-fator-qr img {
+  border-radius: 8px;
+  background: #fff;
+}
+
+.pc-codigos-recuperacao {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-family: var(--font-mono);
+  font-size: var(--fs-corpo);
+}
+
+.pc-codigos-recuperacao code {
+  display: block;
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  text-align: center;
+}
+
 .pc-pagina {
   display: grid;
   gap: 20px;
@@ -317,4 +359,21 @@
   width: 140px;
   height: 100px;
   object-fit: cover;
+}
+
+/* Resumo da compra antes de ir ao meio de pagamento */
+.pc-resumo-compra {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 6px 16px;
+  margin: 0;
+}
+
+.pc-resumo-compra dt {
+  color: var(--t2);
+}
+
+.pc-resumo-compra dd {
+  margin: 0;
+  font-weight: 600;
 }

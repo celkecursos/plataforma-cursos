@@ -10,9 +10,14 @@
 # Configuração compartilhada pela API e pelo worker
 x-app: &app
   DB_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:?defina POSTGRES_DB}
-  DB_USERNAME: ${POSTGRES_USER:?defina POSTGRES_USER}
-  DB_PASSWORD: ${POSTGRES_PASSWORD:?defina POSTGRES_PASSWORD}
+  # API e worker entram com o usuário da aplicação: só lê e grava dados (sem criar, alterar ou apagar
+  # tabelas). O dono do schema (POSTGRES_USER) só é usado pelas migrations, no serviço migracao
+  DB_USERNAME: ${POSTGRES_APP_USER:?defina POSTGRES_APP_USER}
+  DB_PASSWORD: ${POSTGRES_APP_PASSWORD:?defina POSTGRES_APP_PASSWORD}
+  SPRING_FLYWAY_ENABLED: "false"
   JWT_SEGREDO: ${JWT_SEGREDO:?defina JWT_SEGREDO}
+  # Chave dos segredos do aplicativo autenticador (segundo fator dos administradores)
+  TOTP_CHAVE: ${TOTP_CHAVE:?defina TOTP_CHAVE}
   AUTH_ORIGENS: ${AUTH_ORIGENS:?defina AUTH_ORIGENS}
   FRONT_ALUNO_URL: ${FRONT_ALUNO_URL:?defina FRONT_ALUNO_URL}
   S3_ENDPOINT: http://garage:3900
@@ -45,6 +50,25 @@ x-logging: &logging
     max-file: "5"
 
 services:
+  # Aplica as migrations com o dono do schema e dá ao usuário da aplicação só o acesso aos dados
+  # (criado na primeira vez). Roda a cada deploy e termina; a API só sobe depois dele
+  migracao:
+    logging: *logging
+    image: ${IMAGEM_API:-ghcr.io/celkecursos/plataforma-cursos-api}:${TAG:?defina TAG}
+    command: ["migrar"]
+    restart: "no"
+    environment:
+      <<: *app
+      DB_USERNAME: ${POSTGRES_USER:?defina POSTGRES_USER}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:?defina POSTGRES_PASSWORD}
+      DB_APP_USERNAME: ${POSTGRES_APP_USER:?defina POSTGRES_APP_USER}
+      DB_APP_PASSWORD: ${POSTGRES_APP_PASSWORD:?defina POSTGRES_APP_PASSWORD}
+      SPRING_FLYWAY_ENABLED: "true"
+      JAVA_TOOL_OPTIONS: -Xmx256m
+    depends_on:
+      postgres:
+        condition: service_healthy
+
   api:
     logging: *logging
     image: ${IMAGEM_API:-ghcr.io/celkecursos/plataforma-cursos-api}:${TAG:?defina TAG}
@@ -56,6 +80,8 @@ services:
     volumes:
       - logs:/var/log/plataforma-cursos
     depends_on:
+      migracao:
+        condition: service_completed_successfully
       postgres:
         condition: service_healthy
       garage:
@@ -89,7 +115,7 @@ services:
     volumes:
       - logs:/var/log/plataforma-cursos
     depends_on:
-      # As migrations são aplicadas pela API; o worker sobe depois dela
+      # O worker sobe depois da API (que sobe depois das migrations)
       api:
         condition: service_healthy
     healthcheck:

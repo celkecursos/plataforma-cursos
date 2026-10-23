@@ -54,6 +54,10 @@ public class Usuario {
     @Column(name = "foto_chave", length = 200)
     private String fotoChave;
 
+    /** Encerramento das sessões pelo ADM: access tokens emitidos antes disso deixam de valer. */
+    @Column(name = "sessoes_encerradas_em")
+    private Instant sessoesEncerradasEm;
+
     @Column(name = "criado_em", nullable = false)
     private Instant criadoEm;
 
@@ -111,6 +115,34 @@ public class Usuario {
         this.fotoChave = chave;
         this.atualizadoEm = agora;
         return anterior;
+    }
+
+    /** Bloqueia a conta (não entra mais) e encerra as sessões abertas. */
+    public void bloquear(Instant agora) {
+        this.ativo = false;
+        encerrarSessoes(agora);
+    }
+
+    public void desbloquear(Instant agora) {
+        this.ativo = true;
+        this.atualizadoEm = agora;
+    }
+
+    public void encerrarSessoes(Instant agora) {
+        this.sessoesEncerradasEm = agora;
+        this.atualizadoEm = agora;
+    }
+
+    public Instant getSessoesEncerradasEm() {
+        return sessoesEncerradasEm;
+    }
+
+    public Instant getCriadoEm() {
+        return criadoEm;
+    }
+
+    public Instant getEmailConfirmadoEm() {
+        return emailConfirmadoEm;
     }
 
     public String getFotoChave() {

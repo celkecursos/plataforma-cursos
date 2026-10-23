@@ -9,6 +9,8 @@ x-app: &app
   DB_USERNAME: ${POSTGRES_USER:?defina POSTGRES_USER no infra/.env}
   DB_PASSWORD: ${POSTGRES_PASSWORD:?defina POSTGRES_PASSWORD no infra/.env}
   JWT_SEGREDO: ${JWT_SEGREDO:?defina JWT_SEGREDO no infra/.env}
+  # Chave dos segredos do aplicativo autenticador (segundo fator dos administradores)
+  TOTP_CHAVE: ${TOTP_CHAVE:?defina TOTP_CHAVE no infra/.env (openssl rand -base64 32)}
   # Origens aceitas no refresh e no logout: o Swagger da própria API e o front de desenvolvimento
   AUTH_ORIGENS: ${AUTH_ORIGENS:-http://localhost:${API_PORTA:-8080},http://localhost:5173}
   # Área do aluno: base dos links de confirmação de e-mail e de recuperação de senha

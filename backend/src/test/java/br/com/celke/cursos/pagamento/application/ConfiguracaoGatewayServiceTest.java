@@ -8,6 +8,7 @@ import br.com.celke.cursos.pagamento.domain.Gateway;
 import br.com.celke.cursos.pagamento.domain.TipoGateway;
 import br.com.celke.cursos.pagamento.infra.hotmart.GatewayHotmart;
 import br.com.celke.cursos.pagamento.infra.hotmart.InterpretadorHotmart;
+import br.com.celke.cursos.shared.cripto.CifraSegredos;
 import br.com.celke.cursos.shared.erro.ConflitoException;
 import br.com.celke.cursos.shared.erro.ErroCampo;
 import java.time.Clock;
@@ -29,7 +30,7 @@ class ConfiguracaoGatewayServiceTest {
     private final GatewaysRegistrados registrados = new GatewaysRegistrados(
             List.of(new GatewayHotmart(new InterpretadorHotmart(json), null, Clock.fixed(AGORA, ZoneOffset.UTC))));
     private final ConfiguracaoGatewayService service =
-            new ConfiguracaoGatewayService(registrados, new CifraSegredos(CHAVE), json);
+            new ConfiguracaoGatewayService(registrados, new CifraSegredos(CHAVE, "PAGAMENTOS_CHAVE"), json);
 
     private static Gateway gateway() {
         return new Gateway(TipoGateway.HOTMART, "Hotmart", "token-do-webhook", AGORA);
@@ -130,7 +131,7 @@ class ConfiguracaoGatewayServiceTest {
     @Test
     @DisplayName("sem a PAGAMENTOS_CHAVE não grava segredos")
     void semChave() {
-        var semChave = new ConfiguracaoGatewayService(registrados, new CifraSegredos(""), json);
+        var semChave = new ConfiguracaoGatewayService(registrados, new CifraSegredos("", "PAGAMENTOS_CHAVE"), json);
         Gateway gateway = gateway();
 
         assertThatThrownBy(() -> semChave.configurar(gateway, "Hotmart", valores("hottok", "h"), AGORA))

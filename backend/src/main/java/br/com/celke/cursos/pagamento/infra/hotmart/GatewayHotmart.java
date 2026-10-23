@@ -13,10 +13,10 @@ import br.com.celke.cursos.pagamento.domain.Oferta;
 import br.com.celke.cursos.pagamento.domain.Pedido;
 import br.com.celke.cursos.pagamento.domain.ResultadoTeste;
 import br.com.celke.cursos.pagamento.domain.StatusPedido;
-import br.com.celke.cursos.pagamento.domain.TipoCampo;
 import br.com.celke.cursos.pagamento.domain.TipoGateway;
 import br.com.celke.cursos.pagamento.infra.hotmart.ClienteApiHotmart.Credenciais;
 import br.com.celke.cursos.pagamento.infra.hotmart.ClienteApiHotmart.FalhaApiHotmart;
+import br.com.celke.cursos.shared.erro.ConflitoException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -54,30 +54,27 @@ public class GatewayHotmart implements GatewayPagamento {
 
     private static final Logger LOG = LoggerFactory.getLogger(GatewayHotmart.class);
 
+    /** Domínios de checkout da Hotmart (produção e sandbox). */
+    static final List<String> HOSTS_CHECKOUT = List.of("pay.hotmart.com", "sandbox.hotmart.com");
+
     private static final List<CampoConfiguracao> CAMPOS = List.of(
             CampoConfiguracao.segredo(
                     "hottok",
                     "Hottok",
                     true,
                     "Ferramentas → Webhook na Hotmart: o token que vai no cabeçalho de cada notificação."),
-            new CampoConfiguracao(
+            CampoConfiguracao.selecao(
                     "ambiente",
                     "Ambiente",
-                    TipoCampo.SELECAO,
-                    false,
-                    true,
                     "Sandbox para testar com a conta de testes da Hotmart.",
                     "PRODUCAO",
                     List.of("PRODUCAO", "SANDBOX")),
-            new CampoConfiguracao(
+            CampoConfiguracao.url(
                     "urlCheckoutBase",
                     "Endereço do checkout",
-                    TipoCampo.URL,
-                    false,
-                    true,
-                    "Início do link de pagamento das ofertas.",
+                    "Início do link de pagamento das ofertas (domínio da Hotmart).",
                     CHECKOUT_PADRAO,
-                    List.of()),
+                    HOSTS_CHECKOUT),
             CampoConfiguracao.texto(
                     "clientId", "Client ID", false, "Ferramentas → Credenciais (API). Só para a reconciliação."),
             CampoConfiguracao.segredo("clientSecret", "Client Secret", false, "Ferramentas → Credenciais (API)."),
@@ -144,6 +141,10 @@ public class GatewayHotmart implements GatewayPagamento {
     public Checkout iniciarCheckout(
             Pedido pedido, Oferta oferta, Comprador comprador, ConfiguracaoGateway configuracao) {
         String base = configuracao.valor("urlCheckoutBase", CHECKOUT_PADRAO).replaceAll("/+$", "");
+        if (CampoConfiguracao.erroUrl(base, HOSTS_CHECKOUT) != null) {
+            // Gravado antes da regra de domínios: não manda o aluno para fora da Hotmart
+            throw new ConflitoException("O endereço do checkout da Hotmart está inválido. Confira no painel.");
+        }
         StringBuilder url = new StringBuilder(base)
                 .append('/')
                 .append(UriUtils.encodePathSegment(oferta.codigoParaCheckout(), StandardCharsets.UTF_8))

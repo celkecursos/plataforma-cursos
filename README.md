@@ -23,11 +23,14 @@ passo a passo como tutorial.
   com código de validação, perfil (nome, foto e senha), compra de cursos.
 - **ADM:** cursos, turmas, módulos e aulas; envio de vídeo em partes com conversão para HLS; capa,
   arquivos de apoio, matrículas, moderação do fórum, regras do certificado e termos; meios de pagamento,
-  ofertas, pedidos e notificações recebidas; trilha de auditoria.
+  ofertas, pedidos e notificações recebidas; usuários (bloquear e encerrar sessões) e trilha de
+  auditoria.
 - **Site público:** home, catálogo, página do curso com preço e botão de compra, validação de
   certificado, termos e privacidade, com SEO (Open Graph, dados estruturados, sitemap).
 - **Conta e segurança:** cadastro com confirmação de e-mail, login com JWT e refresh em cookie
-  `HttpOnly`, recuperação de senha, bloqueio por tentativas, limite por IP, termos versionados com aceite.
+  `HttpOnly`, verificação em duas etapas (aplicativo autenticador) obrigatória para administradores,
+  senhas comuns e vazadas recusadas, recuperação de senha, bloqueio por tentativas, limites por IP e por
+  usuário, termos versionados com aceite, usuário do banco da aplicação sem permissão de mudar tabelas.
 - **Pagamentos:** Hotmart (webhook 2.0.0) numa estrutura que aceita outros meios de pagamento.
 - **Operação:** fila de jobs no PostgreSQL (worker), alertas por e-mail, backup e restauração, logs em
   JSON no horário de Brasília guardados em arquivo, auditoria de todas as alterações nos dados.
@@ -103,6 +106,11 @@ Os navegadores atuais resolvem `*.localhost` sozinhos; não é preciso mexer no 
 | Administrador | `admin@celke.com.br` | `123456A#b123` |
 | Aluno | `aluno@celke.com.br` | `123456A#b123` |
 
+O administrador entra em duas etapas: depois da senha, informe o código de 6 dígitos de um aplicativo
+autenticador (Google Authenticator, Microsoft Authenticator, 1Password...). No aplicativo, adicione uma
+conta pela chave `JBSWY3DPEHPK3PXPJBSWY3DPEHPK3PXP` (tipo "baseado em tempo"): é o segredo do admin de
+exemplo, definido em `SEED_E2E_TOTP` no `infra/e2e.env`.
+
 Para ver um curso no site e na área do aluno: entre no ADM, crie o curso, uma turma (ative-a), um módulo
 e uma aula, publique o curso e matricule o aluno na aba **Matrículas** da turma.
 
@@ -144,11 +152,15 @@ docker compose -f infra/compose.yml up -d --build --wait
 | http://localhost:8025 | Mailpit |
 | http://localhost:8080/actuator/health | Saúde da API |
 
-**3. Criar o administrador** (pede a senha no terminal; mínimo de 12 caracteres)
+**3. Criar o administrador** (pede a senha no terminal; mínimo de 12 caracteres, sem o nome ou o
+e-mail e fora das senhas mais usadas)
 
 ```bash
 docker compose -f infra/compose.yml run --rm api criar-admin admin@exemplo.com "Administrador"
 ```
+
+No primeiro login do ADM, leia o QR code com um aplicativo autenticador e guarde os códigos de
+recuperação que aparecem em seguida.
 
 Alunos criam a conta pela tela de cadastro; o link de confirmação chega no Mailpit.
 
@@ -205,6 +217,9 @@ docker compose -f infra/compose.yml down
 
 # Abrir o banco de desenvolvimento
 docker compose -f infra/compose.yml exec postgres psql -U plataforma_cursos plataforma_cursos
+
+# Administrador perdeu o celular e os códigos de recuperação: o próximo login pede o QR code de novo
+docker compose -f infra/compose.yml run --rm api redefinir-2fa admin@exemplo.com
 ```
 
 ## Estrutura do projeto

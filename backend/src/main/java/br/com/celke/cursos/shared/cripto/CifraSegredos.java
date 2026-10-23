@@ -1,4 +1,4 @@
-package br.com.celke.cursos.pagamento.application;
+package br.com.celke.cursos.shared.cripto;
 
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
@@ -11,9 +11,9 @@ import javax.crypto.spec.GCMParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 
 /**
- * Segredos dos meios de pagamento (hottok, client secret...) cifrados com AES-256-GCM. Cada gravação
- * usa um IV aleatório de 12 bytes, guardado na frente do texto cifrado. O webhook token do gateway
- * entra como dado associado: o blob de um gateway não decifra copiado para outro.
+ * Segredos guardados no banco (credenciais dos meios de pagamento, chave do segundo fator) cifrados com
+ * AES-256-GCM. Cada gravação usa um IV aleatório de 12 bytes, guardado na frente do texto cifrado. O
+ * dado associado amarra o blob ao dono (o gateway, o usuário): copiado para outro, não decifra.
  */
 public class CifraSegredos {
 
@@ -22,9 +22,14 @@ public class CifraSegredos {
     private static final SecureRandom ALEATORIO = new SecureRandom();
 
     private final SecretKey chave;
+    private final String variavel;
 
-    /** @param chaveBase64 32 bytes em Base64; em branco, a cifra fica indisponível */
-    public CifraSegredos(String chaveBase64) {
+    /**
+     * @param chaveBase64 32 bytes em Base64; em branco, a cifra fica indisponível
+     * @param variavel variável de ambiente da chave, citada nas mensagens de erro
+     */
+    public CifraSegredos(String chaveBase64, String variavel) {
+        this.variavel = variavel;
         this.chave = chaveBase64 == null || chaveBase64.isBlank()
                 ? null
                 : new SecretKeySpec(Base64.getDecoder().decode(chaveBase64.strip()), "AES");
@@ -65,14 +70,13 @@ public class CifraSegredos {
             byte[] texto = cifra.doFinal(blob, TAMANHO_IV, blob.length - TAMANHO_IV);
             return new String(texto, StandardCharsets.UTF_8);
         } catch (GeneralSecurityException e) {
-            throw new IllegalStateException(
-                    "Não foi possível decifrar os segredos do meio de pagamento. A PAGAMENTOS_CHAVE mudou?", e);
+            throw new IllegalStateException("Não foi possível decifrar os segredos. A " + variavel + " mudou?", e);
         }
     }
 
     private void exigirChave() {
         if (chave == null) {
-            throw new IllegalStateException("PAGAMENTOS_CHAVE não está definida.");
+            throw new IllegalStateException(variavel + " não está definida.");
         }
     }
 }

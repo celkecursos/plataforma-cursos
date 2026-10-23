@@ -33,14 +33,14 @@ public class JwtConfig {
     }
 
     @Bean
-    JwtDecoder jwtDecoder(AuthProperties props, Clock clock) {
+    JwtDecoder jwtDecoder(AuthProperties props, Clock clock, SessaoValidaValidator sessaoValida) {
         NimbusJwtDecoder decoder = NimbusJwtDecoder.withSecretKey(chave(props))
                 .macAlgorithm(MacAlgorithm.HS256)
                 .build();
         JwtTimestampValidator validade = new JwtTimestampValidator(Duration.ZERO);
         validade.setClock(clock);
-        decoder.setJwtValidator(
-                new DelegatingOAuth2TokenValidator<>(List.of(validade, new JwtIssuerValidator(props.emissor()))));
+        decoder.setJwtValidator(new DelegatingOAuth2TokenValidator<>(
+                List.of(validade, new JwtIssuerValidator(props.emissor()), sessaoValida)));
         return decoder;
     }
 

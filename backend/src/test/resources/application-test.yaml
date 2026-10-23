@@ -1,5 +1,10 @@
 # Profile dos testes de integração. Endereços dos containers vêm de support/Containers.
 spring:
+  flyway:
+    # Usuário da aplicação criado pelo afterMigrate.sql (o UsuarioAplicacaoBancoIT confere o acesso dele)
+    placeholders:
+      usuario_app: app_teste
+      senha_app: senha-do-app-de-teste
   mail:
     properties:
       mail.smtp.auth: false
@@ -11,11 +16,19 @@ app:
     # Chave só dos testes (48 bytes em Base64)
     jwt-segredo: dGVzdGUtdGVzdGUtdGVzdGUtdGVzdGUtdGVzdGUtdGVzdGUtdGVzdGUtdGVzdGUt
     origens-permitidas: http://localhost:5173
+    segundo-fator:
+      # Chave só dos testes (32 bytes em Base64); os testes entram várias vezes no mesmo intervalo de 30 s
+      chave: dGVzdGUtZGEtY2hhdmUtZG8tc2VndW5kby1mYXRvcjI=
+      rejeitar-reuso: false
   conta:
     url-aluno: http://localhost:5173
   limites:
     # Todas as requisições da suíte saem do mesmo IP: o limite por IP fica fora do caminho
     requisicoes-por-ip-por-minuto: 100000
+  limites-usuario:
+    # O admin do seed grava em quase toda a suíte: o limite fica fora do caminho (teste próprio no filtro)
+    escritas-por-minuto: 100000
+    checkouts-por-hora: 100000
   armazenamento:
     cors-origens: http://localhost:5173
   email:

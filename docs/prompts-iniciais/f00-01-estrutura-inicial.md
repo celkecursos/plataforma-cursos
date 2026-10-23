@@ -667,6 +667,22 @@ Prompt: [`docs/prompts/f18-01-anexos-no-forum.md`](prompts/f18-01-anexos-no-foru
 - [x] Imagens publicadas na pergunta e nas respostas, para o aluno e na moderação do ADM, com visualizador em tela cheia
 - [x] Testes unitários e Playwright (caminho feliz e infeliz)
 
+### Fase 19 — `feature/seguranca`
+
+Prompt: [`docs/prompts/f19-01-seguranca.md`](prompts/f19-01-seguranca.md). Operação:
+[`docs/operacao.md`](operacao.md), seção 7.
+
+- [x] Segundo fator (TOTP, RFC 6238) obrigatório para administradores: desafio depois da senha, cadastro por QR code, códigos de recuperação de uso único, segredo cifrado (`TOTP_CHAVE`), código sem reuso, comando `redefinir-2fa`
+- [x] Usuário do banco só de dados para a API e o worker; migrations com o dono do schema no serviço `migracao` (comando `migrar`), que cria e libera o usuário da aplicação
+- [x] Política de senha: lista de senhas comuns e vazadas, nome e e-mail, sequências e repetições; medidor de força nas telas
+- [x] Limite por usuário nas gravações e no checkout
+- [x] Dependabot (Maven, npm, Actions, Docker) e `npm audit` no pipeline
+- [x] ADM → Segurança → Usuários: busca, bloquear e desbloquear, encerrar as sessões (o access token já emitido deixa de valer na hora), tudo na auditoria
+- [x] Checkout só em HTTPS nos domínios da Hotmart; a compra só abre o pedido com a confirmação do aluno
+- [x] Token dos links de e-mail sai da barra de endereço depois de lido
+- [x] Teste que varre todas as rotas da API: só as públicas declaradas respondem sem login
+- [x] Testes unitários, de integração e Playwright
+
 ---
 
 ## 5. Mapa fase → capítulos do tutorial
@@ -695,6 +711,7 @@ O conteúdo de cada capítulo está em [capitulos.md](capitulos.md).
 | 16 | `feature/pagamentos` | 38–40 |
 | 17 | `feature/auditoria` | 41 |
 | 18 | `feature/forum-anexos` | 26 |
+| 19 | `feature/seguranca` | 42, 43 |
 `````
 
 ### 4. `docs/capitulos.md`
@@ -1329,6 +1346,41 @@ Fica antes do frontend porque precisa estar pronta antes de entrarem dados reais
 - **Segurança:** a trilha não guarda segredos; o ADM só lê; nem a própria aplicação consegue alterar ou apagar fora da retenção.
 - **Testes:** unitários da conversão de valores e do contexto; integração com ADM, aluno, worker, segredo oculto, operação recusada sem rastro, gatilho e retenção; Playwright da tela.
 - **Entrega:** a alteração de um curso aparece na auditoria com o antes e o depois; os logs ficam no volume depois de um deploy.
+
+---
+
+## Parte 12 — Segurança reforçada
+
+### Cap. 42 — Segundo fator dos administradores e senhas fortes
+
+**Fase:** 19 · **Prompt:** [f19-01](prompts/f19-01-seguranca.md)
+
+- **Objetivo:** uma senha vazada não basta para entrar no ADM, e as senhas fáceis de adivinhar ficam de fora.
+- **Conteúdo:**
+  - TOTP (RFC 6238) sem biblioteca: HMAC-SHA1, passos de 30 s, 6 dígitos, tolerância de um passo, Base32 e o endereço `otpauth://` do QR code; testes com os vetores da RFC.
+  - Login em duas etapas: a senha certa devolve um desafio de 5 minutos (sem sessão); o código abre a sessão; o código errado conta no bloqueio; o mesmo código não vale duas vezes.
+  - Primeiro acesso com o QR code e os 10 códigos de recuperação de uso único (só o hash no banco); segredo cifrado com AES-256-GCM e dado associado (`TOTP_CHAVE`); comando `redefinir-2fa`.
+  - Política de senha: a lista de senhas comuns e vazadas (gerada por comando a partir de uma lista pública), nome e e-mail dentro da senha, sequências de teclado e de alfabeto, repetições; a mesma regra no cadastro, na redefinição, no perfil e no `criar-admin`; o medidor de força da biblioteca nas telas.
+  - Front: a tela da segunda etapa compartilhada entre o ADM e a área do aluno, com o QR code gerado no navegador.
+- **Segurança:** a sessão do administrador nunca abre só com a senha; o segredo do aplicativo não sai do banco em texto.
+- **Testes:** unitários do TOTP (RFC), da política e do login em duas etapas; integração do cadastro, do código errado, do código de recuperação de uso único e do segredo cifrado; Playwright do admin entrando com o código.
+- **Entrega:** o admin cadastra o aplicativo no primeiro acesso e passa a entrar com o código.
+
+### Cap. 43 — Menos privilégio: banco, limites, contas e dependências
+
+**Fase:** 19 · **Prompt:** [f19-01](prompts/f19-01-seguranca.md)
+
+- **Objetivo:** uma falha na aplicação causa o menor estrago possível.
+- **Conteúdo:**
+  - Usuário do banco só de dados para a API e o worker; o serviço `migracao` com o dono do schema, o `afterMigrate.sql` que cria e libera o usuário da aplicação, e o deploy que completa o `.env` dos servidores.
+  - Limite por usuário nas gravações e no checkout (Bucket4j, depois da autenticação).
+  - ADM → Usuários: bloquear, desbloquear e encerrar as sessões, com o access token já emitido recusado na hora (validador do JWT com a situação da conta em memória por 30 s).
+  - Compra com confirmação (nenhum pedido ao abrir a página) e checkout só em HTTPS nos domínios do meio de pagamento.
+  - Token dos links de e-mail fora da barra de endereço.
+  - Dependabot e `npm audit` no pipeline.
+  - O teste que varre todas as rotas da API e falha se uma rota nova nascer aberta.
+- **Testes:** integração do usuário do banco (dados sim, estrutura não), da tela de usuários e da varredura das rotas; unitário do limite por usuário; Playwright do bloqueio e da compra confirmada.
+- **Entrega:** a aplicação não consegue apagar tabelas; um aluno bloqueado sai na hora.
 `````
 
 ### 5. Os próprios prompts

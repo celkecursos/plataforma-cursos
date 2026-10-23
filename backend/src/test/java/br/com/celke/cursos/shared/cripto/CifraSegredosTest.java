@@ -1,4 +1,4 @@
-package br.com.celke.cursos.pagamento.application;
+package br.com.celke.cursos.shared.cripto;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -11,7 +11,7 @@ class CifraSegredosTest {
 
     private static final String CHAVE = "dGVzdGUtZGEtY2hhdmUtZGUtcGFnYW1lbnRvcy0zMmI=";
     private static final String OUTRA_CHAVE = "b3V0cmEtY2hhdmUtZGUtcGFnYW1lbnRvcy0zMi1ieXQ=";
-    private final CifraSegredos cifra = new CifraSegredos(CHAVE);
+    private final CifraSegredos cifra = new CifraSegredos(CHAVE, "PAGAMENTOS_CHAVE");
 
     @Test
     @DisplayName("ida e volta devolve o texto; o blob não contém o texto")
@@ -38,9 +38,9 @@ class CifraSegredosTest {
     void chaveErrada() {
         byte[] blob = cifra.cifrar("segredo", "token-a");
 
-        assertThatThrownBy(() -> new CifraSegredos(OUTRA_CHAVE).decifrar(blob, "token-a"))
+        assertThatThrownBy(() -> new CifraSegredos(OUTRA_CHAVE, "PAGAMENTOS_CHAVE").decifrar(blob, "token-a"))
                 .isInstanceOf(IllegalStateException.class)
-                .hasMessage("Não foi possível decifrar os segredos do meio de pagamento. A PAGAMENTOS_CHAVE mudou?");
+                .hasMessage("Não foi possível decifrar os segredos. A PAGAMENTOS_CHAVE mudou?");
     }
 
     @Test
@@ -67,10 +67,10 @@ class CifraSegredosTest {
     @Test
     @DisplayName("sem chave a cifra fica indisponível e recusa cifrar e decifrar")
     void semChave() {
-        CifraSegredos semChave = new CifraSegredos(" ");
+        CifraSegredos semChave = new CifraSegredos(" ", "PAGAMENTOS_CHAVE");
 
         assertThat(semChave.disponivel()).isFalse();
-        assertThat(new CifraSegredos(null).disponivel()).isFalse();
+        assertThat(new CifraSegredos(null, "PAGAMENTOS_CHAVE").disponivel()).isFalse();
         assertThatThrownBy(() -> semChave.cifrar("a", "b"))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessage("PAGAMENTOS_CHAVE não está definida.");

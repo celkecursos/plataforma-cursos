@@ -4,14 +4,17 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import br.com.celke.cursos.support.fixtures.UsuarioFixture;
+import br.com.celke.cursos.usuario.application.UsuarioService;
 import br.com.celke.cursos.usuario.domain.Papel;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.List;
+import java.util.Optional;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtValidationException;
 
@@ -60,6 +63,10 @@ class TokenAcessoServiceTest {
     }
 
     private org.springframework.security.oauth2.jwt.JwtDecoder decoderEm(Instant instante) {
-        return config.jwtDecoder(PROPS, Clock.fixed(instante, ZoneOffset.UTC));
+        // Conta sempre ativa: a validação da situação da conta tem teste próprio
+        UsuarioService usuarios = Mockito.mock(UsuarioService.class);
+        Mockito.when(usuarios.buscarPorId(Mockito.anyLong()))
+                .thenReturn(Optional.of(UsuarioFixture.usuario(42, "ana@celke.uno", "hash", Papel.ALUNO)));
+        return config.jwtDecoder(PROPS, Clock.fixed(instante, ZoneOffset.UTC), new SessaoValidaValidator(usuarios));
     }
 }

@@ -59,19 +59,28 @@ public class CheckoutService {
         this.clock = clock;
     }
 
+    /** O que o aluno vai comprar, para confirmar antes de abrir o pedido (mesmas regras do checkout). */
+    @Transactional(readOnly = true)
+    public ResumoOferta resumo(Long ofertaId) {
+        Oferta oferta = ofertaAVenda(ofertaId);
+        Gateway gateway = gatewayAtivo(oferta);
+        TurmaResumo turma = turmaAberta(oferta);
+        return new ResumoOferta(
+                oferta.getId(),
+                oferta.getTitulo(),
+                oferta.getPrecoCentavos(),
+                oferta.getMoeda(),
+                turma.cursoTitulo(),
+                turma.turmaNome(),
+                gateway.getTipo().name());
+    }
+
     /** Abre o pedido com o e-mail da conta e devolve o checkout do meio de pagamento da oferta. */
     @Transactional
     public CheckoutIniciado iniciar(Long usuarioId, Long ofertaId) {
-        Oferta oferta = ofertas.findById(ofertaId)
-                .filter(Oferta::isAtiva)
-                .orElseThrow(() -> new NaoEncontradoException("Oferta não encontrada."));
-        Gateway gateway = gateways.findById(oferta.getGatewayId())
-                .filter(Gateway::isAtivo)
-                .orElseThrow(() -> new ConflitoException("Esta oferta não está à venda no momento."));
-        TurmaResumo turma = conteudoTurmaService
-                .turma(oferta.getTurmaId())
-                .filter(t -> t.cursoStatus() == StatusCurso.PUBLICADO && t.turmaStatus() == StatusTurma.ATIVA)
-                .orElseThrow(() -> new ConflitoException("Este curso não está recebendo matrículas no momento."));
+        Oferta oferta = ofertaAVenda(ofertaId);
+        Gateway gateway = gatewayAtivo(oferta);
+        TurmaResumo turma = turmaAberta(oferta);
         Usuario usuario = usuarioService.buscarPorId(usuarioId).orElseThrow();
         Instant agora = clock.instant();
         Pedido pedido =
@@ -105,7 +114,36 @@ public class CheckoutService {
         return new SituacaoPedido(pedido.getCodigo(), pedido.getStatus(), turma);
     }
 
+    private Oferta ofertaAVenda(Long ofertaId) {
+        return ofertas.findById(ofertaId)
+                .filter(Oferta::isAtiva)
+                .orElseThrow(() -> new NaoEncontradoException("Oferta não encontrada."));
+    }
+
+    private Gateway gatewayAtivo(Oferta oferta) {
+        return gateways.findById(oferta.getGatewayId())
+                .filter(Gateway::isAtivo)
+                .orElseThrow(() -> new ConflitoException("Esta oferta não está à venda no momento."));
+    }
+
+    private TurmaResumo turmaAberta(Oferta oferta) {
+        return conteudoTurmaService
+                .turma(oferta.getTurmaId())
+                .filter(t -> t.cursoStatus() == StatusCurso.PUBLICADO && t.turmaStatus() == StatusTurma.ATIVA)
+                .orElseThrow(() -> new ConflitoException("Este curso não está recebendo matrículas no momento."));
+    }
+
     public record CheckoutIniciado(String pedido, Long turmaId, Checkout checkout) {}
+
+    /** Oferta à venda: título, preço, curso, turma e o meio de pagamento (para onde o aluno vai). */
+    public record ResumoOferta(
+            Long id,
+            String titulo,
+            long precoCentavos,
+            String moeda,
+            String curso,
+            String turma,
+            String meioPagamento) {}
 
     /** @param turma nula quando quem consulta não é o dono do pedido */
     public record SituacaoPedido(String codigo, StatusPedido status, TurmaResumo turma) {}

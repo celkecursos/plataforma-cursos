@@ -113,9 +113,9 @@ class AuthLoginIT extends IntegrationTest {
     @DisplayName("admin criado pelo serviço do comando criar-admin entra com o papel ADMIN")
     void adminCriadoPeloComando() {
         String email = stamp() + "@teste.celke.uno";
-        criarAdminService.criar("Admin do Comando", email, "senha-longa-do-admin");
+        criarAdminService.criar("Admin do Comando", email, "girassol-azul-do-lago");
 
-        assertThat(entrar(email, "senha-longa-do-admin"))
+        assertThat(entrar(email, "girassol-azul-do-lago"))
                 .bodyJson()
                 .extractingPath("$.usuario.papeis")
                 .asArray()

@@ -40,10 +40,24 @@ public final class Api {
         return resposta;
     }
 
-    /** Login sem tocar nos termos (jornada que confere o bloqueio por termo pendente). */
+    /**
+     * Login sem tocar nos termos (jornada que confere o bloqueio por termo pendente). O admin do seed
+     * conclui a segunda etapa com o código do aplicativo autenticador, calculado pelo segredo do seed.
+     */
     public static Response loginSemAceite(String email, String senha) {
-        return aluno().body("{\"email\":\"%s\",\"senha\":\"%s\"}".formatted(email, senha))
+        Response resposta = aluno().body("{\"email\":\"%s\",\"senha\":\"%s\"}".formatted(email, senha))
                 .post("/api/auth/login")
+                .then()
+                .statusCode(200)
+                .extract()
+                .response();
+        String desafio = resposta.jsonPath().getString("desafio");
+        if (desafio == null) {
+            return resposta;
+        }
+        return aluno().body("{\"desafio\":\"%s\",\"codigo\":\"%s\"}"
+                        .formatted(desafio, Totp.codigoAtual(E2eConfig.TOTP_SEED)))
+                .post("/api/auth/segundo-fator")
                 .then()
                 .statusCode(200)
                 .extract()

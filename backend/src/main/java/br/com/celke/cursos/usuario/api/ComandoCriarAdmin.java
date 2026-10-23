@@ -27,14 +27,20 @@ public class ComandoCriarAdmin implements ApplicationRunner {
         this.criarAdminService = criarAdminService;
     }
 
-    /** O comando é o primeiro argumento da linha de comando. */
+    /** Comandos de linha: o nome é o primeiro argumento. */
+    private static final java.util.Set<String> COMANDOS = java.util.Set.of(NOME, "redefinir-2fa");
+
+    /** Algum comando de linha (criar-admin, redefinir-2fa) foi pedido no primeiro argumento. */
     public static boolean foiPedido(String[] args) {
-        return args.length > 0 && NOME.equals(args[0]);
+        return args.length > 0 && COMANDOS.contains(args[0]);
     }
 
     @Override
     public void run(ApplicationArguments args) {
         var argumentos = args.getNonOptionArgs();
+        if (argumentos.isEmpty() || !NOME.equals(argumentos.get(0))) {
+            return; // outro comando
+        }
         if (argumentos.size() != 3) {
             throw new IllegalArgumentException("Uso: criar-admin <email> \"<nome>\"");
         }

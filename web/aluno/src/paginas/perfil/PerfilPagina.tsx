@@ -22,6 +22,7 @@ import {
   erroConfirmacao,
   erroObrigatorio,
   erroSenhaNova,
+  SENHA_MINIMA_ALUNO,
   semErros,
 } from '@compartilhado/ui/validacao.ts';
 import { CAMINHOS } from '../../caminhos.ts';
@@ -216,7 +217,9 @@ function TrocarSenha() {
           aoMudar={setNova}
           erro={erros.nova}
           obrigatorio
-          dica="Pelo menos 10 caracteres."
+          dica="Pelo menos 10 caracteres, sem o seu nome ou e-mail e fora das senhas mais usadas."
+          forca
+          politica={{ minimo: SENHA_MINIMA_ALUNO }}
           autoComplete="new-password"
         />
         <CampoSenha

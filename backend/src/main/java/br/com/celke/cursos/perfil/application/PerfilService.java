@@ -2,6 +2,7 @@ package br.com.celke.cursos.perfil.application;
 
 import br.com.celke.cursos.auth.application.RefreshTokenService;
 import br.com.celke.cursos.shared.armazenamento.StorageService;
+import br.com.celke.cursos.shared.erro.CampoInvalidoException;
 import br.com.celke.cursos.shared.erro.RegraNegocioException;
 import br.com.celke.cursos.shared.imagem.ImagemInvalidaException;
 import br.com.celke.cursos.shared.imagem.ProcessadorImagem;
@@ -77,9 +78,9 @@ public class PerfilService {
         }
         int minimo =
                 usuario.getPapeis().contains(Papel.ADMIN) ? PoliticaSenha.MINIMO_ADMIN : PoliticaSenha.MINIMO_ALUNO;
-        String problema = PoliticaSenha.validar(novaSenha, minimo);
+        String problema = PoliticaSenha.validar(novaSenha, minimo, usuario.getNome(), usuario.getEmail());
         if (problema != null) {
-            throw new RegraNegocioException(HttpStatus.BAD_REQUEST, problema);
+            throw new CampoInvalidoException("novaSenha", problema);
         }
         if (usuarioService.senhaConfere(usuario, novaSenha)) {
             throw new RegraNegocioException(HttpStatus.BAD_REQUEST, "A nova senha precisa ser diferente da atual.");

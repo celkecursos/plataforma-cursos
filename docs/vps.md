@@ -211,7 +211,14 @@ Preencha:
 - `caddy/.env`: `ACME_EMAIL`, `ADM_IPS` e `HOMOLOG_IPS` (seus IPs, separados por espaço).
 
 Os segredos de cada `.env` são gerados aleatoriamente e são diferentes entre os ambientes: um token de
-homologação nunca vale na produção.
+homologação nunca vale na produção. Entre eles estão a senha do usuário da aplicação no banco
+(`POSTGRES_APP_USER`/`POSTGRES_APP_PASSWORD`, só lê e grava dados) e a `TOTP_CHAVE`, que cifra o segundo
+fator dos administradores. Num ambiente criado antes dessas variáveis, o próprio deploy as acrescenta
+ao `.env`.
+
+Depois da primeira subida, crie o administrador (`criar-admin`) e entre no ADM: o primeiro login pede o
+cadastro do aplicativo autenticador (QR code) e mostra os códigos de recuperação, que devem ser
+guardados fora da VPS.
 
 ## 7. Acesso às imagens (GHCR)
 

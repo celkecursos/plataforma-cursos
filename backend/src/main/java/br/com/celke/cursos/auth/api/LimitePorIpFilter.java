@@ -40,6 +40,8 @@ public class LimitePorIpFilter extends OncePerRequestFilter {
     /** Rotas limitadas (sempre POST). */
     static final Set<String> ROTAS = Set.of(
             "/api/auth/login",
+            "/api/auth/segundo-fator",
+            "/api/auth/segundo-fator/cadastro",
             "/api/auth/refresh",
             "/api/auth/cadastro",
             "/api/auth/confirmar-email",

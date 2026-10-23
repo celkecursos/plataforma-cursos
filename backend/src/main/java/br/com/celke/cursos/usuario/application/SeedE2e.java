@@ -7,6 +7,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.context.annotation.Profile;
+import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
 /**
@@ -15,6 +16,7 @@ import org.springframework.stereotype.Component;
  */
 @Component
 @Profile("e2e")
+@Order(1)
 public class SeedE2e implements ApplicationRunner {
 
     public static final String ADMIN_EMAIL = "admin@celke.com.br";
@@ -24,7 +26,7 @@ public class SeedE2e implements ApplicationRunner {
     private final String senha;
 
     public SeedE2e(UsuarioService usuarioService, @Value("${SEED_E2E_SENHA}") String senha) {
-        String problema = PoliticaSenha.validar(senha, PoliticaSenha.MINIMO_ADMIN);
+        String problema = PoliticaSenha.validar(senha, PoliticaSenha.MINIMO_ADMIN, ADMIN_EMAIL, ALUNO_EMAIL);
         if (problema != null) {
             throw new IllegalArgumentException("SEED_E2E_SENHA inválida: " + problema);
         }
