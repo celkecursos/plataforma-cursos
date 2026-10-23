@@ -39,16 +39,20 @@ jobs:
           java-version: "25"
           cache: maven
 
-      # A transcodificação de vídeo é testada com o ffmpeg de verdade; o apt só roda quando a imagem do
-      # runner não traz o ffmpeg
+      # A transcodificação de vídeo é testada com o ffmpeg de verdade. O espelho do apt às vezes para no meio
+      # de um download: cada conexão parada desiste em 20 s e o passo tenta de novo, até 3 vezes
       - name: Instalar ffmpeg
-        timeout-minutes: 10
+        timeout-minutes: 15
         run: |
-          if command -v ffmpeg > /dev/null && command -v ffprobe > /dev/null; then
-            ffmpeg -version | head -1
-          else
-            sudo apt-get update -q && sudo apt-get install -y -q --no-install-recommends ffmpeg
-          fi
+          opcoes=(-q -o Acquire::Retries=3 -o Acquire::http::Timeout=20 -o Acquire::https::Timeout=20)
+          for tentativa in 1 2 3; do
+            command -v ffmpeg > /dev/null && command -v ffprobe > /dev/null && break
+            sudo timeout 300 apt-get "${opcoes[@]}" update || true
+            sudo timeout 300 apt-get "${opcoes[@]}" install -y --no-install-recommends ffmpeg && break
+            echo "Instalação do ffmpeg falhou (tentativa $tentativa); tentando de novo"
+            sleep 10
+          done
+          ffmpeg -version | head -1
 
       # Unitários, integração (Testcontainers), cobertura mínima e formatação
       - name: Verificar
