@@ -1333,7 +1333,7 @@ como tutorial.
 
 - **Backend:** Java 25, Spring Boot 4.1, PostgreSQL 18
 - **Vídeos:** armazenamento S3 (Garage) com conversão para HLS via ffmpeg
-- **Frontend:** React com [`@celke/ui`](https://github.com/celkecursos/layout-proprio-biblioteca)
+- **Frontend:** React com [`@celke/kole-react`](https://github.com/celkecursos/kole-react)
 - **Infraestrutura:** Docker, Caddy, GitHub Actions, deploy em VPS
 
 ## Branches

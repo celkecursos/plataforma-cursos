@@ -12,16 +12,19 @@ import {
   Status,
   Vazio,
 } from '@celke/kole-react';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useNavigate } from 'react-router';
 import { api } from '@compartilhado/api/cliente.ts';
 import { ErroApi, mensagemDeErro } from '@compartilhado/api/erros.ts';
 import type { Pagina } from '@compartilhado/api/tipos.ts';
 import { useCarregar } from '@compartilhado/api/useCarregar.ts';
+import { CampoImagens, type CampoImagensRef } from '@compartilhado/ui/CampoImagens.tsx';
 import { dataHora } from '@compartilhado/ui/formato.ts';
+import { LIMITES_FORUM } from '@compartilhado/ui/imagens.ts';
 import { erroObrigatorio, semErros } from '@compartilhado/ui/validacao.ts';
 import { caminhoTopico } from '../../caminhos.ts';
 import type { Topico, TopicoResumo } from '../../tipos.ts';
+import { useImagensMensagem } from './useImagensMensagem.ts';
 
 const TAMANHO = 10;
 
@@ -119,6 +122,8 @@ function NovaPergunta({
   const [erros, setErros] = useState<{ titulo?: string; corpo?: string }>({});
   const [erroGeral, setErroGeral] = useState<string>();
   const [enviando, setEnviando] = useState(false);
+  const imagens = useImagensMensagem();
+  const campoImagens = useRef<CampoImagensRef>(null);
 
   const publicar = async () => {
     const novos = {
@@ -130,13 +135,16 @@ function NovaPergunta({
     if (!semErros(novos)) return;
     setEnviando(true);
     try {
+      const anexos = await imagens.enviar();
       aoPublicar(
         await api.post<Topico>(`/api/aluno/turmas/${turmaId}/forum`, {
           titulo: titulo.trim(),
           corpo: corpo.trim(),
           aulaId: aulaId ?? null,
+          anexos,
         }),
       );
+      imagens.limpar();
     } catch (erro) {
       if (erro instanceof ErroApi) {
         setErros({ titulo: erro.erroDoCampo('titulo'), corpo: erro.erroDoCampo('corpo') });
@@ -175,6 +183,16 @@ function NovaPergunta({
           rows={6}
           maxLength={10_000}
           dica="Aceita Markdown (**negrito**, listas com -, `código`)."
+          onPaste={(evento) => campoImagens.current?.colar(evento)}
+        />
+        <CampoImagens
+          ref={campoImagens}
+          rotulo="Imagens da pergunta"
+          valor={imagens.imagens}
+          aoMudar={imagens.setImagens}
+          limites={LIMITES_FORUM}
+          progresso={imagens.progresso}
+          desabilitado={enviando}
         />
         <div className="pc-linha">
           <Botao type="submit" rotulo="Publicar pergunta" icone="send" carregando={enviando} />
