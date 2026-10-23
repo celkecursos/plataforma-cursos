@@ -157,20 +157,25 @@ jobs:
           java-version: "25"
           cache: maven
 
-      # A transcodificação de vídeo é testada com o ffmpeg de verdade. O espelho do apt às vezes para no meio
-      # de um download: cada conexão parada desiste em 20 s e o passo tenta de novo, até 3 vezes
+      # A transcodificação de vídeo é testada com o ffmpeg de verdade. Build estático (sem o apt, cujo
+      # espelho trava no meio dos downloads), guardado em cache entre as execuções
+      - name: Cache do ffmpeg
+        uses: actions/cache@v6
+        with:
+          path: ~/ffmpeg
+          key: ffmpeg-estatico-7-${{ runner.os }}
+
       - name: Instalar ffmpeg
-        timeout-minutes: 15
+        timeout-minutes: 10
         run: |
-          opcoes=(-q -o Acquire::Retries=3 -o Acquire::http::Timeout=20 -o Acquire::https::Timeout=20)
-          for tentativa in 1 2 3; do
-            command -v ffmpeg > /dev/null && command -v ffprobe > /dev/null && break
-            sudo timeout 300 apt-get "${opcoes[@]}" update || true
-            sudo timeout 300 apt-get "${opcoes[@]}" install -y --no-install-recommends ffmpeg && break
-            echo "Instalação do ffmpeg falhou (tentativa $tentativa); tentando de novo"
-            sleep 10
-          done
-          ffmpeg -version | head -1
+          if [ ! -x ~/ffmpeg/ffmpeg ]; then
+            mkdir -p ~/ffmpeg
+            curl -fsSL --retry 3 --retry-delay 5 --max-time 300 \
+              https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-amd64-static.tar.xz \
+              | tar -xJ -C ~/ffmpeg --strip-components=1 --wildcards '*/ffmpeg' '*/ffprobe'
+          fi
+          echo "$HOME/ffmpeg" >> "$GITHUB_PATH"
+          ~/ffmpeg/ffmpeg -version | head -1
 
       # Unitários, integração (Testcontainers), cobertura mínima e formatação
       - name: Verificar
