@@ -1,14 +1,14 @@
 # Plano de implementação — Plataforma de Cursos
 
 Sistema do aluno (cursos, aulas em vídeo, fórum, certificado) com backend Java, frontend React
-usando `@celke/ui`, tudo em Docker numa VPS da Hostinger. Este plano também é o roteiro do tutorial:
+usando `@celke/kole-react`, tudo em Docker numa VPS da Hostinger. Este plano também é o roteiro do tutorial:
 cada fase vira uma branch e um ou mais capítulos.
 
 **Prompts:** cada etapa implementada tem um prompt em [`docs/prompts/`](prompts/README.md). Executados
 na ordem do índice, eles recriam o projeto do zero.
 
 **Ordem de trabalho:** primeiro todo o backend (com infraestrutura, CI e deploy), depois o frontend,
-quando o `@celke/ui` já estiver publicado no npm.
+com a `@celke/kole-react` instalada do GitHub (commit fixo no `package.json`).
 
 ---
 
@@ -24,7 +24,7 @@ quando o `@celke/ui` já estiver publicado no npm.
 | Acesso ao S3 | Somente AWS SDK v2 com path-style; trocar de servidor = trocar endpoint no `.env` |
 | Vídeo | Upload direto por URL pré-assinada → ffmpeg → HLS 720p + 1080p → playlist reescrita pela API com segmentos assinados |
 | E-mail | **SMTP da Iagente** |
-| Frontend | Workspace npm com `site`, `aluno`, `adm`; `@celke/ui` instalado **do npm** (publicado antes da fase de front) |
+| Frontend | Pacote único em `web/` com `aluno`, `adm` e o gerador do `site`; `@celke/kole-react` instalada **do GitHub** com commit fixo |
 | Hospedagem | Tudo em Docker na VPS (2 vCPU, 8 GB, 100 GB NVMe); Caddy com HTTPS automático serve os fronts e faz proxy de `/api` |
 | Ambientes | Produção + homologação leve na mesma VPS |
 | Branches | `main` (produção), `homolog` (homologação), `feature/nome` e `fix/nome` temporárias, `hotfix/nome` a partir da `main` |
@@ -519,7 +519,7 @@ Capítulo 35.
 
 - [x] Meus cursos em abas (ativos, arquivados, expirados), arquivar/desarquivar
 - [x] Turma com módulos, aulas, arquivos do módulo e progresso (vistas e revisar)
-- [x] Aula: player HLS (hls.js; token só nas playlists da API) com retomada e envio da posição, anterior/próxima, vista/revisar, arquivos, fórum da aula (pergunta e resposta; anexo de imagem fica para depois)
+- [x] Aula: player HLS (hls.js; token só nas playlists da API) com retomada e envio da posição, anterior/próxima, vista/revisar, arquivos, fórum da aula (pergunta e resposta; as imagens nas mensagens entram na Fase 18)
 - [x] Certificado (situação, emissão com o nome completo, PDF), lista de certificados e perfil (nome, foto, senha)
 - [x] e2e (Playwright, caminho feliz e infeliz): login → turma → aula → vídeo toca até o fim → vista → progresso da turma; retomada, revisar, navegação, download do arquivo, fórum, certificado (bloqueado → emitido → validado), perfil; sem matrícula, matrícula futura, arquivar
 
@@ -575,9 +575,19 @@ Prompt: [`docs/prompts/f17-01-auditoria-e-logs.md`](prompts/f17-01-auditoria-e-l
 - [x] Logs da API e do worker também em arquivo, no volume `logs`: um por dia, 180 dias ou 2 GB por serviço
 - [x] Testes unitários, de integração e Playwright
 
-### Fase 18 — `feature/seguranca`
+### Fase 18 — `feature/forum-anexos`
 
-Prompt: [`docs/prompts/f18-01-seguranca.md`](prompts/f18-01-seguranca.md). Operação:
+Prompt: [`docs/prompts/f18-01-anexos-no-forum.md`](prompts/f18-01-anexos-no-forum.md).
+
+- [x] Imagens na pergunta e na resposta do aluno: escolher, arrastar ou colar um print (no texto também), com prévia, remover e progresso do envio
+- [x] Tipo, tamanho e quantidade conferidos em todos os caminhos (o `accept` do seletor não filtra arrastar e colar): JPEG ou PNG, até 5 MB, até 3 por mensagem
+- [x] Envio direto ao armazenamento só ao publicar (a API apaga o envio ao processá-lo; uma nova tentativa envia de novo)
+- [x] Imagens publicadas na pergunta e nas respostas, para o aluno e na moderação do ADM, com visualizador em tela cheia
+- [x] Testes unitários e Playwright (caminho feliz e infeliz)
+
+### Fase 19 — `feature/seguranca`
+
+Prompt: [`docs/prompts/f19-01-seguranca.md`](prompts/f19-01-seguranca.md). Operação:
 [`docs/operacao.md`](operacao.md), seção 7.
 
 - [x] Segundo fator (TOTP, RFC 6238) obrigatório para administradores: desafio depois da senha, cadastro por QR code, códigos de recuperação de uso único, segredo cifrado (`TOTP_CHAVE`), código sem reuso, comando `redefinir-2fa`
@@ -591,9 +601,9 @@ Prompt: [`docs/prompts/f18-01-seguranca.md`](prompts/f18-01-seguranca.md). Opera
 - [x] Teste que varre todas as rotas da API: só as públicas declaradas respondem sem login
 - [x] Testes unitários, de integração e Playwright
 
-### Fase 19 — `feature/lgpd`
+### Fase 20 — `feature/lgpd`
 
-Prompt: [`docs/prompts/f19-01-lgpd.md`](prompts/f19-01-lgpd.md). Operação:
+Prompt: [`docs/prompts/f20-01-lgpd.md`](prompts/f20-01-lgpd.md). Operação:
 [`docs/operacao.md`](operacao.md), seção 4.2. Modelo da política:
 [`docs/politica-privacidade-modelo.md`](politica-privacidade-modelo.md).
 
@@ -622,7 +632,7 @@ O conteúdo de cada capítulo está em [capitulos.md](capitulos.md).
 | 8 | `feature/certificado` | 27 |
 | 9 | `feature/perfil-termos` | 28 |
 | 10 | `feature/operacao` | 29–31 |
-| — | repositório do `@celke/ui` | 32 |
+| — | repositório da `@celke/kole-react` | 32 |
 | 11 | `feature/web-base` | 33 |
 | 12 | `feature/web-adm` | 34 |
 | 13 | `feature/web-aluno` | 35 |
@@ -630,5 +640,6 @@ O conteúdo de cada capítulo está em [capitulos.md](capitulos.md).
 | 15 | `feature/migracao-legado` | 37 |
 | 16 | `feature/pagamentos` | 38–40 |
 | 17 | `feature/auditoria` | 41 |
-| 18 | `feature/seguranca` | 42, 43 |
-| 19 | `feature/lgpd` | 44 |
+| 18 | `feature/forum-anexos` | 26 |
+| 19 | `feature/seguranca` | 42, 43 |
+| 20 | `feature/lgpd` | 44 |

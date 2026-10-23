@@ -28,7 +28,12 @@ Ao final de cada prompt, confira a seção **Verificação** dele antes de segui
 | 18 | [Certificado em PDF](f08-01-certificado.md) | 8 | `feature/certificado` |
 | 19 | [Perfil e termos](f09-01-perfil-e-termos.md) | 9 | `feature/perfil-termos` |
 | 20 | [Operação: backup, alertas e segurança](f10-01-operacao.md) | 10 | `feature/operacao` |
-| 21 | [Pagamentos: multi-gateway e Hotmart](f16-01-pagamentos-hotmart.md) | 16 | `feature/pagamentos` |
-| 22 | [Auditoria das ações e logs persistentes](f17-01-auditoria-e-logs.md) | 17 | `feature/auditoria` |
-| 23 | [Segurança: segundo fator, menos privilégio e senhas fortes](f18-01-seguranca.md) | 18 | `feature/seguranca` |
-| 24 | [LGPD: cópia dos dados, exclusão da conta e política de privacidade](f19-01-lgpd.md) | 19 | `feature/lgpd` |
+| 21 | [Base dos fronts: aluno e ADM](f11-01-base-dos-fronts.md) | 11 | `feature/web-base` |
+| 22 | [Telas do ADM](f12-01-telas-do-adm.md) | 12 | `feature/web-adm` |
+| 23 | [Área do aluno](f13-01-area-do-aluno.md) | 13 | `feature/web-aluno` |
+| 24 | [Site público](f14-01-site-publico.md) | 14 | `feature/site` |
+| 25 | [Pagamentos: multi-gateway e Hotmart](f16-01-pagamentos-hotmart.md) | 16 | `feature/pagamentos` |
+| 26 | [Auditoria das ações e logs persistentes](f17-01-auditoria-e-logs.md) | 17 | `feature/auditoria` |
+| 27 | [Imagens no fórum de dúvidas](f18-01-anexos-no-forum.md) | 18 | `feature/forum-anexos` |
+| 28 | [Segurança: segundo fator, menos privilégio e senhas fortes](f19-01-seguranca.md) | 19 | `feature/seguranca` |
+| 29 | [LGPD: cópia dos dados, exclusão da conta e política de privacidade](f20-01-lgpd.md) | 20 | `feature/lgpd` |

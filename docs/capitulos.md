@@ -20,7 +20,7 @@ capítulo.
 | 5. Vídeo | 19–24 | 4, 5 |
 | 6. Restante do domínio | 25–28 | 6–9 |
 | 7. Operação | 29–31 | 10 |
-| 8. Frontend com `@celke/ui` | 32–36 | 11–14 |
+| 8. Frontend com `@celke/kole-react` | 32–36 | 11–14 |
 | 9. Migração do legado (opcional) | 37 | 15 |
 | 10. Vendas e pagamentos | 38–40 | 16 |
 | 11. Auditoria e logs | 41 | 17 |
@@ -483,16 +483,16 @@ Fica antes do frontend porque precisa estar pronta antes de entrarem dados reais
 
 ---
 
-## Parte 8 — Frontend com `@celke/ui`
+## Parte 8 — Frontend com `@celke/kole-react`
 
-### Cap. 32 — Componentes da área do aluno no `@celke/ui`
+### Cap. 32 — A biblioteca `@celke/kole-react`
 
-**Pré-requisito do frontend** (feito no repositório da biblioteca)
+**Pré-requisito do frontend** (repositório da biblioteca)
 
-- **Objetivo:** a biblioteca publicada no npm com tudo que a área do aluno precisa.
-- **Conteúdo:** `PlayerVideo` (hls.js, token no `xhrSetup`, retomar posição, enviar progresso), `CardCurso`, `ListaAulas` e componentes de fórum.
-- **Testes:** componentes testados com Vitest.
-- **Entrega:** nova versão do `@celke/ui` publicada no npm.
+- **Objetivo:** conhecer a biblioteca de layout usada pelos fronts e como instalá-la.
+- **Conteúdo:** moldura (`Estrutura`, `TelaLogin`), formulários, tabelas, diálogos, avisos e o visualizador de arquivos; instalação do GitHub (`github:celkecursos/kole-react#<commit>`). Os componentes próprios da área do aluno (player de vídeo, lista de aulas, fórum, campo de imagens) ficam no app.
+- **Testes:** componentes testados com Vitest no repositório da biblioteca.
+- **Entrega:** commit da biblioteca fixado no `web/package.json`.
 
 ### Cap. 33 — Workspace web e a biblioteca
 
@@ -500,8 +500,8 @@ Fica antes do frontend porque precisa estar pronta antes de entrarem dados reais
 
 - **Objetivo:** base dos três frontends servida pelo Caddy.
 - **Conteúdo:**
-  - Workspace npm com `site`, `aluno` e `adm` (Vite + React + TypeScript).
-  - `@celke/ui` instalado do npm com versão fixa.
+  - Pacote único em `web/` com `aluno` e `adm` (Vite + React + TypeScript); o `site` entra na Fase 14.
+  - `@celke/kole-react` instalada do GitHub com commit fixo.
   - Client HTTP com token em memória, refresh silencioso e fila de requisições durante o refresh; proteção de rotas por papel; tratamento de termo pendente.
   - Telas de login, cadastro, confirmação de e-mail e recuperação de senha.
   - Imagem `web`: build dos fronts + Caddy servindo `/srv/site`, `/srv/aluno` e `/srv/adm`; proxy do Vite `/api` no desenvolvimento.
@@ -514,7 +514,7 @@ Fica antes do frontend porque precisa estar pronta antes de entrarem dados reais
 **Fase:** 12
 
 - **Objetivo:** o admin opera a plataforma pelo navegador.
-- **Conteúdo:** cursos, turmas, módulos e aulas (com reordenação por arrastar); upload de vídeo multipart com progresso e status de processamento; arquivos de apoio, matrículas, moderação do fórum e termos.
+- **Conteúdo:** cursos, turmas, módulos e aulas (reordenação pelos botões subir e descer); upload de vídeo multipart com progresso e status de processamento; arquivos de apoio, matrículas, moderação do fórum e termos.
 - **Testes:** Playwright do admin criando um curso completo e enviando um vídeo curto até "pronto".
 - **Entrega:** curso publicado inteiramente pelo ADM.
 
@@ -523,7 +523,7 @@ Fica antes do frontend porque precisa estar pronta antes de entrarem dados reais
 **Fase:** 13
 
 - **Objetivo:** a experiência completa do aluno.
-- **Conteúdo:** dashboard de cursos; página da turma com progresso; aula com player, lista lateral, anterior/próxima, vista/revisar, arquivos e fórum; certificados e perfil.
+- **Conteúdo:** dashboard de cursos; página da turma com progresso; aula com player, lista lateral, anterior/próxima, vista/revisar, arquivos e fórum (com imagens nas perguntas e respostas, Fase 18); certificados e perfil.
 - **Testes:** Testing Library e Playwright (login → turma → aula → vídeo toca → marca como vista → progresso atualizado).
 - **Entrega:** aluno assiste a uma aula do início ao fim.
 
@@ -533,9 +533,9 @@ Fica antes do frontend porque precisa estar pronta antes de entrarem dados reais
 
 - **Objetivo:** vitrine pública rápida e bem indexada.
 - **Conteúdo:**
-  - React com pré-renderização estática (cada página vira um HTML) em `cursos.celke.uno`.
-  - Home, catálogo, página do curso (dados da API no build), validar certificado e páginas legais.
-  - Layout novo com os mesmos tokens visuais do `@celke/ui`.
+  - Pré-renderização estática (cada página vira um HTML) em `cursos.celke.uno`, gerada pelo container `site` a partir da API do próprio ambiente ao subir e a cada 5 minutos.
+  - Home, catálogo, página do curso, validar certificado e páginas legais.
+  - Layout novo com os mesmos tokens visuais da `@celke/kole-react`.
   - SEO: meta tags, Open Graph, sitemap, `robots.txt`.
 - **Testes:** meta de Lighthouse verificada no pipeline.
 - **Entrega:** site publicado com a nota de Lighthouse atingida.
@@ -632,7 +632,7 @@ Fica antes do frontend porque precisa estar pronta antes de entrarem dados reais
 
 ### Cap. 42 — Segundo fator dos administradores e senhas fortes
 
-**Fase:** 18 · **Prompt:** [f18-01](prompts/f18-01-seguranca.md)
+**Fase:** 19 · **Prompt:** [f19-01](prompts/f19-01-seguranca.md)
 
 - **Objetivo:** uma senha vazada não basta para entrar no ADM, e as senhas fáceis de adivinhar ficam de fora.
 - **Conteúdo:**
@@ -647,7 +647,7 @@ Fica antes do frontend porque precisa estar pronta antes de entrarem dados reais
 
 ### Cap. 43 — Menos privilégio: banco, limites, contas e dependências
 
-**Fase:** 18 · **Prompt:** [f18-01](prompts/f18-01-seguranca.md)
+**Fase:** 19 · **Prompt:** [f19-01](prompts/f19-01-seguranca.md)
 
 - **Objetivo:** uma falha na aplicação causa o menor estrago possível.
 - **Conteúdo:**
@@ -667,7 +667,7 @@ Fica antes do frontend porque precisa estar pronta antes de entrarem dados reais
 
 ### Cap. 44 — LGPD: cópia dos dados, exclusão da conta e política de privacidade
 
-**Fase:** 19 · **Prompt:** [f19-01](prompts/f19-01-lgpd.md)
+**Fase:** 20 · **Prompt:** [f20-01](prompts/f20-01-lgpd.md)
 
 - **Objetivo:** o aluno exerce os direitos do titular sozinho, pelo perfil, e a política de privacidade diz exatamente o que o sistema faz.
 - **Conteúdo:**
