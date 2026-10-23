@@ -45,12 +45,16 @@ container `site` gera a partir da API ao subir e a cada 5 minutos (`SITE_INTERVA
 | `media.celke.uno` | produção | público (URLs assinadas) |
 | `homolog-aluno.celke.uno`, `homolog-adm.celke.uno`, `homolog-media.celke.uno` | homologação | só `HOMOLOG_IPS`, `noindex`, com Swagger |
 
-## 1. No painel da Hostinger
+## 1. Contratar a VPS na Hostinger
 
-1. Anote o IP da VPS.
-2. Firewall da VPS: libere só 22, 80 e 443 (TCP) e 443 (UDP). O `ufw` faz o mesmo dentro da VPS; o
+1. Contrate a VPS pelo link https://celke.com.br/page/hostinger e use o cupom **CELKE** no pagamento.
+   Recomendado: plano **KVM 4** (4 vCPU, 16 GB de RAM, 200 GB de disco NVMe), com folga para a
+   produção e a homologação na mesma VPS e para a conversão dos vídeos. Sistema **Ubuntu 24.04**, sem
+   painel de controle; defina uma senha forte para o root (ela só vale até o passo 4).
+2. No painel da Hostinger, anote o IP da VPS.
+3. Firewall da VPS: libere só 22, 80 e 443 (TCP) e 443 (UDP). O `ufw` faz o mesmo dentro da VPS; o
    painel é a segunda camada.
-3. Ative o backup/snapshot semanal do painel (não substitui o backup fora da VPS da fase de operação).
+4. Ative o backup/snapshot semanal do painel (não substitui o backup fora da VPS da fase de operação).
 
 ## 2. DNS de celke.uno
 

@@ -2391,12 +2391,16 @@ container `site` gera a partir da API ao subir e a cada 5 minutos (`SITE_INTERVA
 | `media.celke.uno` | produção | público (URLs assinadas) |
 | `homolog-aluno.celke.uno`, `homolog-adm.celke.uno`, `homolog-media.celke.uno` | homologação | só `HOMOLOG_IPS`, `noindex`, com Swagger |
 
-## 1. No painel da Hostinger
+## 1. Contratar a VPS na Hostinger
 
-1. Anote o IP da VPS.
-2. Firewall da VPS: libere só 22, 80 e 443 (TCP) e 443 (UDP). O `ufw` faz o mesmo dentro da VPS; o
+1. Contrate a VPS pelo link https://celke.com.br/page/hostinger e use o cupom **CELKE** no pagamento.
+   Recomendado: plano **KVM 4** (4 vCPU, 16 GB de RAM, 200 GB de disco NVMe), com folga para a
+   produção e a homologação na mesma VPS e para a conversão dos vídeos. Sistema **Ubuntu 24.04**, sem
+   painel de controle; defina uma senha forte para o root (ela só vale até o passo 4).
+2. No painel da Hostinger, anote o IP da VPS.
+3. Firewall da VPS: libere só 22, 80 e 443 (TCP) e 443 (UDP). O `ufw` faz o mesmo dentro da VPS; o
    painel é a segunda camada.
-3. Ative o backup/snapshot semanal do painel (não substitui o backup fora da VPS da fase de operação).
+4. Ative o backup/snapshot semanal do painel (não substitui o backup fora da VPS da fase de operação).
 
 ## 2. DNS de celke.uno
 
@@ -17255,6 +17259,41 @@ Fase 14 concluída e integrada na `homolog`. Crie a branch a partir dela:
 git switch homolog
 git pull
 git switch -c feature/pagamentos
+```
+
+## Orientações para o usuário
+
+Esta etapa tem passos que só o usuário faz, fora do código (no navegador, no painel da Hostinger, no DNS, no GitHub ou na VPS). Depois de gravar os arquivos e passar na **Verificação**, **mostre no terminal**, para o usuário, cada bloco abaixo **exatamente como está**, um de cada vez, na ordem. Depois de cada bloco, pare e espere o usuário confirmar que concluiu antes de mostrar o próximo. Quando ele informar um valor (o IP da VPS, por exemplo), use-o nos blocos seguintes no lugar de `<ip-da-vps>`.
+
+### 1. Chave dos pagamentos e Caddy
+
+```text
+==> PAGAMENTOS — ETAPA 1 DE 2: NA VPS (docs/vps.md, seção 11)
+
+1. ANTES do deploy desta etapa, na VPS, como deploy (uma chave diferente por ambiente):
+
+     echo "PAGAMENTOS_CHAVE=$(openssl rand -base64 32)" >> /opt/plataforma-cursos/producao/.env
+     echo "PAGAMENTOS_CHAVE=$(openssl rand -base64 32)" >> /opt/plataforma-cursos/homolog/.env
+
+2. Depois do deploy, atualize o Caddy (a homologação passa a aceitar as notificações da Hotmart):
+   copie o Caddyfile e a pasta sites/ de infra/caddy/ para /opt/plataforma-cursos/caddy/ e, como deploy:
+
+     cd /opt/plataforma-cursos
+     docker compose -f caddy/compose.yml --env-file caddy/.env --project-directory caddy up -d --force-recreate
+```
+
+### 2. Hotmart
+
+```text
+==> PAGAMENTOS — ETAPA 2 DE 2: HOTMART (docs/pagamentos.md)
+
+1. No ADM → Pagamentos → Meios de pagamento, cadastre a Hotmart (Sandbox na homologação) e copie a
+   URL do webhook que aparece pronta.
+2. Na Hotmart, em Ferramentas → Webhook, cadastre essa URL (versão 2.0.0) e copie o Hottok para o
+   cadastro do ADM; para a reconciliação, informe também as credenciais da API (Ferramentas →
+   Credenciais).
+3. Em cada turma à venda, crie a oferta (aba Venda) com o produto e a oferta da Hotmart e faça uma
+   compra de teste no sandbox.
 ```
 
 ## Verificação

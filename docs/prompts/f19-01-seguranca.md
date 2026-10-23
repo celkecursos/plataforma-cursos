@@ -7143,12 +7143,16 @@ container `site` gera a partir da API ao subir e a cada 5 minutos (`SITE_INTERVA
 | `media.celke.uno` | produção | público (URLs assinadas) |
 | `homolog-aluno.celke.uno`, `homolog-adm.celke.uno`, `homolog-media.celke.uno` | homologação | só `HOMOLOG_IPS`, `noindex`, com Swagger |
 
-## 1. No painel da Hostinger
+## 1. Contratar a VPS na Hostinger
 
-1. Anote o IP da VPS.
-2. Firewall da VPS: libere só 22, 80 e 443 (TCP) e 443 (UDP). O `ufw` faz o mesmo dentro da VPS; o
+1. Contrate a VPS pelo link https://celke.com.br/page/hostinger e use o cupom **CELKE** no pagamento.
+   Recomendado: plano **KVM 4** (4 vCPU, 16 GB de RAM, 200 GB de disco NVMe), com folga para a
+   produção e a homologação na mesma VPS e para a conversão dos vídeos. Sistema **Ubuntu 24.04**, sem
+   painel de controle; defina uma senha forte para o root (ela só vale até o passo 4).
+2. No painel da Hostinger, anote o IP da VPS.
+3. Firewall da VPS: libere só 22, 80 e 443 (TCP) e 443 (UDP). O `ufw` faz o mesmo dentro da VPS; o
    painel é a segunda camada.
-3. Ative o backup/snapshot semanal do painel (não substitui o backup fora da VPS da fase de operação).
+4. Ative o backup/snapshot semanal do painel (não substitui o backup fora da VPS da fase de operação).
 
 ## 2. DNS de celke.uno
 
@@ -14317,6 +14321,39 @@ Fase 18 concluída e integrada na `homolog`. Crie a branch a partir dela:
 git switch homolog
 git pull
 git switch -c feature/seguranca
+```
+
+## Orientações para o usuário
+
+Esta etapa tem passos que só o usuário faz, fora do código (no navegador, no painel da Hostinger, no DNS, no GitHub ou na VPS). Depois de gravar os arquivos e passar na **Verificação**, **mostre no terminal**, para o usuário, cada bloco abaixo **exatamente como está**, um de cada vez, na ordem. Depois de cada bloco, pare e espere o usuário confirmar que concluiu antes de mostrar o próximo. Quando ele informar um valor (o IP da VPS, por exemplo), use-o nos blocos seguintes no lugar de `<ip-da-vps>`.
+
+### 1. Script de deploy novo
+
+```text
+==> SEGURANÇA — ETAPA 1 DE 2: ANTES DO DEPLOY (docs/vps.md, seção 6)
+
+Instale o script de deploy desta versão ANTES do merge na homolog. É ele que acrescenta ao .env de
+cada ambiente as variáveis novas (POSTGRES_APP_USER, POSTGRES_APP_PASSWORD e TOTP_CHAVE); sem elas o
+deploy recusa subir e volta sozinho para a versão anterior.
+
+  scp infra/scripts/deploy.sh <seu-usuario>@<ip-da-vps>:/tmp/
+  ssh <seu-usuario>@<ip-da-vps> 'sudo install -o root -g root -m 755 /tmp/deploy.sh /usr/local/bin/plataforma-cursos-deploy && rm /tmp/deploy.sh'
+
+Para servidores novos, o gerar-env-servidor.sh já cria essas variáveis.
+```
+
+### 2. Segundo fator dos administradores
+
+```text
+==> SEGURANÇA — ETAPA 2 DE 2: DEPOIS DO DEPLOY (docs/operacao.md, seção 7)
+
+1. Entre no ADM de cada ambiente: depois da senha, leia o QR code com um aplicativo autenticador
+   (Google Authenticator, Microsoft Authenticator, 1Password...) e informe o código.
+2. Guarde os 10 códigos de recuperação que aparecem em seguida fora da VPS (gerenciador de senhas).
+3. Perdeu o celular e os códigos? Na VPS, como deploy:
+
+     cd /opt/plataforma-cursos/producao
+     docker compose -p plataforma-cursos-producao -f compose.prod.yml run --rm api redefinir-2fa <email-do-admin>
 ```
 
 ## Verificação

@@ -113,6 +113,297 @@ Crie ou substitua os arquivos abaixo com **exatamente** o conteúdo indicado.
 
 ### Arquivos alterados (substitua o conteúdo inteiro)
 
+`.github/workflows/pipeline.yml`:
+
+`````yaml
+# Testes, build das imagens e e2e em todo PR para homolog e main. Depois do merge (push), refaz tudo
+# com o código exato do commit, publica no GHCR as imagens que passaram no e2e (tag = SHA) e implanta:
+# push na homolog → homologação; push na main → produção. Os deploys só rodam com a variável do
+# repositório DEPLOY_ATIVO=true (criada quando a VPS estiver pronta); sem ela, são pulados.
+name: Pipeline
+
+on:
+  pull_request:
+    branches: [homolog, main]
+  push:
+    branches: [homolog, main]
+  workflow_dispatch:
+
+concurrency:
+  group: pipeline-${{ github.ref }}
+  # Só PRs cancelam execuções antigas: um deploy nunca é interrompido no meio
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+env:
+  COMPOSE_E2E: docker compose -f infra/compose.prod.yml -f infra/compose.e2e.yml --env-file infra/e2e.env
+
+jobs:
+  testes:
+    name: Testes (unitários e integração)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: "25"
+          cache: maven
+
+      # A transcodificação de vídeo é testada com o ffmpeg de verdade. Build estático (sem o apt, cujo
+      # espelho trava no meio dos downloads), guardado em cache entre as execuções
+      - name: Cache do ffmpeg
+        uses: actions/cache@v6
+        with:
+          path: ~/ffmpeg
+          key: ffmpeg-estatico-7-${{ runner.os }}
+
+      - name: Instalar ffmpeg
+        timeout-minutes: 10
+        run: |
+          if [ ! -x ~/ffmpeg/ffmpeg ]; then
+            mkdir -p ~/ffmpeg
+            curl -fsSL --retry 3 --retry-delay 5 --max-time 300 \
+              https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-amd64-static.tar.xz \
+              | tar -xJ -C ~/ffmpeg --strip-components=1 --wildcards '*/ffmpeg' '*/ffprobe'
+          fi
+          echo "$HOME/ffmpeg" >> "$GITHUB_PATH"
+          ~/ffmpeg/ffmpeg -version | head -1
+
+      # Unitários, integração (Testcontainers), cobertura mínima e formatação
+      - name: Verificar
+        run: ./mvnw -B verify
+
+      - name: Relatórios dos testes
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: relatorios-testes
+          path: |
+            backend/target/surefire-reports
+            backend/target/failsafe-reports
+
+      - name: Relatório de cobertura
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: cobertura
+          path: backend/target/site/jacoco
+          if-no-files-found: ignore
+
+  frontend:
+    name: Frontend (lint, tipos, unitários e build)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      # O lock guarda o kole-react como git+ssh; o repositório é público e vem por HTTPS
+      - name: Dependências
+        run: |
+          git config --global url."https://github.com/".insteadOf "ssh://git@github.com/"
+          npm ci --no-audit --no-fund
+
+      # Falha com vulnerabilidade alta ou crítica nas dependências que vão para o navegador
+      - name: Auditoria das dependências
+        run: npm audit --omit=dev --audit-level=high
+      - run: npm run format:check
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+
+  e2e:
+    name: e2e (stack completa)
+    needs: [testes, frontend]
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: "25"
+          cache: maven
+
+      - uses: docker/setup-buildx-action@v4
+
+      # As mesmas imagens que vão para os servidores, com cache de camadas entre execuções
+      - name: Imagem da API
+        uses: docker/build-push-action@v7
+        with:
+          context: backend
+          target: api
+          tags: plataforma-cursos-api:e2e
+          load: true
+          # Liga o pacote do GHCR ao repositório (mesmas permissões)
+          labels: org.opencontainers.image.source=https://github.com/${{ github.repository }}
+          cache-from: type=gha,scope=api
+          cache-to: type=gha,mode=max,scope=api
+
+      - name: Imagem do worker
+        uses: docker/build-push-action@v7
+        with:
+          context: backend
+          target: worker
+          tags: plataforma-cursos-worker:e2e
+          load: true
+          # Liga o pacote do GHCR ao repositório (mesmas permissões)
+          labels: org.opencontainers.image.source=https://github.com/${{ github.repository }}
+          cache-from: type=gha,scope=worker
+          cache-to: type=gha,mode=max,scope=worker
+
+      - name: Imagem dos fronts
+        uses: docker/build-push-action@v7
+        with:
+          context: web
+          target: web
+          tags: plataforma-cursos-web:e2e
+          load: true
+          labels: org.opencontainers.image.source=https://github.com/${{ github.repository }}
+          cache-from: type=gha,scope=web
+          cache-to: type=gha,mode=max,scope=web
+
+      - name: Imagem do gerador do site
+        uses: docker/build-push-action@v7
+        with:
+          context: web
+          target: site
+          tags: plataforma-cursos-site:e2e
+          load: true
+          labels: org.opencontainers.image.source=https://github.com/${{ github.repository }}
+          cache-from: type=gha,scope=web
+
+      # Vulnerabilidades críticas com correção disponível nas imagens (sistema e dependências Java)
+      - name: Varredura da imagem da API (Trivy)
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: plataforma-cursos-api:e2e
+          severity: CRITICAL
+          ignore-unfixed: true
+          exit-code: "1"
+
+      - name: Varredura da imagem do worker (Trivy)
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: plataforma-cursos-worker:e2e
+          severity: CRITICAL
+          ignore-unfixed: true
+          exit-code: "1"
+
+      - name: Varredura da imagem dos fronts (Trivy)
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: plataforma-cursos-web:e2e
+          severity: CRITICAL
+          ignore-unfixed: true
+          exit-code: "1"
+
+      - name: Varredura da imagem do site (Trivy)
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: plataforma-cursos-site:e2e
+          severity: CRITICAL
+          ignore-unfixed: true
+          exit-code: "1"
+
+      - name: Subir a stack de e2e
+        run: $COMPOSE_E2E up -d --no-build --wait
+
+      - name: Jornadas e2e
+        working-directory: backend
+        run: ./mvnw -B verify -Pe2e
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      # Navegador real contra os fronts servidos pelo container web, atrás do Caddy
+      - name: Jornadas e2e dos fronts (Playwright)
+        working-directory: web
+        run: |
+          git config --global url."https://github.com/".insteadOf "ssh://git@github.com/"
+          npm ci --no-audit --no-fund
+          npx playwright install --with-deps chromium
+          npm run e2e
+
+      # Meta de Lighthouse do site público (desempenho, acessibilidade, boas práticas e SEO)
+      - name: Lighthouse do site
+        working-directory: web
+        run: npm run lighthouse
+
+      # Só depois do merge, e só se o e2e passou: as imagens publicadas são exatamente as testadas
+      - name: Publicar imagens no GHCR
+        if: github.event_name == 'push'
+        env:
+          REGISTRO: ghcr.io/${{ github.repository_owner }}
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+          for imagem in api worker web site; do
+            docker tag "plataforma-cursos-$imagem:e2e" "$REGISTRO/plataforma-cursos-$imagem:$GITHUB_SHA"
+            docker push "$REGISTRO/plataforma-cursos-$imagem:$GITHUB_SHA"
+          done
+
+      - name: Logs da stack
+        if: failure()
+        run: $COMPOSE_E2E logs --no-color > stack-e2e.log
+
+      - name: Relatórios do e2e
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: e2e-falha
+          path: |
+            stack-e2e.log
+            backend/target/failsafe-reports
+            web/playwright-report
+            web/test-results
+
+      - name: Derrubar a stack de e2e
+        if: always()
+        run: $COMPOSE_E2E down -v
+
+  deploy-homolog:
+    name: Homologação
+    needs: e2e
+    if: github.event_name == 'push' && github.ref == 'refs/heads/homolog' && vars.DEPLOY_ATIVO == 'true'
+    uses: ./.github/workflows/deploy.yml
+    with:
+      ambiente: homolog
+    secrets: inherit
+
+  deploy-producao:
+    name: Produção
+    needs: e2e
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && vars.DEPLOY_ATIVO == 'true'
+    uses: ./.github/workflows/deploy.yml
+    with:
+      ambiente: producao
+    secrets: inherit
+`````
+
 `README.md`:
 
 `````markdown
@@ -4595,6 +4886,21 @@ Fase 19 concluída e integrada na `homolog`. Crie a branch a partir dela:
 git switch homolog
 git pull
 git switch -c feature/lgpd
+```
+
+## Orientações para o usuário
+
+Esta etapa tem passos que só o usuário faz, fora do código (no navegador, no painel da Hostinger, no DNS, no GitHub ou na VPS). Depois de gravar os arquivos e passar na **Verificação**, **mostre no terminal**, para o usuário, cada bloco abaixo **exatamente como está**, um de cada vez, na ordem. Depois de cada bloco, pare e espere o usuário confirmar que concluiu antes de mostrar o próximo. Quando ele informar um valor (o IP da VPS, por exemplo), use-o nos blocos seguintes no lugar de `<ip-da-vps>`.
+
+### Política de privacidade
+
+```text
+==> LGPD — PUBLICAR A POLÍTICA DE PRIVACIDADE
+
+1. Abra docs/politica-privacidade-modelo.md, troque o que está entre [colchetes] pelos dados da
+   empresa (razão social, CNPJ, endereço, encarregado e e-mail) e revise com quem cuida do jurídico.
+2. No ADM → Termos, publique o texto como nova versão da Política de privacidade: os usuários aceitam
+   no próximo acesso.
 ```
 
 ## Verificação

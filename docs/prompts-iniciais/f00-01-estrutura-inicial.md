@@ -11,8 +11,8 @@ os vídeos ficarão num armazenamento S3 (Garage) convertidos para HLS com ffmpe
 React usando a biblioteca `@celke/kole-react`, e a infraestrutura usará Docker, Caddy, GitHub Actions e deploy
 numa VPS.
 
-Nesta etapa, crie apenas os arquivos iniciais: o `README.md`, o `.gitignore`, o plano de
-implementação e o roteiro do tutorial. Não crie código, pastas de backend/frontend nem faça commit.
+Nesta etapa, crie apenas os arquivos iniciais: o `README.md`, o `.gitignore`, a licença, o plano
+de implementação e o roteiro do tutorial. Não crie código, pastas de backend/frontend nem faça commit.
 
 ### 1. `README.md`
 
@@ -75,7 +75,40 @@ test-results/
 .DS_Store
 ```
 
-### 3. `docs/plano-implementacao.md`
+### 3. `LICENSE.txt` (licença MIT)
+
+Antes de criar este arquivo, **pergunte ao usuário** e espere a resposta:
+
+1. "Qual nome (pessoa ou empresa) aparece como titular dos direitos na licença?"
+2. "Qual ano entra na licença? (Enter para usar o ano atual)"
+
+Crie `LICENSE.txt` na raiz com o texto abaixo, trocando `<ano>` e `<titular>` pelas respostas (sem os
+sinais `<` e `>`):
+
+```text
+Copyright (c) <ano> <titular>
+
+Permission is hereby granted, free of charge, to any person obtaining
+a copy of this software and associated documentation files (the
+"Software"), to deal in the Software without restriction, including
+without limitation the rights to use, copy, modify, merge, publish,
+distribute, sublicense, and/or sell copies of the Software, and to
+permit persons to whom the Software is furnished to do so, subject to
+the following conditions:
+
+The above copyright notice and this permission notice shall be
+included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
+LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+```
+
+### 4. `docs/plano-implementacao.md`
 
 Crie com exatamente este conteúdo:
 
@@ -727,7 +760,7 @@ O conteúdo de cada capítulo está em [capitulos.md](capitulos.md).
 | 20 | `feature/lgpd` | 44 |
 `````
 
-### 4. `docs/capitulos.md`
+### 5. `docs/capitulos.md`
 
 Crie com exatamente este conteúdo:
 
@@ -1415,7 +1448,7 @@ Fica antes do frontend porque precisa estar pronta antes de entrarem dados reais
 - **Entrega:** um aluno baixa os dados e exclui a conta pelo perfil; a política publicada bate com o sistema.
 `````
 
-### 5. Os próprios prompts
+### 6. Os próprios prompts
 
 Copie esta pasta de prompts, como está, para `docs/prompts-iniciais/` no repositório.
 
@@ -1426,13 +1459,13 @@ configurado), vazio.
 
 ## Verificação
 
-- `README.md`, `.gitignore`, `docs/plano-implementacao.md`, `docs/capitulos.md` e `docs/prompts-iniciais/` existem com o conteúdo acima.
+- `README.md`, `.gitignore`, `LICENSE.txt` (com o titular e o ano informados), `docs/plano-implementacao.md`, `docs/capitulos.md` e `docs/prompts-iniciais/` existem.
 - `git status` mostra os arquivos como não rastreados (nenhum commit foi feito).
 
 ## Depois de executar
 
 ```bash
-git add README.md .gitignore docs/
+git add README.md .gitignore LICENSE.txt docs/
 git commit -m "docs: criar estrutura inicial e plano de implementação"
 git push -u origin main
 
