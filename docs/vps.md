@@ -348,6 +348,15 @@ produção, `homolog-cursos.*` fica em 502; atualize o Caddy logo depois do depl
 dele, quem cairia seria `cursos.*` da produção). Confira `curl -sI https://cursos.celke.uno/` e
 `curl -sI https://homolog-cursos.celke.uno/` (do IP liberado): `HTTP/2 200`.
 
+**Restrição por IP de verdade:** até esta versão, o `handle` dos sites rodava antes do `respond` e a
+restrição por IP (`ADM_IPS` no `adm.` da produção, `HOMOLOG_IPS` na homologação) só valia no host de
+mídia — aluno, ADM e site respondiam para qualquer IP, e as capas e vídeos da homologação quebravam
+para quem estava fora da lista. O `order respond before handle` do `Caddyfile` corrige. **Antes** de
+atualizar o Caddy, confira o seu IP (`curl -s https://api.ipify.org`) e acrescente-o, se faltar, em
+`ADM_IPS` e `HOMOLOG_IPS` do `caddy/.env` (separados por espaço): a partir daí, quem está fora da lista
+recebe "Acesso restrito." em todos esses hosts. IP residencial muda de tempos em tempos; quando o ADM
+ou a homologação passarem a responder "Acesso restrito.", atualize o `caddy/.env` e recrie o Caddy.
+
 Quando a mudança do Caddy depende de um container novo (como na Fase 11, que passou a mandar as
 páginas para o `web`), atualize o Caddy **depois** do deploy dos dois ambientes com esse container: antes
 disso o Caddy novo não teria para onde mandar as páginas (502), enquanto o antigo continua respondendo

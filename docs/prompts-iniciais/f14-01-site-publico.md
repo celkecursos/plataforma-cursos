@@ -677,6 +677,9 @@ HOMOLOG_IPS=
 {
 	admin off
 	email {$ACME_EMAIL:nao-configurado@celke.uno}
+	# Sem isso, o handle dos sites roda antes do respond e a restrição por IP (somente_ips_adm,
+	# homolog) só valeria na mídia
+	order respond before handle
 }
 
 # Headers de segurança em todas as respostas
