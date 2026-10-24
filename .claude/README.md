@@ -27,7 +27,8 @@ frontmatter e fica versionado: quem clona o projeto recebe as mesmas orientaçõ
 │   ├── conventional-commits/     padrão das mensagens de commit (pt-BR)
 │   ├── gc/                       /gc: gera a mensagem de commit da worktree
 │   ├── pc/                       /pc: commita com a mensagem do /gc e faz o push
-│   └── write-specs/              Fase 1 do SDD: especificação agnóstica
+│   ├── write-specs/              Fase 1 do SDD: especificação agnóstica
+│   └── write-tasks/              Fase 2 do SDD: tasks a partir da spec aprovada
 ├── agents/
 │   ├── pm-spec-architect.md      persona da Fase 1 (não se despacha)
 │   ├── dev-lead.md               Fase 2: spec → tasks

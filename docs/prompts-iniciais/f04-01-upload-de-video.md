@@ -3,7 +3,295 @@
 **Fase:** 4
 **Branch:** `feature/upload-video`
 
+> **Configuração do projeto:** troque os marcadores `<dominio>`, `<sub-site>`, `<sub-aluno>`,
+> `<sub-adm>`, `<sub-media>` e `<dono-github>` pelos valores de `docs/configuracao.md` (criado no
+> primeiro prompt) em todo o conteúdo deste prompt, inclusive nos testes. Se o arquivo não existir,
+> pergunte esses valores ao usuário antes de começar.
+
 ## Prompt
+
+### Especificação e tasks (SDD)
+
+Antes do código, registre a funcionalidade no SDD: crie a spec e as tasks abaixo com **exatamente** este conteúdo (troque os marcadores pelos valores de `docs/configuracao.md`). As tasks nascem com `Status: Pronta`; ao fim da **Verificação**, passam para `Concluída`.
+
+`.sdd/specs/envio-de-video.spec.md`:
+
+`````markdown
+---
+feature: envio-de-video
+versao: 1.0
+status: aprovada
+autor: pm-spec-architect
+---
+
+# Envio de vídeo
+
+## 1. Resumo Executivo
+
+O administrador envia o vídeo de uma aula direto ao armazenamento, sem passar o arquivo pela API, e o
+sistema o converte em segundo plano para streaming adaptativo em 720p e 1080p, registrando o tamanho
+antes e depois. O vídeo publicado só muda quando a nova conversão termina.
+
+Entra: envio em partes, conferência do arquivo, conversão, status, reprocessar e remover. Fica de fora:
+reprodução pelo aluno (spec `reproducao-e-progresso`).
+
+## 2. Atores e Papéis
+
+| Ator | Pode |
+|---|---|
+| Administrador | Enviar, acompanhar, reprocessar e remover o vídeo de uma aula |
+| Worker | Converter o vídeo e publicar o resultado |
+
+## 3. Requisitos Funcionais
+
+- **RF-01** — O sistema DEVE aceitar MP4, MOV, MKV ou WebM de até 5 GB, conferindo formato e tamanho
+  antes de autorizar o envio.
+- **RF-02** — O sistema DEVE dividir o envio em partes de 16 MiB (maiores quando passaria de 10.000
+  partes), com um endereço temporário por parte, e abortar o envio anterior ainda aberto.
+- **RF-03** — O sistema DEVE, na conclusão, juntar as partes, conferir o tamanho real e a assinatura do
+  início do arquivo; arquivo recusado é apagado e o vídeo fica com erro.
+- **RF-04** — O sistema DEVE converter o vídeo aceito em 720p e 1080p sem aumentar a resolução de origem
+  (abaixo de 720p, uma variante na altura original), com segmentos de 6 segundos e miniatura.
+- **RF-05** — O sistema DEVE publicar a versão nova e só então apagar o original e a versão anterior.
+- **RF-06** — O sistema DEVE retomar a conversão de um worker que caiu, refazendo-a do zero.
+- **RF-07** — O sistema DEVE mostrar o status com tamanho antes e depois, redução percentual,
+  variantes, segundos de processamento por minuto de vídeo e miniatura.
+- **RF-08** — O sistema DEVE permitir reprocessar só vídeo com erro e com o original disponível, e
+  remover o vídeo fora do processamento.
+- **RF-09** — O sistema DEVE impedir a exclusão de aula com vídeo.
+
+## 4. Modelo de Domínio
+
+- **Vídeo:** aula (um por aula), status, chave do original, chave publicada, tamanhos, duração,
+  resolução, variantes, tempo de processamento, erro.
+
+## 5. Estados e Fluxos
+
+- Vídeo: `AGUARDANDO_ENVIO` → `PENDENTE` → `PROCESSANDO` → `PRONTO` | `ERRO`; `ERRO` → `PENDENTE`
+  (reprocessar).
+- **Fluxo:** pedir envio → enviar partes direto ao armazenamento → concluir → fila → conversão →
+  publicado.
+
+## 6. Contratos de Interface
+
+| Operação | Entrada | Saída |
+|---|---|---|
+| Pedir envio | `nomeArquivo`, `contentType`, `tamanho` | endereços temporários por parte |
+| Concluir envio | lista de partes com a etiqueta de cada uma | vídeo `PENDENTE` |
+| Status | aula | status, tamanhos, redução, variantes, miniatura |
+| Reprocessar / remover | aula | vídeo atualizado |
+
+As partes vão direto para `<sub-media>.<dominio>`.
+
+## 7. Casos de Borda
+
+- Extensão falsa (texto renomeado para `.mp4`): recusado na conclusão.
+- Vídeo corrompido: erro permanente, sem novas tentativas.
+- Envio abandonado: as partes expiram no armazenamento.
+- Troca de vídeo durante uma conversão: o publicado continua até a nova terminar.
+
+## 8. Premissas Validadas
+
+- A conversão roda no mesmo servidor, com prioridade baixa, sem serviço externo.
+
+## 9. Riscos
+
+- **Conversão lenta na VPS:** medida exposta no status para acompanhar.
+- **Disco cheio:** original apagado após publicar; alerta de disco (spec `operacao`).
+`````
+
+`.sdd/tasks/envio-de-video-v1.0/README.md`:
+
+`````markdown
+# Tasks — Envio de vídeo (v1.0)
+
+Spec: [`.sdd/specs/envio-de-video.spec.md`](../../specs/envio-de-video.spec.md) · versão 1.0 · prompt do tutorial `docs/prompts-iniciais/f04-01-upload-de-video.md`.
+
+| Ordem | ID | Título | Nível | Depende de |
+|---|---|---|---|---|
+| 1 | [VIDEO-001](VIDEO-001-envio-em-partes.md) | Envio em partes e conclusão | Sênior | — |
+| 2 | [VIDEO-002](VIDEO-002-transcodificacao.md) | Conversão no worker | Sênior | VIDEO-001 |
+| 3 | [VIDEO-003](VIDEO-003-adm.md) | Status, reprocessar e remover | Pleno | VIDEO-001 |
+| 4 | [VIDEO-004](VIDEO-004-fiacao.md) | Fiação do vídeo | Pleno | VIDEO-002, VIDEO-003 |
+
+## Grafo
+
+```
+VIDEO-001 (início)
+VIDEO-001 → VIDEO-002
+VIDEO-001 → VIDEO-003
+VIDEO-002 + VIDEO-003 → VIDEO-004
+```
+
+## RF → tasks
+
+| RF | Tasks |
+|---|---|
+| RF-01 | VIDEO-001 |
+| RF-02 | VIDEO-001 |
+| RF-03 | VIDEO-001 |
+| RF-04 | VIDEO-002 |
+| RF-05 | VIDEO-002 |
+| RF-06 | VIDEO-002 |
+| RF-07 | VIDEO-003 |
+| RF-08 | VIDEO-003 |
+| RF-09 | VIDEO-001, VIDEO-004 |
+
+## Resumo por nível
+
+- Pleno: 2
+- Sênior: 2
+`````
+
+`.sdd/tasks/envio-de-video-v1.0/VIDEO-001-envio-em-partes.md`:
+
+`````markdown
+# VIDEO-001 — Envio em partes e conclusão
+
+- **Spec:** .sdd/specs/envio-de-video.spec.md (v1.0) · atende RF-01, RF-02, RF-03, RF-09
+- **Nível:** Sênior
+- **Agente:** dev-senior
+- **Status:** Pronta
+- **Depende de:** —
+
+## Arquivos a criar/alterar
+
+- `backend/src/main/java/br/com/celke/cursos/video/domain/Video.java`
+- `backend/src/main/java/br/com/celke/cursos/video/domain/StatusVideo.java`
+- `backend/src/main/java/br/com/celke/cursos/video/domain/FormatoVideo.java`
+- `backend/src/main/java/br/com/celke/cursos/video/domain/DivisaoPartes.java`
+- `backend/src/main/java/br/com/celke/cursos/video/application/EnvioVideoService.java`
+- `backend/src/main/java/br/com/celke/cursos/video/infra/VideoRepository.java`
+
+## Descrição técnica
+
+Partes de 16 MiB em `uploads/videos/<aula>/<uuid>`; conclusão confere tamanho real e assinatura (`ftyp` ou EBML) e enfileira na mesma transação.
+
+## Restrições
+
+Partes enviadas direto a `<sub-media>.<dominio>`.
+
+## Critérios de aceite
+
+- [ ] `FormatoVideoTest`, `DivisaoPartesTest`, `EnvioVideoServiceTest` verdes
+- [ ] `VideoEnvioIT` verde
+
+## Armadilhas
+
+Confiar na extensão em vez do conteúdo.
+`````
+
+`.sdd/tasks/envio-de-video-v1.0/VIDEO-002-transcodificacao.md`:
+
+`````markdown
+# VIDEO-002 — Conversão no worker
+
+- **Spec:** .sdd/specs/envio-de-video.spec.md (v1.0) · atende RF-04, RF-05, RF-06
+- **Nível:** Sênior
+- **Agente:** dev-senior
+- **Status:** Pronta
+- **Depende de:** VIDEO-001
+
+## Arquivos a criar/alterar
+
+- `backend/src/main/java/br/com/celke/cursos/video/application/TranscodificacaoManipulador.java`
+- `backend/src/main/java/br/com/celke/cursos/video/infra/Ffmpeg.java`
+- `backend/src/main/java/br/com/celke/cursos/video/infra/ComandosFfmpeg.java`
+- `backend/src/main/java/br/com/celke/cursos/video/infra/AnaliseVideo.java`
+- `backend/src/main/java/br/com/celke/cursos/video/domain/Variante.java`
+- `backend/src/main/java/br/com/celke/cursos/video/domain/ResultadoTranscodificacao.java`
+
+## Descrição técnica
+
+`ffprobe` e ffmpeg por lista de argumentos com `nice -n 10`, numa passada: H.264 CRF 24, AAC 128k, segmentos de 6 s, 720p e 1080p sem aumentar a origem. Lease renovado a cada minuto.
+
+## Restrições
+
+Publica em `videos/<aula>/<job>/` e só então apaga original e versão anterior.
+
+## Critérios de aceite
+
+- [ ] `ComandosFfmpegTest`, `AnaliseVideoTest`, `VarianteTest` verdes
+- [ ] `VideoEnvioIT` com ffmpeg real
+
+## Armadilhas
+
+Montar o comando como string abre injeção.
+`````
+
+`.sdd/tasks/envio-de-video-v1.0/VIDEO-003-adm.md`:
+
+`````markdown
+# VIDEO-003 — Status, reprocessar e remover
+
+- **Spec:** .sdd/specs/envio-de-video.spec.md (v1.0) · atende RF-07, RF-08
+- **Nível:** Pleno
+- **Agente:** dev-pleno
+- **Status:** Pronta
+- **Depende de:** VIDEO-001
+
+## Arquivos a criar/alterar
+
+- `backend/src/main/java/br/com/celke/cursos/video/api/VideoAdmController.java`
+- `backend/src/main/java/br/com/celke/cursos/video/api/VideoRequests.java`
+- `backend/src/main/java/br/com/celke/cursos/video/api/VideoResponses.java`
+- `backend/src/main/java/br/com/celke/cursos/video/application/VideoAdmService.java`
+
+## Descrição técnica
+
+Status com tamanhos, redução, variantes, segundos por minuto e miniatura.
+
+## Restrições
+
+Reprocessar só com erro e com original.
+
+## Critérios de aceite
+
+- [ ] `VideoAdmServiceTest` verde
+- [ ] `VideoE2E` verde
+
+## Armadilhas
+
+Remover durante o processamento.
+`````
+
+`.sdd/tasks/envio-de-video-v1.0/VIDEO-004-fiacao.md`:
+
+`````markdown
+# VIDEO-004 — Fiação do vídeo
+
+- **Spec:** .sdd/specs/envio-de-video.spec.md (v1.0) · atende RF-09
+- **Nível:** Pleno
+- **Agente:** dev-pleno
+- **Status:** Pronta
+- **Depende de:** VIDEO-002, VIDEO-003
+
+## Arquivos a criar/alterar
+
+- `backend/src/main/resources/db/migration/V8__criar_videos.sql`
+- `backend/src/main/java/br/com/celke/cursos/shared/security/SecurityConfig.java`
+- `backend/Dockerfile` — target `worker` com ffmpeg
+- `.github/workflows/pipeline.yml` — instala o ffmpeg
+
+## Descrição técnica
+
+Tabela `videos` com FK `RESTRICT` na aula; `stop_grace_period: 30s` no worker.
+
+## Critérios de aceite
+
+- [ ] `./mvnw verify` verde
+- [ ] Task só de fiação: não tem teste próprio; a verificação é a suíte inteira passando.
+
+## Armadilhas
+
+Worker sem ffmpeg na imagem.
+`````
+
+Acrescente ao fim da tabela do índice `.sdd/README.md` a linha:
+
+```text
+| [envio-de-video](specs/envio-de-video.spec.md) | 1.0 | [v1.0](tasks/envio-de-video-v1.0/README.md) | `f04-01-upload-de-video.md` |
+```
 
 Vamos criar o módulo `video` do backend: o envio do vídeo da aula direto do navegador para o Garage,
 em partes, e a conversão para HLS pelo worker com o ffmpeg. Siga o `backend/CLAUDE.md` e o padrão das
@@ -1042,7 +1330,7 @@ x-app: &app
 
 services:
   api:
-    image: ${IMAGEM_API:-ghcr.io/celkecursos/plataforma-cursos-api}:${TAG:?defina TAG}
+    image: ${REGISTRO:?defina REGISTRO}/plataforma-cursos-api:${TAG:?defina TAG}
     restart: unless-stopped
     environment:
       <<: *app
@@ -1068,7 +1356,7 @@ services:
           memory: 1G
 
   worker:
-    image: ${IMAGEM_WORKER:-ghcr.io/celkecursos/plataforma-cursos-worker}:${TAG:?defina TAG}
+    image: ${REGISTRO:?defina REGISTRO}/plataforma-cursos-worker:${TAG:?defina TAG}
     restart: unless-stopped
     # No deploy, o job em andamento tem 30 s para terminar; uma conversão interrompida volta para a fila
     # quando o lease vence (o worker o renova a cada minuto enquanto converte)
@@ -4994,13 +5282,13 @@ class FilaServiceIT extends IntegrationTest {
     @DisplayName("reserva o job, entrega o payload e conclui")
     void cicloCompleto() {
         String tipo = stamp();
-        long id = fila.enfileirar(tipo, Map.of("para", "ana@teste.celke.uno"), T0);
+        long id = fila.enfileirar(tipo, Map.of("para", "ana@teste.<dominio>"), T0);
 
         Job job = fila.reservar(Set.of(tipo), T0).orElseThrow();
         assertThat(job.id()).isEqualTo(id);
         assertThat(job.tentativas()).isEqualTo(1);
         assertThat(job.maxTentativas()).isEqualTo(5);
-        assertThat(job.payload()).isEqualTo("{\"para\": \"ana@teste.celke.uno\"}");
+        assertThat(job.payload()).isEqualTo("{\"para\": \"ana@teste.<dominio>\"}");
         assertThat(status(id)).isEqualTo(StatusJob.PROCESSANDO);
 
         fila.concluir(job, T0);
@@ -6197,11 +6485,13 @@ No ambiente local, pelo Swagger, com uma aula criada:
 - Conclua com os ETags: a resposta é 202 com `PENDENTE`; em poucos segundos `GET .../video` mostra
   `PRONTO`, o tamanho antes e depois e as variantes. O original some de `uploads/`.
 - Envie um arquivo de texto como `video/mp4`: a conclusão responde 400 e o vídeo fica com erro.
+- Com tudo verde, as tasks de `.sdd/tasks/envio-de-video-v1.0/` passam para `Status: Concluída` e os critérios de aceite
+  são marcados (`- [x]`).
 
 ## Depois de executar
 
 ```bash
-git add backend/ infra/ .github/ docs/
+git add backend/ infra/ .github/ docs/ .sdd/
 git commit -m "feat(video): adicionar upload em partes e conversão para HLS"
 git push -u origin feature/upload-video
 ```

@@ -3,7 +3,223 @@
 **Fase:** 20
 **Branch:** `feature/lgpd`
 
+> **Configuração do projeto:** troque os marcadores `<dominio>`, `<sub-site>`, `<sub-aluno>`,
+> `<sub-adm>`, `<sub-media>` e `<dono-github>` pelos valores de `docs/configuracao.md` (criado no
+> primeiro prompt) em todo o conteúdo deste prompt, inclusive nos testes. Se o arquivo não existir,
+> pergunte esses valores ao usuário antes de começar.
+
 ## Prompt
+
+### Especificação e tasks (SDD)
+
+Antes do código, registre a funcionalidade no SDD: crie a spec e as tasks abaixo com **exatamente** este conteúdo (troque os marcadores pelos valores de `docs/configuracao.md`). As tasks nascem com `Status: Pronta`; ao fim da **Verificação**, passam para `Concluída`.
+
+`.sdd/specs/privacidade-lgpd.spec.md`:
+
+`````markdown
+---
+feature: privacidade-lgpd
+versao: 1.0
+status: aprovada
+autor: pm-spec-architect
+---
+
+# Privacidade (LGPD)
+
+## 1. Resumo Executivo
+
+O aluno exerce os direitos da LGPD pelo próprio perfil: baixa uma cópia dos seus dados e exclui a
+conta. O que a lei manda guardar continua guardado pelo prazo legal; o resto é apagado ou anonimizado.
+
+## 2. Atores e Papéis
+
+| Ator | Pode |
+|---|---|
+| Aluno | Baixar os próprios dados e excluir a própria conta |
+| Sistema | Aplicar os prazos de retenção |
+
+## 3. Requisitos Funcionais
+
+- **RF-01** — O sistema DEVE entregar ao aluno uma cópia dos dados em formato estruturado, com a conta e
+  uma seção por funcionalidade.
+- **RF-02** — O sistema DEVE excluir a conta com a senha e uma confirmação explícita, avisando por
+  e-mail.
+- **RF-03** — O sistema DEVE, na exclusão, anonimizar a conta e apagar progresso, certificados, foto,
+  sessões e segundo fator; pedidos ficam sem e-mail e nome.
+- **RF-04** — O sistema DEVE manter pelo prazo legal o que tem obrigação de guarda (registros de acesso,
+  auditoria, dados fiscais).
+- **RF-05** — O sistema DEVE apagar os registros de tentativa de login com mais de 180 dias.
+- **RF-06** — O sistema DEVE oferecer um modelo de política de privacidade com dados, finalidades, bases
+  legais e os prazos que o sistema aplica.
+
+## 4. Modelo de Domínio
+
+- **Cópia dos dados:** conta e seções (matrículas, progresso, fórum, certificados, termos, pedidos…).
+- **Conta anonimizada:** identificador mantido, dados pessoais removidos.
+
+## 5. Estados e Fluxos
+
+- Conta: `ativa` → `excluída (anonimizada)`.
+- **Exclusão:** perfil → privacidade → senha + confirmação → e-mail de aviso → anonimização → sessão
+  encerrada.
+
+## 6. Contratos de Interface
+
+| Operação | Entrada | Saída |
+|---|---|---|
+| Baixar meus dados | — | arquivo com os dados |
+| Excluir conta | `senha`, `confirmacao` | conta excluída |
+
+O aviso sai de `nao-responda@<dominio>`.
+
+## 7. Casos de Borda
+
+- Senha errada na exclusão: recusada, nada apagado.
+- Administrador: não exclui a própria conta por esta tela.
+- E-mail reutilizado depois da exclusão: pode criar uma conta nova.
+
+## 8. Premissas Validadas
+
+- Prazos: registros de acesso 180 dias (Marco Civil), auditoria 5 anos, tentativas de login 180 dias.
+
+## 9. Riscos
+
+- **Exclusão por terceiro com sessão aberta:** exige a senha.
+- **Dado pessoal esquecido numa funcionalidade nova:** cada funcionalidade declara os próprios dados
+  pessoais para a cópia e a exclusão.
+`````
+
+`.sdd/tasks/privacidade-lgpd-v1.0/README.md`:
+
+`````markdown
+# Tasks — Privacidade (LGPD) (v1.0)
+
+Spec: [`.sdd/specs/privacidade-lgpd.spec.md`](../../specs/privacidade-lgpd.spec.md) · versão 1.0 · prompt do tutorial `docs/prompts-iniciais/f20-01-lgpd.md`.
+
+| Ordem | ID | Título | Nível | Depende de |
+|---|---|---|---|---|
+| 1 | [LGPD-001](LGPD-001-dados-pessoais.md) | Dados pessoais por módulo | Sênior | — |
+| 2 | [LGPD-002](LGPD-002-exclusao.md) | Cópia dos dados e exclusão da conta | Sênior | LGPD-001 |
+| 3 | [LGPD-003](LGPD-003-politica.md) | Modelo da política de privacidade | Pleno | — |
+
+## Grafo
+
+```
+LGPD-001 (início)
+LGPD-001 → LGPD-002
+LGPD-003 (início)
+```
+
+## RF → tasks
+
+| RF | Tasks |
+|---|---|
+| RF-01 | LGPD-001 |
+| RF-02 | LGPD-002 |
+| RF-03 | LGPD-002 |
+| RF-04 | LGPD-002 |
+| RF-05 | LGPD-002 |
+| RF-06 | LGPD-003 |
+
+## Resumo por nível
+
+- Pleno: 1
+- Sênior: 2
+`````
+
+`.sdd/tasks/privacidade-lgpd-v1.0/LGPD-001-dados-pessoais.md`:
+
+`````markdown
+# LGPD-001 — Dados pessoais por módulo
+
+- **Spec:** .sdd/specs/privacidade-lgpd.spec.md (v1.0) · atende RF-01
+- **Nível:** Sênior
+- **Agente:** dev-senior
+- **Status:** Pronta
+- **Depende de:** —
+
+## Arquivos a criar/alterar
+
+- `backend/src/main/java/br/com/celke/cursos/shared/lgpd/DadosPessoais.java`
+- `backend/src/main/java/br/com/celke/cursos/auth/infra/AuthDadosPessoais.java`
+- `backend/src/main/java/br/com/celke/cursos/matricula/infra/MatriculaDadosPessoais.java`
+- `backend/src/main/java/br/com/celke/cursos/progresso/infra/ProgressoDadosPessoais.java`
+- `backend/src/main/java/br/com/celke/cursos/forum/infra/ForumDadosPessoais.java`
+- `backend/src/main/java/br/com/celke/cursos/certificado/infra/CertificadoDadosPessoais.java`
+- `backend/src/main/java/br/com/celke/cursos/termo/infra/TermoDadosPessoais.java`
+- `backend/src/main/java/br/com/celke/cursos/video/infra/VideoDadosPessoais.java`
+- `backend/src/main/java/br/com/celke/cursos/pagamento/infra/PagamentoDadosPessoais.java`
+
+## Descrição técnica
+
+Cada módulo exporta e exclui os próprios dados.
+
+## Critérios de aceite
+
+- [ ] `PrivacidadeIT` verde
+
+## Armadilhas
+
+Funcionalidade nova sem a sua implementação de dados pessoais.
+`````
+
+`.sdd/tasks/privacidade-lgpd-v1.0/LGPD-002-exclusao.md`:
+
+`````markdown
+# LGPD-002 — Cópia dos dados e exclusão da conta
+
+- **Spec:** .sdd/specs/privacidade-lgpd.spec.md (v1.0) · atende RF-02, RF-03, RF-04, RF-05
+- **Nível:** Sênior
+- **Agente:** dev-senior
+- **Status:** Pronta
+- **Depende de:** LGPD-001
+
+## Arquivos a criar/alterar
+
+- `backend/src/main/java/br/com/celke/cursos/perfil/api/PrivacidadeController.java`
+- `backend/src/main/java/br/com/celke/cursos/perfil/application/PrivacidadeService.java`
+- `backend/src/main/java/br/com/celke/cursos/auth/application/LimpezaAuditoriaLogin.java`
+- `backend/src/main/resources/templates/email/conta-excluida.html`
+- `web/aluno/src/paginas/perfil/Privacidade.tsx`
+
+## Descrição técnica
+
+Senha + confirmação; administrador não se exclui por aqui.
+
+## Critérios de aceite
+
+- [ ] `web/e2e/aluno/privacidade.spec.ts` verde
+
+## Armadilhas
+
+Apagar o que tem prazo legal.
+`````
+
+`.sdd/tasks/privacidade-lgpd-v1.0/LGPD-003-politica.md`:
+
+`````markdown
+# LGPD-003 — Modelo da política de privacidade
+
+- **Spec:** .sdd/specs/privacidade-lgpd.spec.md (v1.0) · atende RF-06
+- **Nível:** Pleno
+- **Agente:** dev-pleno
+- **Status:** Pronta
+- **Depende de:** —
+
+## Arquivos a criar/alterar
+
+- `docs/politica-privacidade-modelo.md`
+
+## Critérios de aceite
+
+- [ ] prazos iguais aos aplicados pelo sistema
+`````
+
+Acrescente ao fim da tabela do índice `.sdd/README.md` a linha:
+
+```text
+| [privacidade-lgpd](specs/privacidade-lgpd.spec.md) | 1.0 | [v1.0](tasks/privacidade-lgpd-v1.0/README.md) | `f20-01-lgpd.md` |
+```
 
 Vamos atender os direitos do titular (LGPD, art. 18) pelo próprio perfil do aluno e deixar a política
 de privacidade dizendo exatamente o que o sistema faz. Siga o `backend/CLAUDE.md`, as rules de
@@ -482,7 +698,7 @@ de exemplo já criadas. Os valores de `infra/e2e.env` são só para uso local.
 **1. Clonar o repositório**
 
 ```bash
-git clone https://github.com/celkecursos/plataforma-cursos.git
+git clone https://github.com/<dono-github>/plataforma-cursos.git
 cd plataforma-cursos
 ```
 
@@ -514,8 +730,8 @@ Os navegadores atuais resolvem `*.localhost` sozinhos; não é preciso mexer no 
 
 | Conta | E-mail | Senha |
 |---|---|---|
-| Administrador | `admin@celke.com.br` | `123456A#b123` |
-| Aluno | `aluno@celke.com.br` | `123456A#b123` |
+| Administrador | `admin@<dominio>` | `123456A#b123` |
+| Aluno | `aluno@<dominio>` | `123456A#b123` |
 
 O administrador entra em duas etapas: depois da senha, informe o código de 6 dígitos de um aplicativo
 autenticador (Google Authenticator, Microsoft Authenticator, 1Password...). No aplicativo, adicione uma
@@ -1460,7 +1676,7 @@ capítulo.
   - Funcionalidades que vêm do CLMS legado: cursos, turmas, módulos, aulas em vídeo, matrícula, progresso, arquivos de apoio, fórum, certificado, perfil e termos.
   - O que fica de fora: LeadLovers, automação de e-mail, clube de desafios. A venda pela Hotmart entra no fim, na Parte 10, numa estrutura que aceita outros meios de pagamento.
   - Arquitetura: uma VPS da Hostinger (2 vCPU, 8 GB, 100 GB NVMe) com tudo em Docker — Caddy (HTTPS e roteamento), API e worker Spring Boot, PostgreSQL 18 e Garage (S3) — servindo produção e uma homologação leve.
-  - Domínios, todos subdomínios de `celke.uno` (o domínio principal pertence a outras aplicações): `cursos.` (site), `aluno.`, `adm.` e `media.`, e os equivalentes `homolog-*`.
+  - Domínios, todos subdomínios de `<dominio>` (o domínio principal pertence a outras aplicações): `cursos.` (site), `aluno.`, `adm.` e `media.`, e os equivalentes `homolog-*`.
   - Fluxo do vídeo: upload direto ao Garage → worker com ffmpeg → HLS → playlist assinada pela API.
   - Modelo de dados enxuto: usuário, papel, curso, turma, módulo, aula, matrícula, vídeo, progresso, fórum, certificado, termo.
 - **Entrega:** diagrama da arquitetura e lista de funcionalidades.
@@ -1471,7 +1687,7 @@ capítulo.
 
 - **Objetivo:** deixar o repositório pronto para o fluxo de PRs com testes e deploy.
 - **Conteúdo:**
-  - Repositório `celkecursos/plataforma-cursos` com README e `.gitignore` (segredos, `target/`, `node_modules/`).
+  - Repositório `<dono-github>/plataforma-cursos` com README e `.gitignore` (segredos, `target/`, `node_modules/`).
   - Branches: `main` (produção), `homolog` (homologação), `feature/nome` e `fix/nome` temporárias, `hotfix/nome` a partir da `main`.
   - A `main` recebe código só da `homolog`; alteração reprovada na homologação é desfeita com `git revert`; depois de um hotfix, merge da `main` de volta na `homolog`.
   - Exclusão automática da branch após o merge; environments `homolog` e `production` no GitHub.
@@ -1559,7 +1775,7 @@ capítulo.
 - **Conteúdo:**
   - Access token de 10 minutos no corpo da resposta, guardado pelo frontend só em memória.
   - Refresh token opaco, com o hash salvo no banco e rotação a cada uso. Se um refresh já usado reaparecer, toda a família de tokens é revogada.
-  - Cookie `HttpOnly; Secure; SameSite=Strict; Path=/api/auth`, **sem `Domain`**, para não ser enviado às outras aplicações de `celke.uno`.
+  - Cookie `HttpOnly; Secure; SameSite=Strict; Path=/api/auth`, **sem `Domain`**, para não ser enviado às outras aplicações de `<dominio>`.
   - JWT assinado e validado pelo Resource Server do Spring Security: só HS256, emissor e validade conferidos.
   - Login com a mesma resposta e o mesmo tempo para e-mail inexistente e senha errada.
   - Logout e "sair de todos os dispositivos"; `login()`, `bearer()` e `criarUsuario()` no `IntegrationTest`.
@@ -1585,7 +1801,7 @@ capítulo.
 - **Conteúdo:**
   - Limite por IP com Bucket4j em login e refresh, num filtro que roda antes da segurança e conta até as requisições inválidas; 429 com `Retry-After`.
   - Bloqueio temporário após falhas seguidas: 5 por e-mail + IP (o dono ainda entra de outro lugar) e 20 por e-mail vindas de qualquer IP; verificado antes de calcular o hash.
-  - Proteção CSRF no refresh e no logout: `Origin` e `Sec-Fetch-Site` conferidos, porque outras aplicações em `*.celke.uno` são o mesmo site para o navegador e o `SameSite=Strict` não as barra.
+  - Proteção CSRF no refresh e no logout: `Origin` e `Sec-Fetch-Site` conferidos, porque outras aplicações em `*.<dominio>` são o mesmo site para o navegador e o `SameSite=Strict` não as barra.
   - Auditoria de login: resultado, IP e user-agent de toda tentativa, gravada mesmo quando o login falha.
   - IP real do cliente atrás do proxy: `X-Forwarded-For` aceito só de proxy interno (`forward-headers-strategy: native`).
   - Sem CORS na API: o Caddy serve front e API na mesma origem.
@@ -1601,7 +1817,7 @@ capítulo.
   - Cadastro com conta pendente e link de confirmação válido por 48 horas; login só depois de confirmar.
   - Recuperação de senha com link de 1 hora; a nova senha encerra todas as sessões e também confirma o e-mail.
   - Tokens de uso único com só o hash no banco; um link novo invalida o anterior.
-  - E-mails pela fila, montados com Thymeleaf e enviados pelo worker: Mailpit no desenvolvimento, Iagente nos servidores (remetente de `celke.uno` com SPF e DKIM).
+  - E-mails pela fila, montados com Thymeleaf e enviados pelo worker: Mailpit no desenvolvimento, Iagente nos servidores (remetente de `<dominio>` com SPF e DKIM).
   - Healthcheck do worker por arquivo de batimento, para o compose e o deploy saberem que ele subiu.
 - **Segurança:**
   - Cadastro, reenvio e recuperação respondem sempre o mesmo, exista ou não a conta; quem descobre o que aconteceu é o dono da caixa, pelo e-mail que recebe.
@@ -1656,7 +1872,7 @@ capítulo.
   - Homologação restrita por IP e com `noindex` (senha do Caddy não serve: ocuparia o cabeçalho `Authorization` do JWT); `adm.` de produção restrito por IP.
   - Headers no Caddy: HSTS sem `includeSubDomains`, `X-Content-Type-Options`, `Referrer-Policy`, sem `Server`; `lb_try_duration` para a API reiniciar sem erro 502.
   - Limites de memória e CPU por container (produção: API 1 GB, worker 2 GB e 1,5 CPU, PostgreSQL 1 GB, Garage 768 MB; homologação menor, com o worker em meia CPU) e `-Xmx` de acordo.
-- **Entrega:** `homolog-aluno.celke.uno/api` e `aluno.celke.uno/api` respondendo com HTTPS.
+- **Entrega:** `homolog-<sub-aluno>.<dominio>/api` e `<sub-aluno>.<dominio>/api` respondendo com HTTPS.
 
 ### Cap. 14 — Deploy automático com rollback
 
@@ -1756,7 +1972,7 @@ capítulo.
 
 - **Objetivo:** enviar vídeos grandes sem passar pela API.
 - **Conteúdo:**
-  - O ADM pede URLs pré-assinadas de upload multipart, e o navegador envia direto para `media.celke.uno` (prefixo `uploads/` do bucket `midia`).
+  - O ADM pede URLs pré-assinadas de upload multipart, e o navegador envia direto para `<sub-media>.<dominio>` (prefixo `uploads/` do bucket `midia`).
   - A API valida tipo e tamanho antes de assinar.
 - **Segurança:** depois do upload, a API confere o tamanho e o tipo real do arquivo antes de enfileirar.
 - **Testes:** upload multipart contra o Garage do Testcontainers; arquivo com extensão falsa rejeitado.
@@ -1927,9 +2143,9 @@ Fica antes do frontend porque precisa estar pronta antes de entrarem dados reais
   - Client HTTP com token em memória, refresh silencioso e fila de requisições durante o refresh; proteção de rotas por papel; tratamento de termo pendente.
   - Telas de login, cadastro, confirmação de e-mail e recuperação de senha.
   - Imagem `web`: build dos fronts + Caddy servindo `/srv/site`, `/srv/aluno` e `/srv/adm`; proxy do Vite `/api` no desenvolvimento.
-- **Segurança:** CSP (`connect-src 'self' https://media.celke.uno`), `X-Frame-Options`, cache longo nos assets com hash e sem cache no `index.html`.
+- **Segurança:** CSP (`connect-src 'self' https://<sub-media>.<dominio>`), `X-Frame-Options`, cache longo nos assets com hash e sem cache no `index.html`.
 - **Testes:** Vitest + Testing Library; Playwright no pipeline (login do aluno e do admin, aluno barrado no ADM, logout).
-- **Entrega:** login funcionando em `aluno.celke.uno` e `adm.celke.uno`.
+- **Entrega:** login funcionando em `<sub-aluno>.<dominio>` e `<sub-adm>.<dominio>`.
 
 ### Cap. 34 — ADM
 
@@ -1955,7 +2171,7 @@ Fica antes do frontend porque precisa estar pronta antes de entrarem dados reais
 
 - **Objetivo:** vitrine pública rápida e bem indexada.
 - **Conteúdo:**
-  - Pré-renderização estática (cada página vira um HTML) em `cursos.celke.uno`, gerada pelo container `site` a partir da API do próprio ambiente ao subir e a cada 5 minutos.
+  - Pré-renderização estática (cada página vira um HTML) em `<sub-site>.<dominio>`, gerada pelo container `site` a partir da API do próprio ambiente ao subir e a cada 5 minutos.
   - Home, catálogo, página do curso, validar certificado e páginas legais.
   - Layout novo com os mesmos tokens visuais da `@celke/kole-react`.
   - SEO: meta tags, Open Graph, sitemap, `robots.txt`.
@@ -2187,7 +2403,7 @@ produção mais recente.
 
 | O quê | Como |
 |---|---|
-| Site fora do ar | Monitor externo (UptimeRobot ou Better Stack, plano gratuito) a cada 5 minutos em `https://aluno.celke.uno/actuator/health` e `https://cursos.celke.uno`, com aviso por e-mail e celular |
+| Site fora do ar | Monitor externo (UptimeRobot ou Better Stack, plano gratuito) a cada 5 minutos em `https://<sub-aluno>.<dominio>/actuator/health` e `https://<sub-site>.<dominio>`, com aviso por e-mail e celular |
 | Job que desistiu (conversão de vídeo, por exemplo) | O worker verifica a cada 15 minutos os jobs que foram para `ERRO` e envia um e-mail para `ALERTA_EMAIL` com o resumo |
 | Pagamento contestado ou notificação com erro | Chargeback, disputa aberta e notificação de pagamento que foi para `ERRO` geram um e-mail para `ALERTA_EMAIL` na hora (veja `docs/pagamentos.md`) |
 | Disco quase cheio | O mesmo verificador do worker mede o disco da VPS (o sistema de arquivos do container é o do host) e alerta abaixo de 15% livre, repetindo a cada 6 horas enquanto não melhorar |
@@ -2291,10 +2507,10 @@ ADM mostra para cada vídeo: medir com os vídeos reais e atualizar esta tabela.
 Quando o HLS passar de ~40 GB, ou se a banda da VPS virar gargalo, os vídeos vão para o Cloudflare R2
 (sem taxa de saída) ou o Backblaze B2. Como a aplicação só fala S3 pelo AWS SDK:
 
-1. Criar o bucket no R2, a chave da aplicação e o CORS para `aluno.celke.uno` e `adm.celke.uno`.
+1. Criar o bucket no R2, a chave da aplicação e o CORS para `<sub-aluno>.<dominio>` e `<sub-adm>.<dominio>`.
 2. Copiar o conteúdo: `rclone sync garage:midia r2:midia` (com as duas origens no `rclone.conf`).
 3. No `.env` da produção, trocar `S3_ENDPOINT` e `S3_ENDPOINT_PUBLICO` (endpoint do R2 ou domínio
-   próprio `media.celke.uno` apontado para o bucket), `S3_BUCKET`, `S3_ACCESS_KEY` e `S3_SECRET_KEY`.
+   próprio `<sub-media>.<dominio>` apontado para o bucket), `S3_BUCKET`, `S3_ACCESS_KEY` e `S3_SECRET_KEY`.
 4. Rodar o `rclone sync` de novo (o que entrou durante a cópia) e reiniciar a API e o worker.
 5. Depois de uma semana sem problema, tirar o Garage da produção e o host de mídia do Caddy.
 
@@ -2327,7 +2543,7 @@ Quando o HLS passar de ~40 GB, ou se a banda da VPS virar gargalo, os vídeos v�
 
   ```bash
   cd /opt/plataforma-cursos/producao
-  docker compose -p plataforma-cursos-producao -f compose.prod.yml run --rm api redefinir-2fa admin@celke.com.br
+  docker compose -p plataforma-cursos-producao -f compose.prod.yml run --rm api redefinir-2fa admin@<dominio>
   ```
 
   O comando apaga o segundo fator e encerra as sessões; o próximo login pede o cadastro de novo.
@@ -2355,7 +2571,7 @@ Quando o HLS passar de ~40 GB, ou se a banda da VPS virar gargalo, os vídeos v�
   (`same-site`). "Non-Storable Content" é esperado: a API responde sem cache.
 
   ```bash
-  docker run --rm ghcr.io/zaproxy/zaproxy:stable zap-baseline.py -t https://homolog-aluno.celke.uno/api/cursos -I
+  docker run --rm ghcr.io/zaproxy/zaproxy:stable zap-baseline.py -t https://homolog-<sub-aluno>.<dominio>/api/cursos -I
   ```
 `````
 
@@ -2401,29 +2617,30 @@ com a `@celke/kole-react` instalada do GitHub (commit fixo no `package.json`).
 - ❌ Versionamento, ACLs e bucket policies. Não fazem falta: o bucket é privado e o acesso é por chave com permissão por bucket.
 - Um bucket privado `midia`, com os prefixos `uploads/` (originais enviados) e `videos/` (HLS e thumbnails). O próprio Garage cria o bucket e a chave da aplicação na primeira subida (`--default-bucket`); a expiração de uploads abandonados é feita por prefixo.
 
-### Domínios (somente subdomínios de `celke.uno`)
+### Domínios (somente subdomínios de `<dominio>`)
 
-O domínio principal `celke.uno` já é usado por outras aplicações e não será tocado.
+O domínio principal `<dominio>` pode ter outras aplicações e não é tocado: o projeto usa só os subdomínios abaixo.
 
 | Produção | Homologação | Serve |
 |---|---|---|
-| `cursos.celke.uno` | `homolog-cursos.celke.uno` | site |
-| `aluno.celke.uno` | `homolog-aluno.celke.uno` | SPA do aluno + `/api` |
-| `adm.celke.uno` | `homolog-adm.celke.uno` | SPA do ADM + `/api` (restrito por IP) |
-| `media.celke.uno` | `homolog-media.celke.uno` | Garage (subdomínio próprio: a assinatura depende do host) |
+| `<sub-site>.<dominio>` | `homolog-<sub-site>.<dominio>` | site |
+| `<sub-aluno>.<dominio>` | `homolog-<sub-aluno>.<dominio>` | SPA do aluno + `/api` |
+| `<sub-adm>.<dominio>` | `homolog-<sub-adm>.<dominio>` | SPA do ADM + `/api` (restrito por IP) |
+| `<sub-media>.<dominio>` | `homolog-<sub-media>.<dominio>` | Garage (subdomínio próprio: a assinatura depende do host) |
 
 > Nomes propostos — confirmar que nenhum desses subdomínios já está em uso antes da etapa 1.8 (VPS).
 
 Cuidados por dividir o domínio com outras aplicações:
 
-- Cookies **sem** atributo `Domain` (cookie só do host). Com `Domain=celke.uno`, todas as outras aplicações dos subdomínios receberiam o refresh token.
-- A CSP e o CORS do Garage listam os subdomínios exatos, nunca `*.celke.uno`.
-- HSTS sem `includeSubDomains`, a não ser que todas as aplicações de `celke.uno` já usem HTTPS.
+- Cookies **sem** atributo `Domain` (cookie só do host). Com `Domain=<dominio>`, todas as outras aplicações dos subdomínios receberiam o refresh token.
+- A CSP e o CORS do Garage listam os subdomínios exatos, nunca `*.<dominio>`.
+- HSTS sem `includeSubDomains`, a não ser que todas as aplicações de `<dominio>` já usem HTTPS.
 
 ### SMTP Iagente
 
+- Conta: cadastro pelo link https://celke.com.br/page/iagente, que dá alguns e-mails gratuitos para enviar.
 - Host, porta e credenciais vêm do painel da Iagente (porta 587 com STARTTLS é o padrão esperado; confirmar no painel).
-- Remetente: endereço de `celke.uno` com SPF e DKIM configurados na Iagente.
+- Remetente: endereço de `<dominio>` com SPF e DKIM configurados na Iagente.
 - Credenciais só no `.env` de cada ambiente. Homologação com remetente identificado ("[HOMOLOG]") ou envio restrito a e-mails de teste.
 - No dev e no e2e: Mailpit no compose (captura os e-mails sem enviar).
 
@@ -2541,7 +2758,7 @@ Definição de pronto de **todo** PR:
 
 ### Fase 0 — Preparação (sem branch)
 
-- [x] Criar repositório `celkecursos/plataforma-cursos` no GitHub
+- [x] Criar repositório `<dono-github>/plataforma-cursos` no GitHub
 - [x] Primeiro commit na `main` (README, `.gitignore`, `docs/`)
 - [x] Criar `homolog` a partir da `main`
 - [x] Orientações para agentes de IA em `.claude/`: rules por caminho (segurança, fronts, testes, prompts),
@@ -2549,8 +2766,8 @@ Definição de pronto de **todo** PR:
   `/revisar-dod` e o pipeline SDD com portões humanos
 - [ ] Regras de proteção em `main` e `homolog`: só PR, checks obrigatórios (ativar quando o pipeline existir)
 - [ ] Environments `homolog` e `production` com seus secrets
-- [ ] Confirmar os subdomínios livres em `celke.uno`
-- [ ] Obter host, porta e credenciais SMTP no painel da Iagente; configurar SPF/DKIM
+- [ ] Confirmar os subdomínios livres em `<dominio>`
+- [ ] Criar a conta na Iagente (https://celke.com.br/page/iagente, com alguns e-mails gratuitos), obter host, porta e credenciais SMTP no painel e configurar SPF/DKIM
 
 ---
 
@@ -2619,7 +2836,7 @@ deploy automático. Depois desta fase, toda funcionalidade nova segue o fluxo no
 - [x] `SecurityFilterChain` nega tudo por padrão; rotas públicas declaradas com método HTTP; papéis do token + `@PreAuthorize` (matriz de papéis testada)
 - [x] Limite por IP com Bucket4j nas rotas de autenticação (`LimitePorIpFilter`): conta toda requisição, roda antes da segurança, 429 em ProblemDetail com `Retry-After`
 - [x] Bloqueio temporário por falhas seguidas: 5 por e-mail + IP e 20 por e-mail (qualquer IP), 15 min, contadores zerados por login correto ou após 1 h sem falhas; verificado antes de calcular o hash
-- [x] Refresh e logout: verificação de `Origin` e `Sec-Fetch-Site` (CSRF), porque outras aplicações em `*.celke.uno` contam como o mesmo site; origens em `AUTH_ORIGENS`
+- [x] Refresh e logout: verificação de `Origin` e `Sec-Fetch-Site` (CSRF), porque outras aplicações em `*.<dominio>` contam como o mesmo site; origens em `AUTH_ORIGENS`
 - [x] Auditoria de login (`auditoria_login`): resultado, IP e user-agent de toda tentativa, em transação própria
 - [x] `server.forward-headers-strategy: native`: `X-Forwarded-For` aceito só de proxy interno e lido da direita para a esquerda
 - [x] Erros que nascem em filtros escritos por `ProblemDetailJson` (mesmo formato do handler global)
@@ -2658,7 +2875,7 @@ deploy automático. Depois desta fase, toda funcionalidade nova segue o fluxo no
   - `adm.` de produção restrito por IP (`ADM_IPS`)
   - HSTS sem `includeSubDomains`, `X-Content-Type-Options`, `Referrer-Policy`, sem `Server`, `lb_try_duration`; `X-Forwarded-For` substituído pelo IP real
 - [x] e2e usando o mesmo `Caddyfile` com `caddy/e2e.caddy`
-- [x] `infra/scripts/gerar-env-servidor.sh`: `.env` de cada ambiente com segredos aleatórios e diferentes, hosts de `celke.uno`, SMTP para preencher
+- [x] `infra/scripts/gerar-env-servidor.sh`: `.env` de cada ambiente com segredos aleatórios e diferentes, hosts de `<dominio>`, SMTP para preencher
 - [x] Roteiro `docs/vps.md`: painel, DNS, chaves, preparação, cópia dos arquivos, `.env`, GHCR, primeira subida, verificação
 - [ ] Executar o roteiro na VPS (painel, DNS dos seis subdomínios, preparação, `.env`, login no GHCR)
 - [ ] Primeira subida dos dois ambientes e do Caddy, com as imagens publicadas pelo deploy automático (1.9)
@@ -2684,8 +2901,8 @@ Limites de recursos:
 - [ ] Secrets `VPS_HOST`, `VPS_SSH_KEY` e `VPS_KNOWN_HOSTS` e variável `DEPLOY_ATIVO=true` no repositório (conta dona) e, se o plano permitir, aprovação obrigatória no environment `production`
 - [ ] Primeiro deploy nos dois ambientes pelo pipeline; Caddy no ar; administrador criado em cada um
 
-**Pronto quando:** cadastro, login e logout funcionando pela API em `homolog-aluno.celke.uno/api` e
-`aluno.celke.uno/api`, e-mail chegando pela Iagente, pipeline completo verde e um rollback testado de propósito.
+**Pronto quando:** cadastro, login e logout funcionando pela API em `homolog-<sub-aluno>.<dominio>/api` e
+`<sub-aluno>.<dominio>/api`, e-mail chegando pela Iagente, pipeline completo verde e um rollback testado de propósito.
 
 ---
 
@@ -2892,7 +3109,7 @@ Capítulo 35.
 Capítulo 36.
 
 - [x] Layout novo com os tokens da `@celke/kole-react` (HTML estático, sem JavaScript de layout)
-- [x] Pré-renderização estática (uma página HTML por rota) em `cursos.celke.uno`: o container `site` gera ao subir e a cada `SITE_INTERVALO` (padrão 5 min) a partir da API do próprio ambiente, com troca atômica da versão; a mesma imagem serve homologação e produção
+- [x] Pré-renderização estática (uma página HTML por rota) em `<sub-site>.<dominio>`: o container `site` gera ao subir e a cada `SITE_INTERVALO` (padrão 5 min) a partir da API do próprio ambiente, com troca atômica da versão; a mesma imagem serve homologação e produção
 - [x] Home, catálogo, página do curso, validar certificado, termos, privacidade, 404
 - [x] SEO: meta tags, canônico, Open Graph, dados estruturados (Course), sitemap, `robots.txt` (homologação fora dos buscadores)
 - [x] Meta de Lighthouse no CI (desktop): desempenho ≥ 90, acessibilidade ≥ 95, boas práticas ≥ 95, SEO ≥ 90 em todas as páginas
@@ -3467,8 +3684,8 @@ requisições por IP.
 
 ## Contas e sessão
 
-- **Seed da stack** (criado pela API no perfil `e2e`): `admin@celke.com.br` e
-  `aluno@celke.com.br`, senha `123456A#b123`. São **só leitura**: nenhum teste troca a senha,
+- **Seed da stack** (criado pela API no perfil `e2e`): `admin@<dominio>` e
+  `aluno@<dominio>`, senha `123456A#b123`. São **só leitura**: nenhum teste troca a senha,
   sai ou mexe no perfil delas.
 - **Segundo fator do admin**: o admin do seed já tem o aplicativo autenticador cadastrado com o segredo
   de `SEED_E2E_TOTP`; `support/totp.ts` calcula o código como o celular, e as fixtures e o
@@ -3485,7 +3702,7 @@ requisições por IP.
 ## Dado de teste e limpeza
 
 - Cursos, contas e ofertas levam um carimbo único (`pw<tempo><sequência>`, e-mails
-  `pw...@teste.celke.uno`): execuções seguidas não colidem, mesmo sem limpar a stack.
+  `pw...@teste.<dominio>`): execuções seguidas não colidem, mesmo sem limpar a stack.
 - Os testes **não apagam** o que criam; o lixo some com o `down -v` da stack. Para começar do zero:
   `down -v` e `up` de novo.
 - O pagamento não sai para a internet: a ida ao `pay.hotmart.com` é interceptada (`page.route`) e a
@@ -4380,8 +4597,8 @@ class AuditoriaLoginRetencaoIT extends IntegrationTest {
     @Test
     @DisplayName("apaga as tentativas de mais de 180 dias e mantém as recentes")
     void retencao() {
-        String antiga = stamp() + "@teste.celke.uno";
-        String recente = stamp() + "@teste.celke.uno";
+        String antiga = stamp() + "@teste.<dominio>";
+        String recente = stamp() + "@teste.<dominio>";
         registrar(antiga, Instant.now().minus(Duration.ofDays(181)));
         registrar(recente, Instant.now().minus(Duration.ofDays(179)));
 
@@ -4781,8 +4998,8 @@ describe('nomeArquivoDados', () => {
 
 describe('urlPoliticaPrivacidade', () => {
   it('troca o subdomínio do aluno pelo do site', () => {
-    expect(urlPoliticaPrivacidade({ protocol: 'https:', host: 'aluno.celke.uno' })).toBe(
-      'https://cursos.celke.uno/privacidade/',
+    expect(urlPoliticaPrivacidade({ protocol: 'https:', host: '<sub-aluno>.<dominio>' })).toBe(
+      'https://<sub-site>.<dominio>/privacidade/',
     );
     expect(urlPoliticaPrivacidade({ protocol: 'http:', host: 'aluno.localhost:8088' })).toBe(
       'http://cursos.localhost:8088/privacidade/',
@@ -4908,11 +5125,13 @@ Esta etapa tem passos que só o usuário faz, fora do código (no navegador, no 
 - `./mvnw verify` e as jornadas `-Pe2e`; no `web/`, format, lint, typecheck, test, build e `npm run e2e`.
 - Na stack de e2e: com um aluno, Perfil → Privacidade → "Baixar meus dados" baixa o JSON; "Excluir minha
   conta" leva à entrada com o aviso, o e-mail chega no Mailpit e o login é recusado.
+- Com tudo verde, as tasks de `.sdd/tasks/privacidade-lgpd-v1.0/` passam para `Status: Concluída` e os critérios de aceite
+  são marcados (`- [x]`).
 
 ## Depois de executar
 
 ```bash
-git add backend/ web/ infra/ docs/ .github/ README.md
+git add backend/ web/ infra/ docs/ .github/ README.md .sdd/
 git commit -m "feat(perfil): baixar os dados e excluir a conta pelo perfil"
 git push -u origin feature/lgpd
 ```

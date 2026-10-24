@@ -3,7 +3,242 @@
 **Fase:** 9
 **Branch:** `feature/perfil-termos`
 
+> **Configuração do projeto:** troque os marcadores `<dominio>`, `<sub-site>`, `<sub-aluno>`,
+> `<sub-adm>`, `<sub-media>` e `<dono-github>` pelos valores de `docs/configuracao.md` (criado no
+> primeiro prompt) em todo o conteúdo deste prompt, inclusive nos testes. Se o arquivo não existir,
+> pergunte esses valores ao usuário antes de começar.
+
 ## Prompt
+
+### Especificação e tasks (SDD)
+
+Antes do código, registre a funcionalidade no SDD: crie a spec e as tasks abaixo com **exatamente** este conteúdo (troque os marcadores pelos valores de `docs/configuracao.md`). As tasks nascem com `Status: Pronta`; ao fim da **Verificação**, passam para `Concluída`.
+
+`.sdd/specs/perfil-e-termos.spec.md`:
+
+`````markdown
+---
+feature: perfil-e-termos
+versao: 1.0
+status: aprovada
+autor: pm-spec-architect
+---
+
+# Perfil e termos
+
+## 1. Resumo Executivo
+
+Cada usuário cuida do próprio perfil — nome, senha e foto — e o aluno só usa a área do aluno depois de
+aceitar a versão vigente dos termos de uso e da política de privacidade, a cada versão nova publicada
+pelo administrador.
+
+## 2. Atores e Papéis
+
+| Ator | Pode |
+|---|---|
+| Aluno e administrador | Ver e alterar o próprio perfil |
+| Aluno | Ver e aceitar os termos vigentes |
+| Administrador | Publicar uma nova versão dos termos e listar as versões |
+| Visitante | Ler os termos vigentes |
+
+## 3. Requisitos Funcionais
+
+- **RF-01** — O sistema DEVE mostrar o perfil do próprio usuário sem senha nem hash e permitir trocar o
+  nome.
+- **RF-02** — O sistema DEVE trocar a senha só com a senha atual, pela política do papel (aluno 10,
+  administrador 12 caracteres), diferente da atual, encerrando todas as sessões.
+- **RF-03** — O sistema DEVE receber a foto direto no armazenamento, conferir que a chave é do próprio
+  usuário, regravá-la sem metadados em até 400 × 400 e apagar a anterior.
+- **RF-04** — O sistema DEVE manter termos de uso e política de privacidade versionados; a vigente de
+  cada tipo é a maior versão.
+- **RF-05** — O sistema DEVE bloquear as rotas do aluno enquanto houver termo vigente sem aceite,
+  informando quais estão pendentes; perfil, sessão e termos continuam liberados.
+- **RF-06** — O sistema DEVE registrar o aceite com IP, navegador e data, aceitando só a versão vigente.
+- **RF-07** — O sistema DEVE permitir ao administrador publicar a próxima versão em Markdown, guardada
+  também como HTML filtrado.
+
+## 4. Modelo de Domínio
+
+- **Termo:** tipo (`TERMOS_USO`, `POLITICA_PRIVACIDADE`), versão, texto, publicado em.
+- **Aceite:** usuário, termo, IP, navegador, data.
+- **Usuário:** foto.
+
+## 5. Estados e Fluxos
+
+- Aluno: `com pendência` → aceita → `liberado`; nova versão publicada → `com pendência`.
+- **Fluxo:** primeiro acesso → 403 com termos pendentes → aceite → área do aluno.
+
+## 6. Contratos de Interface
+
+| Operação | Entrada | Saída |
+|---|---|---|
+| Perfil | — | `nome`, `email`, `papeis`, foto |
+| Trocar senha | `senhaAtual`, `novaSenha` | sessões encerradas |
+| Termos vigentes | — | um texto por tipo |
+| Pendentes | — | termos sem aceite |
+| Aceitar | termo | aceite registrado |
+| Publicar versão | `tipo`, `texto` | termo |
+
+## 7. Casos de Borda
+
+- Aceite de versão antiga: 409.
+- Foto com chave de outro usuário: recusada.
+- Nova senha igual à atual: recusada.
+
+## 8. Premissas Validadas
+
+- O bloqueio vale para o aluno; o administrador não aceita termos.
+
+## 9. Riscos
+
+- **Aluno sem aceite usando a plataforma:** bloqueio no servidor, não só na tela.
+`````
+
+`.sdd/tasks/perfil-e-termos-v1.0/README.md`:
+
+`````markdown
+# Tasks — Perfil e termos (v1.0)
+
+Spec: [`.sdd/specs/perfil-e-termos.spec.md`](../../specs/perfil-e-termos.spec.md) · versão 1.0 · prompt do tutorial `docs/prompts-iniciais/f09-01-perfil-e-termos.md`.
+
+| Ordem | ID | Título | Nível | Depende de |
+|---|---|---|---|---|
+| 1 | [PERFIL-001](PERFIL-001-perfil.md) | Perfil, senha e foto | Pleno | — |
+| 2 | [PERFIL-002](PERFIL-002-termos.md) | Termos versionados e aceite | Sênior | — |
+| 3 | [PERFIL-003](PERFIL-003-fiacao.md) | Fiação do perfil e dos termos | Pleno | PERFIL-001, PERFIL-002 |
+
+## Grafo
+
+```
+PERFIL-001 (início)
+PERFIL-002 (início)
+PERFIL-001 + PERFIL-002 → PERFIL-003
+```
+
+## RF → tasks
+
+| RF | Tasks |
+|---|---|
+| RF-01 | PERFIL-001 |
+| RF-02 | PERFIL-001 |
+| RF-03 | PERFIL-001 |
+| RF-04 | PERFIL-002 |
+| RF-05 | PERFIL-002, PERFIL-003 |
+| RF-06 | PERFIL-002 |
+| RF-07 | PERFIL-002 |
+
+## Resumo por nível
+
+- Pleno: 2
+- Sênior: 1
+`````
+
+`.sdd/tasks/perfil-e-termos-v1.0/PERFIL-001-perfil.md`:
+
+`````markdown
+# PERFIL-001 — Perfil, senha e foto
+
+- **Spec:** .sdd/specs/perfil-e-termos.spec.md (v1.0) · atende RF-01, RF-02, RF-03
+- **Nível:** Pleno
+- **Agente:** dev-pleno
+- **Status:** Pronta
+- **Depende de:** —
+
+## Arquivos a criar/alterar
+
+- `backend/src/main/java/br/com/celke/cursos/perfil/api/PerfilController.java`
+- `backend/src/main/java/br/com/celke/cursos/perfil/application/PerfilService.java`
+
+## Descrição técnica
+
+Troca de senha encerra as sessões e limpa o cookie; foto regravada até 400 × 400.
+
+## Restrições
+
+Chave da foto só do próprio usuário.
+
+## Critérios de aceite
+
+- [ ] `PerfilServiceTest` verde
+- [ ] `PerfilIT` verde
+
+## Armadilhas
+
+Esquecer de limpar o cookie de renovação.
+`````
+
+`.sdd/tasks/perfil-e-termos-v1.0/PERFIL-002-termos.md`:
+
+`````markdown
+# PERFIL-002 — Termos versionados e aceite
+
+- **Spec:** .sdd/specs/perfil-e-termos.spec.md (v1.0) · atende RF-04, RF-05, RF-06, RF-07
+- **Nível:** Sênior
+- **Agente:** dev-senior
+- **Status:** Pronta
+- **Depende de:** —
+
+## Arquivos a criar/alterar
+
+- `backend/src/main/java/br/com/celke/cursos/termo/domain/Termo.java`
+- `backend/src/main/java/br/com/celke/cursos/termo/domain/AceiteTermo.java`
+- `backend/src/main/java/br/com/celke/cursos/termo/domain/TipoTermo.java`
+- `backend/src/main/java/br/com/celke/cursos/termo/application/TermoService.java`
+- `backend/src/main/java/br/com/celke/cursos/termo/api/TermoController.java`
+- `backend/src/main/java/br/com/celke/cursos/termo/api/TermoPendenteInterceptor.java`
+- `backend/src/main/java/br/com/celke/cursos/termo/api/TermoWebConfig.java`
+- `backend/src/main/java/br/com/celke/cursos/termo/infra/TermoRepository.java`
+- `backend/src/main/java/br/com/celke/cursos/termo/infra/AceiteTermoRepository.java`
+
+## Descrição técnica
+
+Interceptor em `/api/aluno/**` e `/api/aulas/**` responde 403 com `termosPendentes`.
+
+## Restrições
+
+Perfil, sessão e termos continuam liberados.
+
+## Critérios de aceite
+
+- [ ] `TermoServiceTest`, `TermoPendenteInterceptorTest` verdes
+- [ ] `TermoIT` e `PerfilTermosE2E` verdes
+
+## Armadilhas
+
+Bloquear também a rota de aceite trava o aluno.
+`````
+
+`.sdd/tasks/perfil-e-termos-v1.0/PERFIL-003-fiacao.md`:
+
+`````markdown
+# PERFIL-003 — Fiação do perfil e dos termos
+
+- **Spec:** .sdd/specs/perfil-e-termos.spec.md (v1.0) · atende RF-05
+- **Nível:** Pleno
+- **Agente:** dev-pleno
+- **Status:** Pronta
+- **Depende de:** PERFIL-001, PERFIL-002
+
+## Arquivos a criar/alterar
+
+- `backend/src/main/resources/db/migration/V14__perfil_e_termos.sql`
+- `backend/src/main/java/br/com/celke/cursos/shared/security/SecurityConfig.java`
+
+## Descrição técnica
+
+`GET /api/termos/vigentes` público.
+
+## Critérios de aceite
+
+- [ ] `./mvnw verify` verde
+- [ ] Task só de fiação: não tem teste próprio; a verificação é a suíte inteira passando.
+`````
+
+Acrescente ao fim da tabela do índice `.sdd/README.md` a linha:
+
+```text
+| [perfil-e-termos](specs/perfil-e-termos.spec.md) | 1.0 | [v1.0](tasks/perfil-e-termos-v1.0/README.md) | `f09-01-perfil-e-termos.md` |
+```
 
 Vamos criar os módulos `perfil` e `termo` do backend: o usuário cuida dos próprios dados e só usa a
 área do aluno depois de aceitar os termos vigentes. Siga o `backend/CLAUDE.md` e o padrão das skills de
@@ -2108,8 +2343,8 @@ class PerfilServiceTest {
     private ProcessadorImagem processador;
 
     private PerfilService service;
-    private final Usuario aluno = usuario(7, "ana@celke.uno", "hash", Papel.ALUNO);
-    private final Usuario admin = usuario(1, "adm@celke.uno", "hash", Papel.ADMIN);
+    private final Usuario aluno = usuario(7, "ana@<dominio>", "hash", Papel.ALUNO);
+    private final Usuario admin = usuario(1, "adm@<dominio>", "hash", Papel.ADMIN);
 
     @BeforeEach
     void criar() {
@@ -2770,11 +3005,13 @@ No ambiente local, pelo Swagger:
 - Como admin, publique em `POST /api/adm/termos` uma versão dos termos de uso; como aluno,
   `GET /api/aluno/cursos` responde 403 com `termosPendentes` até o `POST /api/termos/{id}/aceite`.
 - Troque a senha em `PUT /api/perfil/senha`: o refresh da sessão antiga passa a responder 401.
+- Com tudo verde, as tasks de `.sdd/tasks/perfil-e-termos-v1.0/` passam para `Status: Concluída` e os critérios de aceite
+  são marcados (`- [x]`).
 
 ## Depois de executar
 
 ```bash
-git add backend/ infra/ docs/
+git add backend/ infra/ docs/ .sdd/
 git commit -m "feat(perfil): adicionar perfil e termos"
 git push -u origin feature/perfil-termos
 ```

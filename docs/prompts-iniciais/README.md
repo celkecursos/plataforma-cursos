@@ -5,12 +5,34 @@ projeto completo: backend, fronts, site, infraestrutura, pagamentos, auditoria e
 
 Como usar:
 
-1. Crie o repositório vazio no GitHub e clone (ou `git init -b main` com o `origin` configurado).
-2. Abra o Claude Code na raiz do repositório e execute os prompts **na ordem da tabela**, cada um numa
-   sessão nova. Cada prompt parte do estado deixado pelos anteriores e traz o conteúdo exato dos
-   arquivos.
-3. Ao final de cada prompt, confira a seção **Verificação** dele e siga o **Depois de executar** (commit,
-   push e Pull Request da branch da fase para a `homolog`) antes do próximo.
+1. Crie uma pasta para o projeto, em qualquer lugar, e coloque esta pasta `prompts-iniciais` dentro
+   dela. Se quiser entregar cada fase por Pull Request, deixe o `gh` autenticado: o prompt oferece
+   criar o repositório `<seu-usuário-do-github>/plataforma-cursos` privado (ou usa o `origin` já
+   configurado). Sem isso, o projeto é criado no git local e enviado ao GitHub depois.
+   Tenha em mãos o seu domínio: o prompt pergunta o domínio e os subdomínios do site, da área do
+   aluno, do ADM e da mídia, e grava as respostas em `docs/configuracao.md`.
+2. Abra o Claude Code na pasta do projeto e execute:
+
+   ```text
+   Execute o prompt prompts-iniciais\prompt-para-replicar-projeto.md
+   ```
+
+   O [prompt para replicar o projeto](prompt-para-replicar-projeto.md) prepara o repositório sozinho e
+   executa os prompts da tabela **na ordem**, cada um num subagente com contexto limpo. Ele confere a
+   seção **Verificação** de cada um e segue o **Depois de executar** (commit e entrega da branch da
+   fase na `homolog`, por Pull Request ou merge local) antes do próximo. O andamento fica em
+   `prompts-iniciais/progresso.md`: se a execução parar, execute o mesmo prompt numa sessão nova e ele
+   continua de onde parou.
+3. No fim, faça os passos manuais que ele listar: enviar ao GitHub (se foi feito no git local),
+   preparar a VPS, cadastrar os secrets e criar as regras de branch no GitHub (`docs/vps.md`).
+
+Para gravar o tutorial etapa por etapa, você também pode executar os prompts da tabela um a um, cada um
+numa sessão nova, seguindo a **Verificação** e o **Depois de executar** de cada um antes do próximo.
+
+Cada fase começa registrando a funcionalidade no SDD: cria a spec em `.sdd/specs/` e as tasks em
+`.sdd/tasks/<slug>-v<versao>/`, com os valores de `docs/configuracao.md`, e marca as tasks como
+concluídas ao fim da verificação. As orientações para escrever specs e tasks (rule `sdd-artefatos` e
+skills `write-specs` e `write-tasks`) são criadas no segundo prompt.
 
 O primeiro prompt também cria o plano de implementação, o roteiro dos capítulos e copia esta pasta
 para `docs/prompts-iniciais/`. As dependências do front são instaladas com `npm install` no prompt que

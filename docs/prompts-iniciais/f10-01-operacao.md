@@ -3,7 +3,250 @@
 **Fase:** 10
 **Branch:** `feature/operacao`
 
+> **Configuração do projeto:** troque os marcadores `<dominio>`, `<sub-site>`, `<sub-aluno>`,
+> `<sub-adm>`, `<sub-media>` e `<dono-github>` pelos valores de `docs/configuracao.md` (criado no
+> primeiro prompt) em todo o conteúdo deste prompt, inclusive nos testes. Se o arquivo não existir,
+> pergunte esses valores ao usuário antes de começar.
+
 ## Prompt
+
+### Especificação e tasks (SDD)
+
+Antes do código, registre a funcionalidade no SDD: crie a spec e as tasks abaixo com **exatamente** este conteúdo (troque os marcadores pelos valores de `docs/configuracao.md`). As tasks nascem com `Status: Pronta`; ao fim da **Verificação**, passam para `Concluída`.
+
+`.sdd/specs/operacao.spec.md`:
+
+`````markdown
+---
+feature: operacao
+versao: 1.0
+status: aprovada
+autor: pm-spec-architect
+---
+
+# Operação
+
+## 1. Resumo Executivo
+
+Antes de entrarem dados reais em produção, a plataforma tem backup diário fora da VPS com restauração
+testada, alertas por e-mail quando algo falha e uma revisão de segurança que barra versões com
+vulnerabilidade crítica conhecida.
+
+## 2. Atores e Papéis
+
+| Ator | Pode |
+|---|---|
+| Operador | Agendar o backup, restaurar, receber alertas |
+| Worker | Verificar falhas e disco e enviar alertas |
+| Pipeline | Barrar imagens com vulnerabilidade crítica corrigível |
+
+## 3. Requisitos Funcionais
+
+- **RF-01** — O sistema DEVE copiar para fora da VPS o banco e os arquivos do armazenamento, de forma
+  consistente, com retenção de 7 diárias, 4 semanais e 6 mensais.
+- **RF-02** — O sistema DEVE restaurar banco e arquivos a partir de uma cópia, com o procedimento
+  testado e documentado.
+- **RF-03** — O sistema DEVE enviar alerta por e-mail, a cada 15 minutos, quando houver tarefas em erro
+  ou o disco tiver menos de 15% livre.
+- **RF-04** — O sistema DEVE limitar o tamanho dos registros de cada serviço e expirar envios
+  abandonados no armazenamento.
+- **RF-05** — O sistema DEVE barrar no pipeline as imagens com vulnerabilidade crítica que tenha
+  correção.
+- **RF-06** — O sistema DEVE documentar a revisão de segurança (ASVS nível 1) e a varredura passiva da
+  aplicação.
+- **RF-07** — O sistema DEVE documentar quantas horas de vídeo cabem no disco e o plano de saída para um
+  armazenamento externo.
+
+## 4. Modelo de Domínio
+
+- **Cópia de segurança:** data, banco, arquivos, retenção.
+- **Alerta:** tipo (tarefa em erro, disco), destinatário (`ALERTA_EMAIL`), data.
+
+## 5. Estados e Fluxos
+
+- **Backup:** agendado → cópia do banco → cópia dos arquivos → retenção aplicada.
+- **Alerta:** verificação → condição atingida → e-mail.
+
+## 6. Contratos de Interface
+
+| Entrada | Significado |
+|---|---|
+| `ALERTA_EMAIL` | destinatário dos alertas (em branco: desligados) |
+| Destino e senha do backup | só no servidor, nunca no repositório |
+
+## 7. Casos de Borda
+
+- Destino do backup fora do ar: falha registrada e alerta.
+- Alerta em branco: nenhuma verificação envia e-mail.
+
+## 8. Premissas Validadas
+
+- O snapshot do painel da Hostinger não substitui o backup fora da VPS: vídeo e banco estão no mesmo
+  disco.
+
+## 9. Riscos
+
+- **Perda do servidor:** cópia fora da VPS com restauração testada.
+- **Falha silenciosa:** alertas por e-mail.
+`````
+
+`.sdd/tasks/operacao-v1.0/README.md`:
+
+`````markdown
+# Tasks — Operação (v1.0)
+
+Spec: [`.sdd/specs/operacao.spec.md`](../../specs/operacao.spec.md) · versão 1.0 · prompt do tutorial `docs/prompts-iniciais/f10-01-operacao.md`.
+
+| Ordem | ID | Título | Nível | Depende de |
+|---|---|---|---|---|
+| 1 | [OPER-001](OPER-001-backup.md) | Backup e restauração | Sênior | — |
+| 2 | [OPER-002](OPER-002-alertas.md) | Alertas por e-mail | Pleno | — |
+| 3 | [OPER-003](OPER-003-seguranca-e-logs.md) | Revisão de segurança, Trivy e logs | Pleno | OPER-001 |
+| 4 | [OPER-004](OPER-004-fiacao.md) | Fiação da operação | Pleno | OPER-001, OPER-002, OPER-003 |
+
+## Grafo
+
+```
+OPER-001 (início)
+OPER-002 (início)
+OPER-001 → OPER-003
+OPER-001 + OPER-002 + OPER-003 → OPER-004
+```
+
+## RF → tasks
+
+| RF | Tasks |
+|---|---|
+| RF-01 | OPER-001 |
+| RF-02 | OPER-001 |
+| RF-03 | OPER-002, OPER-004 |
+| RF-04 | OPER-003 |
+| RF-05 | OPER-003 |
+| RF-06 | OPER-003 |
+| RF-07 | OPER-003 |
+
+## Resumo por nível
+
+- Pleno: 3
+- Sênior: 1
+`````
+
+`.sdd/tasks/operacao-v1.0/OPER-001-backup.md`:
+
+`````markdown
+# OPER-001 — Backup e restauração
+
+- **Spec:** .sdd/specs/operacao.spec.md (v1.0) · atende RF-01, RF-02
+- **Nível:** Sênior
+- **Agente:** dev-senior
+- **Status:** Pronta
+- **Depende de:** —
+
+## Arquivos a criar/alterar
+
+- `infra/scripts/backup.sh` — restic, dump por stdin, retenção 7/4/6
+- `infra/scripts/restaurar.sh`
+- `docs/operacao.md`
+
+## Descrição técnica
+
+Restauração testada na stack de e2e: banco e objetos do bucket de volta.
+
+## Restrições
+
+Destino e senha do restic só no servidor.
+
+## Critérios de aceite
+
+- [ ] `shellcheck` sem avisos
+- [ ] restauração testada
+
+## Armadilhas
+
+Copiar os arquivos do Garage sem o snapshot dos metadados.
+`````
+
+`.sdd/tasks/operacao-v1.0/OPER-002-alertas.md`:
+
+`````markdown
+# OPER-002 — Alertas por e-mail
+
+- **Spec:** .sdd/specs/operacao.spec.md (v1.0) · atende RF-03
+- **Nível:** Pleno
+- **Agente:** dev-pleno
+- **Status:** Pronta
+- **Depende de:** —
+
+## Arquivos a criar/alterar
+
+- `backend/src/main/java/br/com/celke/cursos/shared/operacao/AlertasOperacao.java`
+- `backend/src/main/java/br/com/celke/cursos/shared/operacao/AlertasProperties.java`
+- `backend/src/main/java/br/com/celke/cursos/shared/operacao/MedidorDisco.java`
+- `backend/src/main/resources/templates/email/alerta-operacao.html`
+
+## Descrição técnica
+
+A cada 15 minutos: jobs em erro e disco abaixo de 15% livre, para `ALERTA_EMAIL`.
+
+## Critérios de aceite
+
+- [ ] `AlertasOperacaoTest` verde
+
+## Armadilhas
+
+Repetir o mesmo alerta a cada verificação.
+`````
+
+`.sdd/tasks/operacao-v1.0/OPER-003-seguranca-e-logs.md`:
+
+`````markdown
+# OPER-003 — Revisão de segurança, Trivy e logs
+
+- **Spec:** .sdd/specs/operacao.spec.md (v1.0) · atende RF-04, RF-05, RF-06, RF-07
+- **Nível:** Pleno
+- **Agente:** dev-pleno
+- **Status:** Pronta
+- **Depende de:** OPER-001
+
+## Arquivos a criar/alterar
+
+- `.github/workflows/pipeline.yml` — Trivy barra crítico com correção
+- `docs/operacao.md` — ASVS, ZAP, disco e saída para R2/B2
+- `infra/compose.prod.yml` — rotação `json-file` 5 × 10 MB
+
+## Critérios de aceite
+
+- [ ] pipeline verde com o Trivy
+`````
+
+`.sdd/tasks/operacao-v1.0/OPER-004-fiacao.md`:
+
+`````markdown
+# OPER-004 — Fiação da operação
+
+- **Spec:** .sdd/specs/operacao.spec.md (v1.0) · atende RF-03
+- **Nível:** Pleno
+- **Agente:** dev-pleno
+- **Status:** Pronta
+- **Depende de:** OPER-001, OPER-002, OPER-003
+
+## Arquivos a criar/alterar
+
+- `backend/src/main/resources/application.yaml`
+- `infra/.env.example`
+- `infra/scripts/gerar-env-servidor.sh` — `ALERTA_EMAIL`
+
+## Critérios de aceite
+
+- [ ] `./mvnw verify` verde
+- [ ] Task só de fiação: não tem teste próprio; a verificação é a suíte inteira passando.
+`````
+
+Acrescente ao fim da tabela do índice `.sdd/README.md` a linha:
+
+```text
+| [operacao](specs/operacao.spec.md) | 1.0 | [v1.0](tasks/operacao-v1.0/README.md) | `f10-01-operacao.md` |
+```
 
 Vamos preparar a operação antes de entrarem dados reais: backup fora da VPS com restauração testada,
 alertas, rotação de logs e a revisão de segurança. Siga o `backend/CLAUDE.md`. Não faça commit.
@@ -825,7 +1068,7 @@ x-logging: &logging
 services:
   api:
     logging: *logging
-    image: ${IMAGEM_API:-ghcr.io/celkecursos/plataforma-cursos-api}:${TAG:?defina TAG}
+    image: ${REGISTRO:?defina REGISTRO}/plataforma-cursos-api:${TAG:?defina TAG}
     restart: unless-stopped
     environment:
       <<: *app
@@ -852,7 +1095,7 @@ services:
 
   worker:
     logging: *logging
-    image: ${IMAGEM_WORKER:-ghcr.io/celkecursos/plataforma-cursos-worker}:${TAG:?defina TAG}
+    image: ${REGISTRO:?defina REGISTRO}/plataforma-cursos-worker:${TAG:?defina TAG}
     restart: unless-stopped
     # No deploy, o job em andamento tem 30 s para terminar; uma conversão interrompida volta para a fila
     # quando o lease vence (o worker o renova a cada minuto enquanto converte)
@@ -1002,7 +1245,7 @@ volumes:
 # sem TLS (e2e).
 {
 	admin off
-	email {$ACME_EMAIL:nao-configurado@celke.uno}
+	email {$ACME_EMAIL:nao-configurado@<dominio>}
 	# Sem isso, o handle dos sites roda antes do respond e a restrição por IP (somente_ips_adm,
 	# homolog) só valeria na mídia
 	order respond before handle
@@ -1075,7 +1318,7 @@ import sites/*.caddy
 `````bash
 #!/usr/bin/env bash
 # Gera o .env de um ambiente da VPS com segredos aleatórios. Hosts seguem os subdomínios de
-# celke.uno (homolog-* na homologação). SMTP e remetente ficam para preencher com os dados da Iagente.
+# <dominio> (homolog-* na homologação). SMTP e remetente ficam para preencher com os dados da Iagente.
 # Não sobrescreve um arquivo existente.
 #
 #   gerar-env-servidor.sh producao /opt/plataforma-cursos/producao/.env
@@ -1098,9 +1341,9 @@ fi
 
 hex() { openssl rand -hex "$1"; }
 
-ALUNO="https://${PREFIXO}aluno.celke.uno"
-ADM="https://${PREFIXO}adm.celke.uno"
-MEDIA="https://${PREFIXO}media.celke.uno"
+ALUNO="https://${PREFIXO}<sub-aluno>.<dominio>"
+ADM="https://${PREFIXO}<sub-adm>.<dominio>"
+MEDIA="https://${PREFIXO}<sub-media>.<dominio>"
 
 umask 077
 cat > "$DESTINO" <<ENV
@@ -1108,6 +1351,8 @@ cat > "$DESTINO" <<ENV
 AMBIENTE=$AMBIENTE
 # Tag (SHA do commit) das imagens; o deploy grava a tag de cada versão
 TAG=
+# Onde o pipeline publica as imagens: ghcr.io/<dono do repositório no GitHub, em minúsculas>
+REGISTRO=
 
 POSTGRES_DB=plataforma_cursos
 POSTGRES_USER=plataforma_cursos
@@ -1132,14 +1377,14 @@ SMTP_USERNAME=
 SMTP_PASSWORD=
 SMTP_AUTH=true
 SMTP_STARTTLS=true
-EMAIL_REMETENTE=nao-responda@celke.uno
+EMAIL_REMETENTE=nao-responda@<dominio>
 
 # Alertas do worker (jobs com erro, disco quase cheio); em branco, desligados
 ALERTA_EMAIL=
 ENV
 
 chmod 600 "$DESTINO"
-echo "$DESTINO criado. Preencha SMTP_HOST, SMTP_USERNAME e SMTP_PASSWORD."
+echo "$DESTINO criado. Preencha REGISTRO, SMTP_HOST, SMTP_USERNAME e SMTP_PASSWORD."
 `````
 
 `.github/workflows/pipeline.yml`:
@@ -1805,7 +2050,7 @@ produção mais recente.
 
 | O quê | Como |
 |---|---|
-| Site fora do ar | Monitor externo (UptimeRobot ou Better Stack, plano gratuito) a cada 5 minutos em `https://aluno.celke.uno/actuator/health` e `https://cursos.celke.uno`, com aviso por e-mail e celular |
+| Site fora do ar | Monitor externo (UptimeRobot ou Better Stack, plano gratuito) a cada 5 minutos em `https://<sub-aluno>.<dominio>/actuator/health` e `https://<sub-site>.<dominio>`, com aviso por e-mail e celular |
 | Job que desistiu (conversão de vídeo, por exemplo) | O worker verifica a cada 15 minutos os jobs que foram para `ERRO` e envia um e-mail para `ALERTA_EMAIL` com o resumo |
 | Disco quase cheio | O mesmo verificador do worker mede o disco da VPS (o sistema de arquivos do container é o do host) e alerta abaixo de 15% livre, repetindo a cada 6 horas enquanto não melhorar |
 | Container parado | `restart: unless-stopped` e o healthcheck de cada serviço; o deploy só conclui com tudo saudável |
@@ -1846,10 +2091,10 @@ ADM mostra para cada vídeo: medir com os vídeos reais e atualizar esta tabela.
 Quando o HLS passar de ~40 GB, ou se a banda da VPS virar gargalo, os vídeos vão para o Cloudflare R2
 (sem taxa de saída) ou o Backblaze B2. Como a aplicação só fala S3 pelo AWS SDK:
 
-1. Criar o bucket no R2, a chave da aplicação e o CORS para `aluno.celke.uno` e `adm.celke.uno`.
+1. Criar o bucket no R2, a chave da aplicação e o CORS para `<sub-aluno>.<dominio>` e `<sub-adm>.<dominio>`.
 2. Copiar o conteúdo: `rclone sync garage:midia r2:midia` (com as duas origens no `rclone.conf`).
 3. No `.env` da produção, trocar `S3_ENDPOINT` e `S3_ENDPOINT_PUBLICO` (endpoint do R2 ou domínio
-   próprio `media.celke.uno` apontado para o bucket), `S3_BUCKET`, `S3_ACCESS_KEY` e `S3_SECRET_KEY`.
+   próprio `<sub-media>.<dominio>` apontado para o bucket), `S3_BUCKET`, `S3_ACCESS_KEY` e `S3_SECRET_KEY`.
 4. Rodar o `rclone sync` de novo (o que entrou durante a cópia) e reiniciar a API e o worker.
 5. Depois de uma semana sem problema, tirar o Garage da produção e o host de mídia do Caddy.
 
@@ -1878,7 +2123,7 @@ Quando o HLS passar de ~40 GB, ou se a banda da VPS virar gargalo, os vídeos v�
   (`same-site`). "Non-Storable Content" é esperado: a API responde sem cache.
 
   ```bash
-  docker run --rm ghcr.io/zaproxy/zaproxy:stable zap-baseline.py -t https://homolog-aluno.celke.uno/api/cursos -I
+  docker run --rm ghcr.io/zaproxy/zaproxy:stable zap-baseline.py -t https://homolog-<sub-aluno>.<dominio>/api/cursos -I
   ```
 `````
 
@@ -1971,12 +2216,12 @@ class AlertasOperacaoTest {
         when(fila.falhasDesde(T0.minus(Duration.ofMinutes(15)), EmailService.TIPO_JOB))
                 .thenReturn(List.of(new FalhaJob(9, "video.transcodificar", "ffmpeg\n  falhou", T0)));
 
-        alertas("ops@celke.uno").verificar();
+        alertas("ops@<dominio>").verificar();
 
         ArgumentCaptor<Map<String, String>> variaveis = ArgumentCaptor.forClass(Map.class);
         verify(emailService)
                 .enviar(
-                        eq("ops@celke.uno"),
+                        eq("ops@<dominio>"),
                         eq("[Plataforma de Cursos] 1 job(s) com erro no worker"),
                         eq("alerta-operacao"),
                         variaveis.capture());
@@ -1988,7 +2233,7 @@ class AlertasOperacaoTest {
     void janela() {
         disco(50);
         when(fila.falhasDesde(any(), anyString())).thenReturn(List.of());
-        AlertasOperacao alertas = alertas("ops@celke.uno");
+        AlertasOperacao alertas = alertas("ops@<dominio>");
 
         alertas.verificar();
         relogio.avancar(Duration.ofMinutes(15));
@@ -2005,11 +2250,11 @@ class AlertasOperacaoTest {
         disco(livre);
         when(fila.falhasDesde(any(), anyString())).thenReturn(List.of());
 
-        alertas("ops@celke.uno").verificar();
+        alertas("ops@<dominio>").verificar();
 
         verify(emailService, times(alerta ? 1 : 0))
                 .enviar(
-                        eq("ops@celke.uno"),
+                        eq("ops@<dominio>"),
                         eq("[Plataforma de Cursos] Disco com %d%% livre".formatted(livre)),
                         eq("alerta-operacao"),
                         anyMap());
@@ -2025,7 +2270,7 @@ class AlertasOperacaoTest {
                 .thenReturn(new Espaco(10 * GB, 100 * GB))
                 .thenReturn(new Espaco(50 * GB, 100 * GB))
                 .thenReturn(new Espaco(10 * GB, 100 * GB));
-        AlertasOperacao alertas = alertas("ops@celke.uno");
+        AlertasOperacao alertas = alertas("ops@<dominio>");
 
         alertas.verificar(); // alerta
         relogio.avancar(Duration.ofHours(1));
@@ -2093,13 +2338,13 @@ class FilaServiceIT extends IntegrationTest {
     @DisplayName("reserva o job, entrega o payload e conclui")
     void cicloCompleto() {
         String tipo = stamp();
-        long id = fila.enfileirar(tipo, Map.of("para", "ana@teste.celke.uno"), T0);
+        long id = fila.enfileirar(tipo, Map.of("para", "ana@teste.<dominio>"), T0);
 
         Job job = fila.reservar(Set.of(tipo), T0).orElseThrow();
         assertThat(job.id()).isEqualTo(id);
         assertThat(job.tentativas()).isEqualTo(1);
         assertThat(job.maxTentativas()).isEqualTo(5);
-        assertThat(job.payload()).isEqualTo("{\"para\": \"ana@teste.celke.uno\"}");
+        assertThat(job.payload()).isEqualTo("{\"para\": \"ana@teste.<dominio>\"}");
         assertThat(status(id)).isEqualTo(StatusJob.PROCESSANDO);
 
         fila.concluir(job, T0);
@@ -2394,7 +2639,7 @@ Esta etapa tem passos que só o usuário faz, fora do código (no navegador, no 
 1. Em /opt/plataforma-cursos/producao/.env e homolog/.env, preencha ALERTA_EMAIL (quem recebe os
    alertas de jobs com erro e de disco quase cheio). Vale no próximo deploy.
 2. Crie um monitor externo gratuito (UptimeRobot ou Better Stack), a cada 5 minutos, em
-   https://aluno.celke.uno/actuator/health, com aviso por e-mail e celular.
+   https://<sub-aluno>.<dominio>/actuator/health, com aviso por e-mail e celular.
 ```
 
 ## Verificação
@@ -2421,11 +2666,13 @@ docker compose -f infra/compose.prod.yml -f infra/compose.e2e.yml --env-file inf
 Teste de backup e restauração na stack de e2e no ar (seção 2 de `docs/operacao.md`): faça o backup,
 estrague um título de curso e apague `/garage/data` do volume, restaure e confira os dados e os objetos
 do bucket.
+- Com tudo verde, as tasks de `.sdd/tasks/operacao-v1.0/` passam para `Status: Concluída` e os critérios de aceite
+  são marcados (`- [x]`).
 
 ## Depois de executar
 
 ```bash
-git add backend/ infra/ docs/ .github/ README.md
+git add backend/ infra/ docs/ .github/ README.md .sdd/
 git commit -m "feat(infra): adicionar backup, alertas e segurança da operação"
 git push -u origin feature/operacao
 ```

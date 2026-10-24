@@ -18,6 +18,9 @@ o pipeline longe daqui, sem erro na hora.
 - **Agnóstica de tecnologia:** sem linguagem, framework, biblioteca, nome de arquivo, código ou SQL.
 - **Frontmatter:** `feature`, `versao`, `status` (`rascunho` | `aprovada`), `autor`. Revisar uma spec
   aprovada: suba a `versao` e volte o `status` para `rascunho`.
+- **Valores do projeto:** domínio, subdomínios, e-mails e dono do repositório vêm de
+  `docs/configuracao.md` e aparecem com o valor real (ex.: o host da área do aluno). Senha, token,
+  chave e IP nunca entram numa spec.
 
 ## `.sdd/tasks/<slug>-v<versao>/` (Fase 2)
 
@@ -31,6 +34,12 @@ o pipeline longe daqui, sem erro na hora.
 - **Sem código nas tasks:** contratos em prosa e o arquivo exato a espelhar. Exceção: `record`, `enum`
   ou `type` de domínio que fixa o contrato.
 - Mudou o escopo? Pasta nova `<slug>-v<nova-versao>/`; não reescreva tasks já implementadas.
+- **Formato:** o da skill `write-tasks` (`<FEAT>-NNN-<titulo>.md`, README com grafo e RF → tasks).
+
+## `.sdd/README.md` (índice)
+
+- Uma linha por spec: nome, versão vigente e as pastas de tasks de cada versão.
+- Spec nova ou versão nova: atualize o índice no mesmo commit.
 
 ## Não fazer
 

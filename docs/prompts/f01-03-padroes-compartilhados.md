@@ -3,6 +3,11 @@
 **Fase:** 1 — etapa 1.3
 **Branch:** `feature/base-projeto`
 
+> **Configuração do projeto:** troque os marcadores `<dominio>`, `<sub-site>`, `<sub-aluno>`,
+> `<sub-adm>`, `<sub-media>` e `<dono-github>` pelos valores de `docs/configuracao.md` (criado no
+> primeiro prompt) em todo o conteúdo deste prompt, inclusive nos testes. Se o arquivo não existir,
+> pergunte esses valores ao usuário antes de começar.
+
 ## Prompt
 
 Vamos criar a base que todos os módulos do backend usam, em `shared/`, seguindo o `backend/CLAUDE.md`
@@ -713,7 +718,7 @@ S3_SECRET_KEY=                     # openssl rand -hex 32
 S3_CORS_ORIGENS=http://localhost:5173
 
 # E-mail
-EMAIL_REMETENTE=nao-responda@celke.uno
+EMAIL_REMETENTE=nao-responda@<dominio>
 
 # Portas no host (opcional; só mude se a porta padrão já estiver em uso)
 # API_PORTA=8080
@@ -1987,7 +1992,7 @@ app:
   armazenamento:
     cors-origens: http://localhost:5173
   email:
-    remetente: nao-responda@teste.celke.uno
+    remetente: nao-responda@teste.<dominio>
 `````
 
 `backend/src/test/resources/templates/email/teste.html`:
@@ -2423,12 +2428,12 @@ class EmailServiceTest {
     @Test
     @DisplayName("enfileira o e-mail com o destinatário sem espaços nas pontas")
     void enfileira() {
-        emailService.enviar(" ana@teste.celke.uno ", "Assunto", "confirmacao-email", Map.of("nome", "Ana"));
+        emailService.enviar(" ana@teste.<dominio> ", "Assunto", "confirmacao-email", Map.of("nome", "Ana"));
 
         verify(fila)
                 .enfileirar(
                         "EMAIL",
-                        new MensagemEmail("ana@teste.celke.uno", "Assunto", "confirmacao-email", Map.of("nome", "Ana")),
+                        new MensagemEmail("ana@teste.<dominio>", "Assunto", "confirmacao-email", Map.of("nome", "Ana")),
                         AGORA);
     }
 
@@ -2448,7 +2453,7 @@ class EmailServiceTest {
     @ValueSource(strings = {"../segredo", "email/teste", "Teste", "teste.html", "teste com espaço"})
     @DisplayName("rejeita nome de template fora do padrão sem enfileirar")
     void templateInvalido(String template) {
-        assertThatThrownBy(() -> emailService.enviar("ana@teste.celke.uno", "Assunto", template, Map.of()))
+        assertThatThrownBy(() -> emailService.enviar("ana@teste.<dominio>", "Assunto", template, Map.of()))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("Nome de template inválido.");
         verify(fila, never()).enfileirar(anyString(), any(), any());
@@ -2508,7 +2513,7 @@ class EnvioEmailManipuladorTest {
                 mailSender,
                 templateEngine,
                 jsonMapper,
-                new EmailProperties("nao-responda@celke.uno", "Plataforma de Cursos"));
+                new EmailProperties("nao-responda@<dominio>", "Plataforma de Cursos"));
     }
 
     private Job job(MensagemEmail mensagem) {
@@ -2521,7 +2526,7 @@ class EnvioEmailManipuladorTest {
         when(templateEngine.process(eq("email/teste"), any(IContext.class))).thenReturn("<p>Olá, Ana</p>");
         when(mailSender.createMimeMessage()).thenReturn(new MimeMessage(Session.getInstance(new Properties())));
 
-        manipulador.processar(job(new MensagemEmail("ana@teste.celke.uno", "Assunto", "teste", Map.of("nome", "Ana"))));
+        manipulador.processar(job(new MensagemEmail("ana@teste.<dominio>", "Assunto", "teste", Map.of("nome", "Ana"))));
 
         ArgumentCaptor<IContext> contexto = ArgumentCaptor.forClass(IContext.class);
         verify(templateEngine).process(eq("email/teste"), contexto.capture());
@@ -2531,9 +2536,9 @@ class EnvioEmailManipuladorTest {
         verify(mailSender).send(enviado.capture());
         MimeMessage mensagem = enviado.getValue();
         assertThat(mensagem.getSubject()).isEqualTo("Assunto");
-        assertThat(((InternetAddress) mensagem.getFrom()[0]).getAddress()).isEqualTo("nao-responda@celke.uno");
+        assertThat(((InternetAddress) mensagem.getFrom()[0]).getAddress()).isEqualTo("nao-responda@<dominio>");
         assertThat(((InternetAddress) mensagem.getFrom()[0]).getPersonal()).isEqualTo("Plataforma de Cursos");
-        assertThat(mensagem.getAllRecipients()).extracting(Object::toString).containsExactly("ana@teste.celke.uno");
+        assertThat(mensagem.getAllRecipients()).extracting(Object::toString).containsExactly("ana@teste.<dominio>");
     }
 
     @Test
@@ -2542,7 +2547,7 @@ class EnvioEmailManipuladorTest {
         when(templateEngine.process(eq("email/teste"), any(IContext.class))).thenReturn("<p>Olá</p>");
         when(mailSender.createMimeMessage()).thenReturn(new MimeMessage(Session.getInstance(new Properties())));
 
-        manipulador.processar(job(new MensagemEmail("ana@teste.celke.uno", "Assunto", "teste", null)));
+        manipulador.processar(job(new MensagemEmail("ana@teste.<dominio>", "Assunto", "teste", null)));
 
         verify(mailSender).send(any(MimeMessage.class));
     }
@@ -2550,7 +2555,7 @@ class EnvioEmailManipuladorTest {
     @Test
     @DisplayName("template fora do padrão é erro permanente e nada é enviado")
     void templateInvalido() {
-        Job job = job(new MensagemEmail("ana@teste.celke.uno", "Assunto", "../segredo", Map.of()));
+        Job job = job(new MensagemEmail("ana@teste.<dominio>", "Assunto", "../segredo", Map.of()));
 
         assertThatThrownBy(() -> manipulador.processar(job))
                 .isInstanceOf(ErroPermanenteException.class)
@@ -3017,13 +3022,13 @@ class FilaServiceIT extends IntegrationTest {
     @DisplayName("reserva o job, entrega o payload e conclui")
     void cicloCompleto() {
         String tipo = stamp();
-        long id = fila.enfileirar(tipo, Map.of("para", "ana@teste.celke.uno"), T0);
+        long id = fila.enfileirar(tipo, Map.of("para", "ana@teste.<dominio>"), T0);
 
         Job job = fila.reservar(Set.of(tipo), T0).orElseThrow();
         assertThat(job.id()).isEqualTo(id);
         assertThat(job.tentativas()).isEqualTo(1);
         assertThat(job.maxTentativas()).isEqualTo(5);
-        assertThat(job.payload()).isEqualTo("{\"para\": \"ana@teste.celke.uno\"}");
+        assertThat(job.payload()).isEqualTo("{\"para\": \"ana@teste.<dominio>\"}");
         assertThat(status(id)).isEqualTo(StatusJob.PROCESSANDO);
 
         fila.concluir(job, T0);
@@ -3176,7 +3181,7 @@ import org.springframework.beans.factory.annotation.Autowired;
  * Cobre: e-mail enfileirado, processado pela fila, montado pelo template e entregue ao SMTP real
  * (Mailpit), com as variáveis escapadas no HTML.
  * Não cobre: validação de destinatário e template (EmailServiceTest, EnvioEmailManipuladorTest).
- * Dado criado: e-mail para it-<stamp>@teste.celke.uno.
+ * Dado criado: e-mail para it-<stamp>@teste.<dominio>.
  */
 class EmailIT extends IntegrationTest {
 
@@ -3192,7 +3197,7 @@ class EmailIT extends IntegrationTest {
     @Test
     @DisplayName("e-mail sai pela fila com remetente, assunto e template preenchido")
     void enviaPelaFila() {
-        String destinatario = stamp() + "@teste.celke.uno";
+        String destinatario = stamp() + "@teste.<dominio>";
 
         emailService.enviar(
                 destinatario, "Bem-vinda à plataforma", "teste", Map.of("nome", "Ana", "codigo", "<b>123</b>"));
@@ -3202,7 +3207,7 @@ class EmailIT extends IntegrationTest {
 
         Mailpit.EmailRecebido email = mailpit.aguardarEmailPara(destinatario);
         assertThat(email.Subject()).isEqualTo("Bem-vinda à plataforma");
-        assertThat(email.From().Address()).isEqualTo("nao-responda@teste.celke.uno");
+        assertThat(email.From().Address()).isEqualTo("nao-responda@teste.<dominio>");
         assertThat(email.From().Name()).isEqualTo("Plataforma de Cursos");
         assertThat(email.To()).extracting(Mailpit.Endereco::Address).containsExactly(destinatario);
         assertThat(email.HTML())
@@ -3220,7 +3225,7 @@ Etapas 1.1 e 1.2 concluídas e `infra/.env` criado pelo `gerar-env.sh`. Acrescen
 as variáveis novas do `.env.example`:
 
 ```bash
-printf '\nS3_CORS_ORIGENS=http://localhost:5173\nEMAIL_REMETENTE=nao-responda@celke.uno\n' >> infra/.env
+printf '\nS3_CORS_ORIGENS=http://localhost:5173\nEMAIL_REMETENTE=nao-responda@<dominio>\n' >> infra/.env
 ```
 
 ## Verificação
