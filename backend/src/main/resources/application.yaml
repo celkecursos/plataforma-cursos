@@ -205,3 +205,6 @@ app:
     disco-minimo-percentual: 15
     diretorio-disco: /
     repeticao-disco: PT6H
+  exemplos:
+    # Cursos de exemplo publicados ao subir a API (CursosExemplo): ligado só na homologação
+    cursos: ${CURSOS_EXEMPLO:false}
