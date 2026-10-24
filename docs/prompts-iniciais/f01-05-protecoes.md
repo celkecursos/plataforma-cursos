@@ -3,7 +3,303 @@
 **Fase:** 1 — etapa 1.5
 **Branch:** `feature/base-projeto`
 
+> **Configuração do projeto:** troque os marcadores `<dominio>`, `<sub-site>`, `<sub-aluno>`,
+> `<sub-adm>`, `<sub-media>` e `<dono-github>` pelos valores de `docs/configuracao.md` (criado no
+> primeiro prompt) em todo o conteúdo deste prompt, inclusive nos testes. Se o arquivo não existir,
+> pergunte esses valores ao usuário antes de começar.
+
 ## Prompt
+
+### Especificação e tasks (SDD)
+
+Antes do código, registre a funcionalidade no SDD: crie a spec e as tasks abaixo com **exatamente** este conteúdo (troque os marcadores pelos valores de `docs/configuracao.md`). As tasks nascem com `Status: Pronta`; ao fim da **Verificação**, passam para `Concluída`.
+
+`.sdd/specs/protecao-de-acesso.spec.md`:
+
+`````markdown
+---
+feature: protecao-de-acesso
+versao: 1.0
+status: aprovada
+autor: pm-spec-architect
+---
+
+# Proteção de acesso
+
+## 1. Resumo Executivo
+
+Toda rota da API nasce fechada e cada papel só alcança o que lhe pertence. As rotas de sessão ficam
+protegidas contra força bruta, contra excesso de requisições e contra requisições forjadas por outras
+aplicações do mesmo domínio (`*.<dominio>` conta como o mesmo site para o navegador). Toda tentativa
+de login fica registrada.
+
+Entra: autorização por papel, limite por IP, bloqueio temporário por falhas, conferência da origem nas
+rotas de sessão, auditoria de login e respostas de erro padronizadas. Fica de fora: segundo fator
+(spec `seguranca-de-contas`).
+
+## 2. Atores e Papéis
+
+| Ator | Pode |
+|---|---|
+| Visitante | Apenas as rotas públicas declaradas |
+| Aluno | Rotas do aluno e da própria sessão |
+| Administrador | Rotas de administração, conferidas duas vezes (na entrada e na operação) |
+| Atacante | Nada além do visitante; é limitado e registrado |
+
+## 3. Requisitos Funcionais
+
+- **RF-01** — O sistema DEVE negar por padrão toda rota não declarada como pública, com o método
+  declarado junto da rota.
+- **RF-02** — O sistema DEVE limitar por IP as requisições às rotas de sessão e de conta, respondendo
+  "muitas requisições" com o tempo de espera.
+- **RF-03** — O sistema DEVE bloquear o login por 15 minutos após 5 falhas seguidas do mesmo e-mail no
+  mesmo IP ou 20 falhas do mesmo e-mail em qualquer IP, verificando o bloqueio antes de conferir a
+  senha.
+- **RF-04** — O sistema DEVE zerar os contadores de falha com um login correto ou após 1 hora sem
+  falhas.
+- **RF-05** — O sistema DEVE recusar renovação e saída vindas de origem fora da lista permitida
+  (`https://<sub-aluno>.<dominio>`, `https://<sub-adm>.<dominio>` e as equivalentes da homologação) ou marcadas pelo
+  navegador como de outro site.
+- **RF-06** — O sistema DEVE registrar toda tentativa de login com resultado, IP, navegador e data,
+  mesmo quando a operação principal falha.
+- **RF-07** — O sistema DEVE aceitar o IP do cliente informado pelo proxy apenas quando vier do proxy
+  interno.
+- **RF-08** — O sistema DEVE responder todo erro (inclusive 401, 403 e 429) num formato único com tipo,
+  título, detalhe, caminho e identificador da requisição; erros de validação trazem a lista de campos
+  com a mensagem em português.
+
+## 4. Modelo de Domínio
+
+- **Tentativa de login:** e-mail informado, usuário (se existir), resultado (`SUCESSO`,
+  `EMAIL_DESCONHECIDO`, `SENHA_INVALIDA`, `USUARIO_INATIVO`, `BLOQUEADO`…), IP, navegador, data.
+- **Contador de falhas:** por e-mail + IP e por e-mail, com a última falha.
+
+## 5. Estados e Fluxos
+
+- Conta: `liberada` → `bloqueada temporariamente` (limite atingido) → `liberada` (15 min depois).
+- **Requisição:** limite por IP → autenticação → papel → operação → resposta (ou erro padronizado).
+
+## 6. Contratos de Interface
+
+| Situação | Resposta |
+|---|---|
+| Sem credencial em rota privada | 401 no formato único |
+| Papel insuficiente | 403 no formato único |
+| Limite por IP | 429 com `Retry-After` |
+| Bloqueio por falhas | mesma resposta de credencial inválida, sem revelar o bloqueio a quem não sabe a senha |
+| Origem não permitida | 403 |
+
+## 7. Casos de Borda
+
+- Cabeçalho de IP forjado pelo cliente: ignorado.
+- Origem com maiúsculas, barra final ou porta diferente: normalizada antes de comparar; porta ou
+  esquema diferentes são recusados.
+- Outra aplicação de `<dominio>` tentando renovar a sessão: recusada (RF-05).
+- Falha ao gravar a auditoria não muda a resposta do login.
+
+## 8. Premissas Validadas
+
+- A API fica sempre atrás de um proxy próprio, que substitui o IP informado pelo cliente.
+- O domínio `<dominio>` é compartilhado com outras aplicações.
+
+## 9. Riscos
+
+- **Bloqueio usado para negar acesso a um aluno:** limitado a 15 minutos e só após muitas falhas.
+- **Rota nova esquecida como pública:** mitigado pela negação por padrão (RF-01).
+`````
+
+`.sdd/tasks/protecao-de-acesso-v1.0/README.md`:
+
+`````markdown
+# Tasks — Proteção de acesso (v1.0)
+
+Spec: [`.sdd/specs/protecao-de-acesso.spec.md`](../../specs/protecao-de-acesso.spec.md) · versão 1.0 · prompt do tutorial `docs/prompts-iniciais/f01-05-protecoes.md`.
+
+| Ordem | ID | Título | Nível | Depende de |
+|---|---|---|---|---|
+| 1 | [PROT-001](PROT-001-limite-e-bloqueio.md) | Limite por IP e bloqueio por falhas | Sênior | — |
+| 2 | [PROT-002](PROT-002-origem-e-auditoria.md) | Conferência de origem e auditoria de login | Sênior | — |
+| 3 | [PROT-003](PROT-003-erros-e-papeis.md) | Erros padronizados e matriz de papéis | Pleno | — |
+| 4 | [PROT-004](PROT-004-fiacao.md) | Fiação das proteções | Pleno | PROT-001, PROT-002, PROT-003 |
+
+## Grafo
+
+```
+PROT-001 (início)
+PROT-002 (início)
+PROT-003 (início)
+PROT-001 + PROT-002 + PROT-003 → PROT-004
+```
+
+## RF → tasks
+
+| RF | Tasks |
+|---|---|
+| RF-01 | PROT-003, PROT-004 |
+| RF-02 | PROT-001, PROT-004 |
+| RF-03 | PROT-001 |
+| RF-04 | PROT-001 |
+| RF-05 | PROT-002, PROT-004 |
+| RF-06 | PROT-002 |
+| RF-07 | PROT-002, PROT-004 |
+| RF-08 | PROT-003 |
+
+## Resumo por nível
+
+- Pleno: 2
+- Sênior: 2
+`````
+
+`.sdd/tasks/protecao-de-acesso-v1.0/PROT-001-limite-e-bloqueio.md`:
+
+`````markdown
+# PROT-001 — Limite por IP e bloqueio por falhas
+
+- **Spec:** .sdd/specs/protecao-de-acesso.spec.md (v1.0) · atende RF-02, RF-03, RF-04
+- **Nível:** Sênior
+- **Agente:** dev-senior
+- **Status:** Pronta
+- **Depende de:** —
+
+## Arquivos a criar/alterar
+
+- `backend/src/main/java/br/com/celke/cursos/auth/api/LimitePorIpFilter.java` — Bucket4j antes da segurança, 429 com `Retry-After`
+- `backend/src/main/java/br/com/celke/cursos/auth/application/BloqueioLoginService.java` — 5 por e-mail+IP, 20 por e-mail, 15 min
+- `backend/src/main/java/br/com/celke/cursos/auth/application/LimitesProperties.java`
+
+## Descrição técnica
+
+O filtro conta toda requisição às rotas de sessão e conta. O bloqueio é verificado antes de calcular o hash e zera com login correto ou 1 h sem falhas.
+
+## Restrições
+
+Erro de filtro sai pelo `ProblemDetailJson`, no mesmo formato do handler global.
+
+## Critérios de aceite
+
+- [ ] `LimitePorIpFilterTest`, `BloqueioLoginServiceTest` verdes
+- [ ] `AuthBloqueioIT` verde
+
+## Armadilhas
+
+Contar só as falhas no filtro deixa a força bruta lenta passar.
+`````
+
+`.sdd/tasks/protecao-de-acesso-v1.0/PROT-002-origem-e-auditoria.md`:
+
+`````markdown
+# PROT-002 — Conferência de origem e auditoria de login
+
+- **Spec:** .sdd/specs/protecao-de-acesso.spec.md (v1.0) · atende RF-05, RF-06, RF-07
+- **Nível:** Sênior
+- **Agente:** dev-senior
+- **Status:** Pronta
+- **Depende de:** —
+
+## Arquivos a criar/alterar
+
+- `backend/src/main/java/br/com/celke/cursos/auth/api/VerificadorOrigem.java` — `Origin` e `Sec-Fetch-Site` em refresh e logout
+- `backend/src/main/java/br/com/celke/cursos/auth/api/OrigemNaoPermitidaException.java`
+- `backend/src/main/java/br/com/celke/cursos/auth/application/AuditoriaLoginService.java` — transação própria
+- `backend/src/main/java/br/com/celke/cursos/auth/domain/AuditoriaLogin.java`
+- `backend/src/main/java/br/com/celke/cursos/auth/domain/ResultadoLogin.java`
+- `backend/src/main/java/br/com/celke/cursos/auth/infra/AuditoriaLoginRepository.java`
+
+## Descrição técnica
+
+Origens permitidas vêm de `AUTH_ORIGENS` (`https://<sub-aluno>.<dominio>,https://<sub-adm>.<dominio>`), normalizadas (minúsculas, sem barra final).
+
+## Restrições
+
+O IP vem do proxy interno (`forward-headers-strategy: native`).
+
+## Critérios de aceite
+
+- [ ] `VerificadorOrigemTest` verde
+- [ ] `AuthOrigemIT`: outra aplicação do domínio recusada
+
+## Armadilhas
+
+Aceitar qualquer subdomínio de `<dominio>` abre CSRF pelas outras aplicações.
+`````
+
+`.sdd/tasks/protecao-de-acesso-v1.0/PROT-003-erros-e-papeis.md`:
+
+`````markdown
+# PROT-003 — Erros padronizados e matriz de papéis
+
+- **Spec:** .sdd/specs/protecao-de-acesso.spec.md (v1.0) · atende RF-01, RF-08
+- **Nível:** Pleno
+- **Agente:** dev-pleno
+- **Status:** Pronta
+- **Depende de:** —
+
+## Arquivos a criar/alterar
+
+- `backend/src/main/java/br/com/celke/cursos/shared/erro/ManipuladorErros.java`
+- `backend/src/main/java/br/com/celke/cursos/shared/erro/ProblemDetailJson.java`
+- `backend/src/main/java/br/com/celke/cursos/shared/security/RespostasSeguranca.java`
+- `backend/src/main/resources/messages.properties` — mensagens em português
+
+## Descrição técnica
+
+Todo erro sai em ProblemDetail com `instance` e `requestId`; validação traz `erros` (`campo`, `mensagem`).
+
+## Restrições
+
+Erro inesperado só com o id da requisição, sem stack trace.
+
+## Critérios de aceite
+
+- [ ] `ManipuladorErrosIT` verde
+- [ ] 401/403/429 no mesmo formato
+
+## Armadilhas
+
+Mensagens do Spring em inglês vazando sem tradução.
+`````
+
+`.sdd/tasks/protecao-de-acesso-v1.0/PROT-004-fiacao.md`:
+
+`````markdown
+# PROT-004 — Fiação das proteções
+
+- **Spec:** .sdd/specs/protecao-de-acesso.spec.md (v1.0) · atende RF-01, RF-02, RF-05, RF-07
+- **Nível:** Pleno
+- **Agente:** dev-pleno
+- **Status:** Pronta
+- **Depende de:** PROT-001, PROT-002, PROT-003
+
+## Arquivos a criar/alterar
+
+- `backend/src/main/resources/db/migration/V4__criar_auditoria_login.sql`
+- `backend/src/main/java/br/com/celke/cursos/shared/security/SecurityConfig.java`
+- `backend/src/main/resources/application.yaml`
+- `infra/.env.example`
+
+## Descrição técnica
+
+Negação por padrão com `@PreAuthorize`; filtro de limite antes da segurança; `AUTH_ORIGENS` e `server.forward-headers-strategy: native`.
+
+## Restrições
+
+Nenhuma rota nova pública sem método.
+
+## Critérios de aceite
+
+- [ ] `./mvnw verify` verde
+- [ ] Task só de fiação: não tem teste próprio; a verificação é a suíte inteira passando.
+
+## Armadilhas
+
+Registrar o filtro duas vezes conta cada requisição em dobro.
+`````
+
+Acrescente ao fim da tabela do índice `.sdd/README.md` a linha:
+
+```text
+| [protecao-de-acesso](specs/protecao-de-acesso.spec.md) | 1.0 | [v1.0](tasks/protecao-de-acesso-v1.0/README.md) | `f01-05-protecoes.md` |
+```
 
 Vamos proteger a autenticação contra força bruta, abuso e CSRF, seguindo o `backend/CLAUDE.md` e o
 padrão das skills de teste. A autorização por papéis já existe (rotas negadas por padrão, públicas com o
@@ -462,7 +758,7 @@ app:
   armazenamento:
     cors-origens: http://localhost:5173
   email:
-    remetente: nao-responda@teste.celke.uno
+    remetente: nao-responda@teste.<dominio>
 `````
 
 `backend/src/main/java/br/com/celke/cursos/shared/erro/ManipuladorErros.java`:
@@ -623,7 +919,7 @@ import org.springframework.validation.annotation.Validated;
  * @param validadeAcesso validade do access token
  * @param validadeRefresh validade do refresh token (renovada a cada uso)
  * @param cookieSeguro marca o cookie de refresh como {@code Secure}
- * @param origensPermitidas origens do front aceitas no refresh e no logout (ex.: {@code https://aluno.celke.uno})
+ * @param origensPermitidas origens do front aceitas no refresh e no logout (ex.: {@code https://<sub-aluno>.<dominio>})
  */
 @Validated
 @ConfigurationProperties("app.auth")
@@ -961,24 +1257,24 @@ class AuthServiceTest {
     }
 
     private static Usuario ana() {
-        return UsuarioFixture.usuario(7, "ana@celke.uno", "{argon2}hash-da-ana", Papel.ALUNO);
+        return UsuarioFixture.usuario(7, "ana@<dominio>", "{argon2}hash-da-ana", Papel.ALUNO);
     }
 
     @Test
     @DisplayName("login correto emite os tokens, zera o bloqueio, audita SUCESSO e regrava hash antigo se preciso")
     void loginCorreto() {
         Usuario ana = ana();
-        when(usuarioService.buscarPorEmail("ana@celke.uno")).thenReturn(Optional.of(ana));
+        when(usuarioService.buscarPorEmail("ana@<dominio>")).thenReturn(Optional.of(ana));
         when(passwordEncoder.matches("senha-certa", "{argon2}hash-da-ana")).thenReturn(true);
         when(refreshTokenService.emitir(7L)).thenReturn(new RefreshEmitido("refresh", 7L, EXPIRA));
         when(tokenAcessoService.emitir(ana)).thenReturn(new TokenAcesso("jwt", EXPIRA));
 
-        var sessao = service.entrar("ana@celke.uno", "senha-certa", ORIGEM);
+        var sessao = service.entrar("ana@<dominio>", "senha-certa", ORIGEM);
 
         assertThat(sessao.acesso().valor()).isEqualTo("jwt");
         assertThat(sessao.refresh().token()).isEqualTo("refresh");
-        verify(auditoriaLoginService).registrar("ana@celke.uno", ana, ResultadoLogin.SUCESSO, ORIGEM);
-        verify(bloqueioLoginService).registrarSucesso("ana@celke.uno", "203.0.113.7");
+        verify(auditoriaLoginService).registrar("ana@<dominio>", ana, ResultadoLogin.SUCESSO, ORIGEM);
+        verify(bloqueioLoginService).registrarSucesso("ana@<dominio>", "203.0.113.7");
         verify(bloqueioLoginService, never()).registrarFalha(anyString(), anyString());
         verify(usuarioService).atualizarHashSeNecessario(ana, "senha-certa");
     }
@@ -987,14 +1283,14 @@ class AuthServiceTest {
     @DisplayName("senha errada conta falha, audita SENHA_INVALIDA e não emite tokens")
     void senhaErrada() {
         Usuario ana = ana();
-        when(usuarioService.buscarPorEmail("ana@celke.uno")).thenReturn(Optional.of(ana));
+        when(usuarioService.buscarPorEmail("ana@<dominio>")).thenReturn(Optional.of(ana));
         when(passwordEncoder.matches("senha-errada", "{argon2}hash-da-ana")).thenReturn(false);
 
-        assertThatThrownBy(() -> service.entrar("ana@celke.uno", "senha-errada", ORIGEM))
+        assertThatThrownBy(() -> service.entrar("ana@<dominio>", "senha-errada", ORIGEM))
                 .isInstanceOf(CredenciaisInvalidasException.class)
                 .hasMessage("E-mail ou senha inválidos.");
-        verify(auditoriaLoginService).registrar("ana@celke.uno", ana, ResultadoLogin.SENHA_INVALIDA, ORIGEM);
-        verify(bloqueioLoginService).registrarFalha("ana@celke.uno", "203.0.113.7");
+        verify(auditoriaLoginService).registrar("ana@<dominio>", ana, ResultadoLogin.SENHA_INVALIDA, ORIGEM);
+        verify(bloqueioLoginService).registrarFalha("ana@<dominio>", "203.0.113.7");
         verify(refreshTokenService, never()).emitir(anyLong());
         verify(usuarioService, never()).atualizarHashSeNecessario(any(), any());
     }
@@ -1002,14 +1298,14 @@ class AuthServiceTest {
     @Test
     @DisplayName("e-mail inexistente confere a senha contra o hash fictício, conta falha e audita EMAIL_DESCONHECIDO")
     void emailInexistente() {
-        when(usuarioService.buscarPorEmail("ninguem@celke.uno")).thenReturn(Optional.empty());
+        when(usuarioService.buscarPorEmail("ninguem@<dominio>")).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> service.entrar("ninguem@celke.uno", "qualquer", ORIGEM))
+        assertThatThrownBy(() -> service.entrar("ninguem@<dominio>", "qualquer", ORIGEM))
                 .isInstanceOf(CredenciaisInvalidasException.class)
                 .hasMessage("E-mail ou senha inválidos.");
         verify(passwordEncoder).matches("qualquer", HASH_FICTICIO);
-        verify(auditoriaLoginService).registrar("ninguem@celke.uno", null, ResultadoLogin.EMAIL_DESCONHECIDO, ORIGEM);
-        verify(bloqueioLoginService).registrarFalha("ninguem@celke.uno", "203.0.113.7");
+        verify(auditoriaLoginService).registrar("ninguem@<dominio>", null, ResultadoLogin.EMAIL_DESCONHECIDO, ORIGEM);
+        verify(bloqueioLoginService).registrarFalha("ninguem@<dominio>", "203.0.113.7");
         verify(refreshTokenService, never()).emitir(anyLong());
     }
 
@@ -1017,13 +1313,13 @@ class AuthServiceTest {
     @DisplayName("usuário inativo com a senha certa é recusado e auditado como USUARIO_INATIVO")
     void usuarioInativo() {
         Usuario inativa = UsuarioFixture.inativo(ana());
-        when(usuarioService.buscarPorEmail("ana@celke.uno")).thenReturn(Optional.of(inativa));
+        when(usuarioService.buscarPorEmail("ana@<dominio>")).thenReturn(Optional.of(inativa));
         when(passwordEncoder.matches("senha-certa", "{argon2}hash-da-ana")).thenReturn(true);
 
-        assertThatThrownBy(() -> service.entrar("ana@celke.uno", "senha-certa", ORIGEM))
+        assertThatThrownBy(() -> service.entrar("ana@<dominio>", "senha-certa", ORIGEM))
                 .isInstanceOf(CredenciaisInvalidasException.class);
-        verify(auditoriaLoginService).registrar("ana@celke.uno", inativa, ResultadoLogin.USUARIO_INATIVO, ORIGEM);
-        verify(bloqueioLoginService).registrarFalha("ana@celke.uno", "203.0.113.7");
+        verify(auditoriaLoginService).registrar("ana@<dominio>", inativa, ResultadoLogin.USUARIO_INATIVO, ORIGEM);
+        verify(bloqueioLoginService).registrarFalha("ana@<dominio>", "203.0.113.7");
         verify(refreshTokenService, never()).emitir(anyLong());
     }
 
@@ -1032,12 +1328,12 @@ class AuthServiceTest {
     void bloqueado() {
         doThrow(new MuitasTentativasException(Duration.ofMinutes(15)))
                 .when(bloqueioLoginService)
-                .verificar("ana@celke.uno", "203.0.113.7");
+                .verificar("ana@<dominio>", "203.0.113.7");
 
-        assertThatThrownBy(() -> service.entrar("ana@celke.uno", "senha-certa", ORIGEM))
+        assertThatThrownBy(() -> service.entrar("ana@<dominio>", "senha-certa", ORIGEM))
                 .isInstanceOf(MuitasTentativasException.class)
                 .hasMessage("Muitas tentativas. Tente novamente em 15 minutos.");
-        verify(auditoriaLoginService).registrar("ana@celke.uno", null, ResultadoLogin.BLOQUEADO, ORIGEM);
+        verify(auditoriaLoginService).registrar("ana@<dominio>", null, ResultadoLogin.BLOQUEADO, ORIGEM);
         verify(usuarioService, never()).buscarPorEmail(any());
         verify(passwordEncoder, never()).matches(any(), any());
         verify(bloqueioLoginService, never()).registrarFalha(anyString(), anyString());
@@ -1351,7 +1647,7 @@ class TokenAcessoServiceTest {
     @Test
     @DisplayName("token leva emissor, id do usuário, papéis ordenados e validade de 10 minutos")
     void claims() {
-        var usuario = UsuarioFixture.usuario(42, "ana@celke.uno", "hash", Papel.ADMIN, Papel.ALUNO);
+        var usuario = UsuarioFixture.usuario(42, "ana@<dominio>", "hash", Papel.ADMIN, Papel.ALUNO);
 
         var token = service.emitir(usuario);
         Jwt jwt = decoderEm(AGORA.plusSeconds(1)).decode(token.valor());
@@ -1368,7 +1664,7 @@ class TokenAcessoServiceTest {
     @Test
     @DisplayName("token vale até um segundo antes do fim e é recusado no instante em que expira")
     void validade() {
-        var token = service.emitir(UsuarioFixture.usuario(42, "ana@celke.uno", "hash", Papel.ALUNO));
+        var token = service.emitir(UsuarioFixture.usuario(42, "ana@<dominio>", "hash", Papel.ALUNO));
         Instant expira = AGORA.plus(Duration.ofMinutes(10));
 
         assertThat(decoderEm(expira.minusSeconds(1)).decode(token.valor())).isNotNull();
@@ -1573,7 +1869,7 @@ S3_SECRET_KEY=                     # openssl rand -hex 32
 S3_CORS_ORIGENS=http://localhost:5173
 
 # E-mail
-EMAIL_REMETENTE=nao-responda@celke.uno
+EMAIL_REMETENTE=nao-responda@<dominio>
 
 # Portas no host (opcional; só mude se a porta padrão já estiver em uso)
 # API_PORTA=8080
@@ -2324,7 +2620,7 @@ import org.junit.jupiter.api.Test;
 
 class BloqueioLoginServiceTest {
 
-    private static final String EMAIL = "ana@celke.uno";
+    private static final String EMAIL = "ana@<dominio>";
     private static final String IP = "203.0.113.7";
 
     // 5 falhas por e-mail + IP, 20 por e-mail, janela de 1 h, bloqueio de 15 min
@@ -2389,7 +2685,7 @@ class BloqueioLoginServiceTest {
     @Test
     @DisplayName("e-mail é comparado sem diferenciar maiúsculas e espaços nas pontas")
     void emailNormalizado() {
-        falhar(" ANA@Celke.uno ", IP, 5);
+        falhar(" ANA@<dominio> ", IP, 5);
 
         assertBloqueado(EMAIL, IP);
     }
@@ -2479,7 +2775,7 @@ class VerificadorOrigemTest {
             Duration.ofMinutes(10),
             Duration.ofDays(14),
             true,
-            List.of("https://aluno.celke.uno", "https://ADM.celke.uno/ ")));
+            List.of("https://<sub-aluno>.<dominio>", "https://<sub-adm>.<dominio>/ ")));
 
     private static MockHttpServletRequest requisicao(String origin, String secFetchSite) {
         var request = new MockHttpServletRequest("POST", "/api/auth/refresh");
@@ -2494,9 +2790,9 @@ class VerificadorOrigemTest {
 
     @ParameterizedTest(name = "[{0}] [{1}]")
     @CsvSource({
-        "https://aluno.celke.uno,  same-origin",
-        "https://ALUNO.celke.uno/, ",
-        "https://adm.celke.uno,    same-site",
+        "https://<sub-aluno>.<dominio>,  same-origin",
+        "https://<sub-aluno>.<dominio>/, ",
+        "https://<sub-adm>.<dominio>,    same-site",
         ",                          ",
         ",                          same-origin",
         ",                          none",
@@ -2510,10 +2806,10 @@ class VerificadorOrigemTest {
     @ParameterizedTest(name = "[{0}]")
     @ValueSource(
             strings = {
-                "https://outra-app.celke.uno",
-                "http://aluno.celke.uno",
-                "https://aluno.celke.uno:8443",
-                "https://aluno.celke.uno.site-estranho.com",
+                "https://outra-app.<dominio>",
+                "http://<sub-aluno>.<dominio>",
+                "https://<sub-aluno>.<dominio>:8443",
+                "https://<sub-aluno>.<dominio>.site-estranho.com",
                 "null"
             })
     @DisplayName("recusa origem fora da lista, inclusive outro subdomínio do mesmo site e Origin null")
@@ -2536,7 +2832,7 @@ class VerificadorOrigemTest {
         var semLista = new VerificadorOrigem(new AuthProperties(
                 "segredo", "plataforma-cursos", Duration.ofMinutes(10), Duration.ofDays(14), true, List.of()));
 
-        assertThatThrownBy(() -> semLista.verificar(requisicao("https://aluno.celke.uno", null)))
+        assertThatThrownBy(() -> semLista.verificar(requisicao("https://<sub-aluno>.<dominio>", null)))
                 .isInstanceOf(OrigemNaoPermitidaException.class);
     }
 }
@@ -2680,7 +2976,7 @@ import org.springframework.test.web.servlet.assertj.MvcTestResult;
  * Cobre: bloqueio do login depois de falhas seguidas (429 com Retry-After), liberação em outro IP,
  * auditoria de cada tentativa e o limite por IP ligado nas rotas de autenticação.
  * Não cobre: regras de tempo e contagem caso a caso (BloqueioLoginServiceTest, LimitePorIpFilterTest).
- * Dado criado: usuários it-<stamp>@teste.celke.uno e as tentativas deles na auditoria.
+ * Dado criado: usuários it-<stamp>@teste.<dominio> e as tentativas deles na auditoria.
  */
 class AuthBloqueioIT extends IntegrationTest {
 
@@ -2724,7 +3020,7 @@ class AuthBloqueioIT extends IntegrationTest {
     @DisplayName("toda tentativa fica na auditoria com resultado, IP e user-agent")
     void auditoria() {
         UsuarioTeste usuario = criarUsuario(Papel.ALUNO);
-        String desconhecido = stamp() + "@teste.celke.uno";
+        String desconhecido = stamp() + "@teste.<dominio>";
 
         tentar(usuario.email(), "senha-errada", IP_ATACANTE);
         tentar(usuario.email(), usuario.senha(), IP_DONO);
@@ -2820,12 +3116,12 @@ import org.springframework.test.web.servlet.assertj.MvcTestResult;
  * Cobre: proteção contra CSRF no refresh e no logout — origem fora da lista e Sec-Fetch-Site
  * cross-site recusados sem tocar na sessão; origem permitida aceita.
  * Não cobre: regras de comparação caso a caso (VerificadorOrigemTest).
- * Dado criado: usuários it-<stamp>@teste.celke.uno.
+ * Dado criado: usuários it-<stamp>@teste.<dominio>.
  */
 class AuthOrigemIT extends IntegrationTest {
 
     private static final String ORIGEM_PERMITIDA = "http://localhost:5173";
-    private static final String OUTRA_APP_DO_DOMINIO = "https://outra-app.celke.uno";
+    private static final String OUTRA_APP_DO_DOMINIO = "https://outra-app.<dominio>";
 
     @Test
     @DisplayName("refresh vindo de outra origem é recusado e a sessão continua valendo")
@@ -2925,13 +3221,15 @@ done
 
 - Saída `401 401 401 401 401 429`; a resposta 429 traz `Retry-After: 900` e
   `"detail":"Muitas tentativas. Tente novamente em 15 minutos."`.
-- `POST /api/auth/refresh` com o cookie de um login e `-H 'Origin: https://outra-app.celke.uno'`
+- `POST /api/auth/refresh` com o cookie de um login e `-H 'Origin: https://outra-app.<dominio>'`
   responde 403 "Origem não permitida."; com `Origin: http://localhost:8080` responde 200.
 - A tabela `auditoria_login` mostra as tentativas com resultado, IP e user-agent.
+- Com tudo verde, as tasks de `.sdd/tasks/protecao-de-acesso-v1.0/` passam para `Status: Concluída` e os critérios de aceite
+  são marcados (`- [x]`).
 
 ## Depois de executar
 
 ```bash
-git add backend/ infra/
+git add backend/ infra/ .sdd/
 git commit -m "feat(auth): adicionar limite por IP, bloqueio, CSRF e auditoria de login"
 ```

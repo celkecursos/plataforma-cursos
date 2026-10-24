@@ -5,6 +5,225 @@
 
 ## Prompt
 
+### Especificação e tasks (SDD)
+
+Antes do código, registre a funcionalidade no SDD: crie a spec e as tasks abaixo com **exatamente** este conteúdo (troque os marcadores pelos valores de `docs/configuracao.md`). As tasks nascem com `Status: Pronta`; ao fim da **Verificação**, passam para `Concluída`.
+
+`.sdd/specs/arquivos-de-apoio.spec.md`:
+
+`````markdown
+---
+feature: arquivos-de-apoio
+versao: 1.0
+status: aprovada
+autor: pm-spec-architect
+---
+
+# Arquivos de apoio
+
+## 1. Resumo Executivo
+
+O administrador anexa materiais (ZIP, PDF ou TXT) a uma aula ou a um módulo, e o aluno com acesso os
+baixa por um endereço curto e temporário. O arquivo é conferido pelo conteúdo, não só pela extensão.
+
+## 2. Atores e Papéis
+
+| Ator | Pode |
+|---|---|
+| Administrador | Enviar e remover arquivos de aulas e módulos |
+| Aluno com acesso | Listar e baixar os arquivos da aula (gratuita inclusive) e do módulo (matrícula vigente) |
+
+## 3. Requisitos Funcionais
+
+- **RF-01** — O sistema DEVE aceitar ZIP, PDF ou TXT de até 200 MB, de uma aula ou de um módulo.
+- **RF-02** — O sistema DEVE receber o arquivo direto no armazenamento e, na confirmação, conferir a
+  chave gerada para o mesmo dono, o tamanho real e o conteúdo (assinatura do ZIP e do PDF; texto sem
+  byte nulo); recusado é apagado.
+- **RF-03** — O sistema DEVE guardar um nome de download limpo (sem caminho, acento ou aspas) com a
+  extensão do formato real.
+- **RF-04** — O sistema DEVE listar ao aluno os arquivos da aula com o mesmo acesso da aula e os do
+  módulo com matrícula vigente na turma.
+- **RF-05** — O sistema DEVE entregar o download por um endereço válido por 5 minutos, como anexo e com
+  o nome do arquivo, sem revelar a chave interna.
+- **RF-06** — O sistema DEVE impedir a exclusão de aula ou módulo com arquivos.
+
+## 4. Modelo de Domínio
+
+- **Arquivo de apoio:** aula **ou** módulo, título, nome de download, chave, formato, tamanho.
+
+## 5. Estados e Fluxos
+
+- **Envio:** pedir envio → enviar direto ao armazenamento → confirmar → arquivo publicado.
+- **Download:** aluno pede → acesso conferido → endereço de 5 minutos.
+
+## 6. Contratos de Interface
+
+| Operação | Entrada | Saída |
+|---|---|---|
+| Pedir envio | `nomeArquivo`, `contentType`, `tamanho` | endereço de envio e chave |
+| Confirmar | `chave`, `titulo` | arquivo |
+| Listar | aula ou módulo | arquivos (sem chave) |
+| Baixar | arquivo | endereço temporário |
+
+## 7. Casos de Borda
+
+- PDF falso renomeado: recusado.
+- Chave de outra aula: recusada.
+- Módulo inativo: responde "não encontrado".
+- Envio não confirmado: expira no armazenamento.
+
+## 8. Premissas Validadas
+
+- Um arquivo pertence a uma aula ou a um módulo, nunca aos dois.
+
+## 9. Riscos
+
+- **Arquivo malicioso:** só três formatos, conferidos pelo conteúdo, baixados como anexo.
+`````
+
+`.sdd/tasks/arquivos-de-apoio-v1.0/README.md`:
+
+`````markdown
+# Tasks — Arquivos de apoio (v1.0)
+
+Spec: [`.sdd/specs/arquivos-de-apoio.spec.md`](../../specs/arquivos-de-apoio.spec.md) · versão 1.0 · prompt do tutorial `docs/prompts-iniciais/f06-01-arquivos-de-apoio.md`.
+
+| Ordem | ID | Título | Nível | Depende de |
+|---|---|---|---|---|
+| 1 | [ARQ-001](ARQ-001-envio-adm.md) | Envio pelo administrador | Pleno | — |
+| 2 | [ARQ-002](ARQ-002-download-aluno.md) | Lista e download do aluno | Pleno | ARQ-001 |
+| 3 | [ARQ-003](ARQ-003-fiacao.md) | Fiação dos arquivos | Pleno | ARQ-001, ARQ-002 |
+
+## Grafo
+
+```
+ARQ-001 (início)
+ARQ-001 → ARQ-002
+ARQ-001 + ARQ-002 → ARQ-003
+```
+
+## RF → tasks
+
+| RF | Tasks |
+|---|---|
+| RF-01 | ARQ-001 |
+| RF-02 | ARQ-001 |
+| RF-03 | ARQ-001 |
+| RF-04 | ARQ-002 |
+| RF-05 | ARQ-002 |
+| RF-06 | ARQ-001, ARQ-003 |
+
+## Resumo por nível
+
+- Pleno: 3
+`````
+
+`.sdd/tasks/arquivos-de-apoio-v1.0/ARQ-001-envio-adm.md`:
+
+`````markdown
+# ARQ-001 — Envio pelo administrador
+
+- **Spec:** .sdd/specs/arquivos-de-apoio.spec.md (v1.0) · atende RF-01, RF-02, RF-03, RF-06
+- **Nível:** Pleno
+- **Agente:** dev-pleno
+- **Status:** Pronta
+- **Depende de:** —
+
+## Arquivos a criar/alterar
+
+- `backend/src/main/java/br/com/celke/cursos/arquivo/api/ArquivoAdmController.java`
+- `backend/src/main/java/br/com/celke/cursos/arquivo/application/ArquivoAdmService.java`
+- `backend/src/main/java/br/com/celke/cursos/arquivo/domain/ArquivoApoio.java`
+- `backend/src/main/java/br/com/celke/cursos/arquivo/domain/FormatoArquivo.java`
+- `backend/src/main/java/br/com/celke/cursos/arquivo/domain/NomeArquivo.java`
+- `backend/src/main/java/br/com/celke/cursos/arquivo/application/DonoArquivo.java`
+- `backend/src/main/java/br/com/celke/cursos/arquivo/infra/ArquivoApoioRepository.java`
+
+## Descrição técnica
+
+Duas etapas como a capa; confere chave do mesmo dono, tamanho e assinatura e move de `uploads/` para `arquivos/`.
+
+## Restrições
+
+Espelhar `CapaCursoService`.
+
+## Critérios de aceite
+
+- [ ] `FormatoArquivoTest`, `NomeArquivoTest`, `ArquivoAdmServiceTest` verdes
+- [ ] `ArquivoIT` verde
+
+## Armadilhas
+
+Nome de download com caminho ou aspas quebra o cabeçalho.
+`````
+
+`.sdd/tasks/arquivos-de-apoio-v1.0/ARQ-002-download-aluno.md`:
+
+`````markdown
+# ARQ-002 — Lista e download do aluno
+
+- **Spec:** .sdd/specs/arquivos-de-apoio.spec.md (v1.0) · atende RF-04, RF-05
+- **Nível:** Pleno
+- **Agente:** dev-pleno
+- **Status:** Pronta
+- **Depende de:** ARQ-001
+
+## Arquivos a criar/alterar
+
+- `backend/src/main/java/br/com/celke/cursos/arquivo/api/ArquivoAlunoController.java`
+- `backend/src/main/java/br/com/celke/cursos/arquivo/application/ArquivoAlunoService.java`
+
+## Descrição técnica
+
+Lista da aula (acesso da aula) e do módulo (matrícula vigente); download por URL de 5 minutos como anexo.
+
+## Restrições
+
+A chave do bucket nunca sai na resposta.
+
+## Critérios de aceite
+
+- [ ] `ArquivoAlunoServiceTest` verde
+- [ ] `ArquivoAcessoIT` verde
+- [ ] `ArquivoE2E` verde
+
+## Armadilhas
+
+Esquecer o `Content-Disposition` abre o arquivo no navegador.
+`````
+
+`.sdd/tasks/arquivos-de-apoio-v1.0/ARQ-003-fiacao.md`:
+
+`````markdown
+# ARQ-003 — Fiação dos arquivos
+
+- **Spec:** .sdd/specs/arquivos-de-apoio.spec.md (v1.0) · atende RF-06
+- **Nível:** Pleno
+- **Agente:** dev-pleno
+- **Status:** Pronta
+- **Depende de:** ARQ-001, ARQ-002
+
+## Arquivos a criar/alterar
+
+- `backend/src/main/resources/db/migration/V11__criar_arquivos_apoio.sql`
+- `backend/src/main/java/br/com/celke/cursos/shared/security/SecurityConfig.java`
+
+## Descrição técnica
+
+`CHECK` com `num_nonnulls` (aula ou módulo) e FKs `RESTRICT`.
+
+## Critérios de aceite
+
+- [ ] `./mvnw verify` verde
+- [ ] Task só de fiação: não tem teste próprio; a verificação é a suíte inteira passando.
+`````
+
+Acrescente ao fim da tabela do índice `.sdd/README.md` a linha:
+
+```text
+| [arquivos-de-apoio](specs/arquivos-de-apoio.spec.md) | 1.0 | [v1.0](tasks/arquivos-de-apoio-v1.0/README.md) | `f06-01-arquivos-de-apoio.md` |
+```
+
 Vamos criar o módulo `arquivo` do backend: materiais (código-fonte, apostilas) por aula e por módulo,
 enviados pelo ADM direto ao Garage e baixados pelo aluno sempre pela política de acesso. Siga o
 `backend/CLAUDE.md` e o padrão das skills de teste. Não faça commit.
@@ -3166,11 +3385,13 @@ No ambiente local, pelo Swagger, com uma aula e um aluno matriculado:
 - Como aluno, `GET /api/aluno/arquivos/{id}/download` devolve a URL; o `curl -OJ "<url>"` salva com o
   nome do arquivo. Sem matrícula, 403.
 - Envie um HTML como `application/zip`: a confirmação responde 400 e nada é publicado.
+- Com tudo verde, as tasks de `.sdd/tasks/arquivos-de-apoio-v1.0/` passam para `Status: Concluída` e os critérios de aceite
+  são marcados (`- [x]`).
 
 ## Depois de executar
 
 ```bash
-git add backend/ infra/ docs/
+git add backend/ infra/ docs/ .sdd/
 git commit -m "feat(arquivo): adicionar arquivos de apoio"
 git push -u origin feature/arquivos-apoio
 ```

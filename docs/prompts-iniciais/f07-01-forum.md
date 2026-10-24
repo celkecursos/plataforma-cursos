@@ -3,7 +3,280 @@
 **Fase:** 7
 **Branch:** `feature/forum`
 
+> **Configuração do projeto:** troque os marcadores `<dominio>`, `<sub-site>`, `<sub-aluno>`,
+> `<sub-adm>`, `<sub-media>` e `<dono-github>` pelos valores de `docs/configuracao.md` (criado no
+> primeiro prompt) em todo o conteúdo deste prompt, inclusive nos testes. Se o arquivo não existir,
+> pergunte esses valores ao usuário antes de começar.
+
 ## Prompt
+
+### Especificação e tasks (SDD)
+
+Antes do código, registre a funcionalidade no SDD: crie a spec e as tasks abaixo com **exatamente** este conteúdo (troque os marcadores pelos valores de `docs/configuracao.md`). As tasks nascem com `Status: Pronta`; ao fim da **Verificação**, passam para `Concluída`.
+
+`.sdd/specs/forum.spec.md`:
+
+`````markdown
+---
+feature: forum
+versao: 1.0
+status: aprovada
+autor: pm-spec-architect
+---
+
+# Fórum de dúvidas
+
+## 1. Resumo Executivo
+
+O aluno matriculado pergunta no fórum da turma ou de uma aula, outros alunos respondem e o instrutor
+responde pela moderação. O texto é escrito em Markdown e chega ao navegador já filtrado, sem nenhum
+HTML perigoso. Mensagens podem ter imagens.
+
+Entra: tópicos, respostas, imagens, moderação e limite de mensagens.
+
+## 2. Atores e Papéis
+
+| Ator | Pode |
+|---|---|
+| Aluno com matrícula vigente | Listar, perguntar, ver e responder tópicos visíveis da turma |
+| Administrador (instrutor) | Ver tudo (ocultos inclusive), ocultar, mostrar, fixar e responder como instrutor |
+
+## 3. Requisitos Funcionais
+
+- **RF-01** — O sistema DEVE manter tópicos da turma ou de uma aula da turma; tópico de aula excluída
+  passa a ser da turma.
+- **RF-02** — O sistema DEVE listar ao aluno os tópicos visíveis, fixados primeiro, com filtro por aula
+  e contagem de respostas.
+- **RF-03** — O sistema DEVE permitir perguntar e responder só com matrícula vigente na turma.
+- **RF-04** — O sistema DEVE converter o Markdown em HTML filtrado por lista fechada de elementos, sem
+  eventos, estilos, imagens embutidas ou quadros, com links marcados como externos não seguidos.
+- **RF-05** — O sistema DEVE aceitar até 3 imagens por mensagem, enviadas direto ao armazenamento,
+  conferindo que a chave é do próprio usuário e regravando-as sem metadados em até 1600 × 1600.
+- **RF-06** — O sistema DEVE permitir à moderação ocultar e mostrar tópicos, fixar tópicos, ocultar
+  respostas e responder como instrutor, marcando o tópico como respondido.
+- **RF-07** — O sistema DEVE tratar tópico ou resposta oculta como inexistente para o aluno.
+- **RF-08** — O sistema DEVE limitar cada aluno a 20 perguntas e respostas por hora, respondendo "muitas
+  requisições" até a mais antiga sair da janela.
+
+## 4. Modelo de Domínio
+
+- **Tópico:** turma, aula (opcional), autor, título, texto (Markdown e HTML filtrado), fixado, oculto,
+  respondido.
+- **Resposta:** tópico, autor, texto, de instrutor, oculta.
+- **Imagem:** tópico **ou** resposta, chave.
+
+## 5. Estados e Fluxos
+
+- Tópico: `aberto` → `respondido`; `visível` ⇄ `oculto`; `fixado` independente.
+- **Fluxo:** aluno pergunta → instrutor responde → aluno vê a resposta.
+
+## 6. Contratos de Interface
+
+| Operação | Entrada | Saída |
+|---|---|---|
+| Listar tópicos | turma, aula opcional | tópicos visíveis |
+| Perguntar | `titulo`, `texto`, `aulaId`, `anexos` | tópico |
+| Responder | `texto`, `anexos` | resposta |
+| Pedir envio de imagem | `contentType`, `tamanho` | endereço de envio e chave |
+| Moderar | ocultar, mostrar, fixar, responder como instrutor | item atualizado |
+
+As imagens publicadas saem por endereços temporários de `<sub-media>.<dominio>`.
+
+## 7. Casos de Borda
+
+- Texto com `<script>` ou `onerror`: guardado como texto, nunca executado.
+- Chave de imagem de outro usuário: recusada.
+- Aluno sem matrícula ou com matrícula vencida: 403.
+- 21ª mensagem na hora: 429 com o tempo de espera.
+
+## 8. Premissas Validadas
+
+- O fórum é por turma; não há fórum geral da plataforma.
+
+## 9. Riscos
+
+- **XSS guardado:** duas camadas de filtro e só o HTML filtrado sai na resposta.
+- **Spam:** limite por aluno e moderação.
+`````
+
+`.sdd/tasks/forum-v1.0/README.md`:
+
+`````markdown
+# Tasks — Fórum de dúvidas (v1.0)
+
+Spec: [`.sdd/specs/forum.spec.md`](../../specs/forum.spec.md) · versão 1.0 · prompt do tutorial `docs/prompts-iniciais/f07-01-forum.md`.
+
+| Ordem | ID | Título | Nível | Depende de |
+|---|---|---|---|---|
+| 1 | [FORUM-001](FORUM-001-dominio-e-markdown.md) | Tópicos, respostas e Markdown seguro | Sênior | — |
+| 2 | [FORUM-002](FORUM-002-aluno.md) | Fórum do aluno com imagens e limite | Pleno | FORUM-001 |
+| 3 | [FORUM-003](FORUM-003-moderacao.md) | Moderação | Pleno | FORUM-001 |
+| 4 | [FORUM-004](FORUM-004-fiacao.md) | Fiação do fórum | Pleno | FORUM-002, FORUM-003 |
+
+## Grafo
+
+```
+FORUM-001 (início)
+FORUM-001 → FORUM-002
+FORUM-001 → FORUM-003
+FORUM-002 + FORUM-003 → FORUM-004
+```
+
+## RF → tasks
+
+| RF | Tasks |
+|---|---|
+| RF-01 | FORUM-001 |
+| RF-02 | FORUM-002 |
+| RF-03 | FORUM-002 |
+| RF-04 | FORUM-001 |
+| RF-05 | FORUM-002 |
+| RF-06 | FORUM-003 |
+| RF-07 | FORUM-001 |
+| RF-08 | FORUM-002, FORUM-004 |
+
+## Resumo por nível
+
+- Pleno: 3
+- Sênior: 1
+`````
+
+`.sdd/tasks/forum-v1.0/FORUM-001-dominio-e-markdown.md`:
+
+`````markdown
+# FORUM-001 — Tópicos, respostas e Markdown seguro
+
+- **Spec:** .sdd/specs/forum.spec.md (v1.0) · atende RF-01, RF-04, RF-07
+- **Nível:** Sênior
+- **Agente:** dev-senior
+- **Status:** Pronta
+- **Depende de:** —
+
+## Arquivos a criar/alterar
+
+- `backend/src/main/java/br/com/celke/cursos/forum/domain/Topico.java`
+- `backend/src/main/java/br/com/celke/cursos/forum/domain/Resposta.java`
+- `backend/src/main/java/br/com/celke/cursos/forum/domain/Anexo.java`
+- `backend/src/main/java/br/com/celke/cursos/shared/texto/MarkdownSeguro.java` — commonmark + sanitizador OWASP
+- `backend/src/main/java/br/com/celke/cursos/forum/infra/TopicoRepository.java`
+- `backend/src/main/java/br/com/celke/cursos/forum/infra/RespostaRepository.java`
+- `backend/src/main/java/br/com/celke/cursos/forum/infra/AnexoRepository.java`
+
+## Descrição técnica
+
+Markdown guardado junto com o HTML filtrado; links com `rel="nofollow noopener noreferrer"`.
+
+## Restrições
+
+Só o HTML filtrado sai na resposta.
+
+## Critérios de aceite
+
+- [ ] `MarkdownSeguroTest` (XSS em tabela) e `TopicoTest` verdes
+
+## Armadilhas
+
+Filtrar só na saída e guardar HTML cru.
+`````
+
+`.sdd/tasks/forum-v1.0/FORUM-002-aluno.md`:
+
+`````markdown
+# FORUM-002 — Fórum do aluno com imagens e limite
+
+- **Spec:** .sdd/specs/forum.spec.md (v1.0) · atende RF-02, RF-03, RF-05, RF-08
+- **Nível:** Pleno
+- **Agente:** dev-pleno
+- **Status:** Pronta
+- **Depende de:** FORUM-001
+
+## Arquivos a criar/alterar
+
+- `backend/src/main/java/br/com/celke/cursos/forum/api/ForumAlunoController.java`
+- `backend/src/main/java/br/com/celke/cursos/forum/application/ForumAlunoService.java`
+- `backend/src/main/java/br/com/celke/cursos/forum/application/AnexoForumService.java`
+- `backend/src/main/java/br/com/celke/cursos/forum/application/LimiteForum.java`
+- `backend/src/main/java/br/com/celke/cursos/forum/application/ForumProperties.java`
+- `backend/src/main/java/br/com/celke/cursos/forum/api/ForumRequests.java`
+- `backend/src/main/java/br/com/celke/cursos/forum/api/ForumResponses.java`
+
+## Descrição técnica
+
+Imagens em `uploads/forum/<usuario>/<uuid>`, regravadas em `forum/anexos/`; limite de 20 por hora contado no banco.
+
+## Restrições
+
+Chave de imagem só do próprio usuário (IDOR).
+
+## Critérios de aceite
+
+- [ ] `ForumAlunoServiceTest`, `AnexoForumServiceTest`, `LimiteForumTest` verdes
+- [ ] `ForumIT` verde
+
+## Armadilhas
+
+Contar o limite em memória perde a contagem a cada reinício.
+`````
+
+`.sdd/tasks/forum-v1.0/FORUM-003-moderacao.md`:
+
+`````markdown
+# FORUM-003 — Moderação
+
+- **Spec:** .sdd/specs/forum.spec.md (v1.0) · atende RF-06
+- **Nível:** Pleno
+- **Agente:** dev-pleno
+- **Status:** Pronta
+- **Depende de:** FORUM-001
+
+## Arquivos a criar/alterar
+
+- `backend/src/main/java/br/com/celke/cursos/forum/api/ForumAdmController.java`
+- `backend/src/main/java/br/com/celke/cursos/forum/application/ForumAdmService.java`
+
+## Descrição técnica
+
+Ocultar, mostrar, fixar e responder como instrutor (marca o tópico como respondido).
+
+## Critérios de aceite
+
+- [ ] `ForumAdmServiceTest` verde
+- [ ] `ForumAcessoIT` (matriz de papéis) verde
+- [ ] `ForumE2E` verde
+`````
+
+`.sdd/tasks/forum-v1.0/FORUM-004-fiacao.md`:
+
+`````markdown
+# FORUM-004 — Fiação do fórum
+
+- **Spec:** .sdd/specs/forum.spec.md (v1.0) · atende RF-08
+- **Nível:** Pleno
+- **Agente:** dev-pleno
+- **Status:** Pronta
+- **Depende de:** FORUM-002, FORUM-003
+
+## Arquivos a criar/alterar
+
+- `backend/src/main/resources/db/migration/V12__criar_forum.sql`
+- `backend/src/main/java/br/com/celke/cursos/shared/security/SecurityConfig.java`
+- `backend/src/main/resources/application.yaml`
+
+## Descrição técnica
+
+`app.forum` com o limite por hora.
+
+## Critérios de aceite
+
+- [ ] `./mvnw verify` verde
+- [ ] Task só de fiação: não tem teste próprio; a verificação é a suíte inteira passando.
+`````
+
+Acrescente ao fim da tabela do índice `.sdd/README.md` a linha:
+
+```text
+| [forum](specs/forum.spec.md) | 1.0 | [v1.0](tasks/forum-v1.0/README.md) | `f07-01-forum.md` |
+```
 
 Vamos criar o módulo `forum` do backend: perguntas e respostas da turma (gerais ou de uma aula), com
 Markdown convertido em HTML filtrado, anexos de imagem, moderação pelo ADM e limite de mensagens. Siga o
@@ -575,7 +848,7 @@ app:
   armazenamento:
     cors-origens: http://localhost:5173
   email:
-    remetente: nao-responda@teste.celke.uno
+    remetente: nao-responda@teste.<dominio>
   forum:
     # Limite baixo para o teste do 429 (cada teste usa um aluno próprio)
     mensagens-por-janela: 5
@@ -3405,11 +3678,13 @@ No ambiente local, pelo Swagger, com um aluno matriculado numa turma:
 - Como admin, responda em `POST /api/adm/forum/topicos/{id}/respostas`; o aluno vê a resposta com
   `instrutor: true`.
 - Oculte o tópico com `PATCH /api/adm/forum/topicos/{id}` e `{"oculto":true}`: para o aluno ele responde 404.
+- Com tudo verde, as tasks de `.sdd/tasks/forum-v1.0/` passam para `Status: Concluída` e os critérios de aceite
+  são marcados (`- [x]`).
 
 ## Depois de executar
 
 ```bash
-git add backend/ infra/ docs/
+git add backend/ infra/ docs/ .sdd/
 git commit -m "feat(forum): adicionar fórum por aula e por turma"
 git push -u origin feature/forum
 ```

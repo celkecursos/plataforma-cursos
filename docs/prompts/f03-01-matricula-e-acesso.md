@@ -3,7 +3,291 @@
 **Fase:** 3
 **Branch:** `feature/matricula-acesso`
 
+> **Configuração do projeto:** troque os marcadores `<dominio>`, `<sub-site>`, `<sub-aluno>`,
+> `<sub-adm>`, `<sub-media>` e `<dono-github>` pelos valores de `docs/configuracao.md` (criado no
+> primeiro prompt) em todo o conteúdo deste prompt, inclusive nos testes. Se o arquivo não existir,
+> pergunte esses valores ao usuário antes de começar.
+
 ## Prompt
+
+### Especificação e tasks (SDD)
+
+Antes do código, registre a funcionalidade no SDD: crie a spec e as tasks abaixo com **exatamente** este conteúdo (troque os marcadores pelos valores de `docs/configuracao.md`). As tasks nascem com `Status: Pronta`; ao fim da **Verificação**, passam para `Concluída`.
+
+`.sdd/specs/matricula-e-acesso.spec.md`:
+
+`````markdown
+---
+feature: matricula-e-acesso
+versao: 1.0
+status: aprovada
+autor: pm-spec-architect
+---
+
+# Matrícula e acesso ao conteúdo
+
+## 1. Resumo Executivo
+
+O administrador matricula alunos em turmas com um período, e uma única regra decide se o aluno vê cada
+aula. Vídeo, arquivos, fórum, progresso e certificado consultam essa mesma regra, então o acesso nunca
+diverge entre as partes do sistema.
+
+Entra: matrícula pelo administrador, período, cancelamento, regra de acesso e "meus cursos" do aluno.
+Fica de fora: matrícula por compra (spec `pagamentos`).
+
+## 2. Atores e Papéis
+
+| Ator | Pode |
+|---|---|
+| Administrador | Listar, matricular por e-mail, alterar o período e cancelar matrículas |
+| Aluno | Ver os próprios cursos por aba, a turma e as aulas liberadas, arquivar e desarquivar |
+| Visitante | Ver só as aulas gratuitas abertas |
+
+## 3. Requisitos Funcionais
+
+- **RF-01** — O sistema DEVE matricular um usuário existente numa turma por e-mail, com início (padrão:
+  agora) e fim opcional (sem prazo).
+- **RF-02** — O sistema DEVE recusar matrícula em turma encerrada, para usuário inexistente, repetida
+  enquanto houver uma ativa e com transação de pagamento já usada.
+- **RF-03** — O sistema DEVE calcular a situação da matrícula pelo relógio — aguardando início,
+  vigente, vencida, cancelada — sem gravar "vencida", com o fim inclusivo.
+- **RF-04** — O sistema DEVE liberar uma aula quando houver matrícula vigente na turma ou quando a aula
+  for gratuita, a turma estiver ativa e o curso publicado; a turma inteira só com matrícula vigente.
+- **RF-05** — O sistema DEVE oferecer um único ponto de decisão de acesso, usado por todas as
+  funcionalidades de conteúdo.
+- **RF-06** — O sistema DEVE mostrar ao aluno os cursos em abas: ativos (inclusive os que ainda vão
+  começar), arquivados e expirados; cancelados não aparecem.
+- **RF-07** — O sistema DEVE permitir ao aluno arquivar e desarquivar as próprias matrículas.
+- **RF-08** — O sistema DEVE tratar matrícula de outro aluno como inexistente.
+- **RF-09** — O sistema DEVE impedir a exclusão de turma com matrículas.
+
+## 4. Modelo de Domínio
+
+- **Matrícula:** usuário, turma, início, fim (opcional), status (`ATIVA`, `CANCELADA`), forma de
+  pagamento (`MANUAL`, `CORTESIA`, `PIX`, `CARTAO`, `BOLETO`), transação, arquivada.
+
+## 5. Estados e Fluxos
+
+- Status gravado: `ATIVA` → `CANCELADA`.
+- Situação calculada: `aguardando início` → `vigente` → `vencida`.
+- **Acesso:** pedido do aluno → regra única → liberado ou 403.
+
+## 6. Contratos de Interface
+
+| Operação | Entrada | Saída |
+|---|---|---|
+| Matricular | `email`, `inicio`, `fim`, `formaPagamento` | matrícula |
+| Alterar período | `inicio`, `fim` | matrícula |
+| Cancelar | — | matrícula cancelada |
+| Meus cursos | aba (`ATIVOS`, `ARQUIVADOS`, `EXPIRADOS`) | cursos com situação |
+| Turma do aluno | turma | módulos e aulas ativos |
+
+## 7. Casos de Borda
+
+- Instante exatamente no início ou no fim: tratado como vigente.
+- Aula inativa, curso em rascunho ou outra turma: sem acesso, mesmo com matrícula.
+- Duas matrículas simultâneas do mesmo aluno na mesma turma: só uma ativa.
+
+## 8. Premissas Validadas
+
+- Não existe tarefa agendada para vencer matrículas: a situação é sempre calculada.
+- O identificador da matrícula de outro aluno responde como não encontrado, sem revelar que existe.
+
+## 9. Riscos
+
+- **Regra de acesso duplicada e divergente:** mitigada pelo ponto único (RF-05).
+- **Acesso por identificador alheio:** coberto pelo RF-08 e por testes com outro aluno.
+`````
+
+`.sdd/tasks/matricula-e-acesso-v1.0/README.md`:
+
+`````markdown
+# Tasks — Matrícula e acesso ao conteúdo (v1.0)
+
+Spec: [`.sdd/specs/matricula-e-acesso.spec.md`](../../specs/matricula-e-acesso.spec.md) · versão 1.0 · prompt do tutorial `docs/prompts-iniciais/f03-01-matricula-e-acesso.md`.
+
+| Ordem | ID | Título | Nível | Depende de |
+|---|---|---|---|---|
+| 1 | [MAT-001](MAT-001-dominio-e-politica.md) | Matrícula e política única de acesso | Sênior | — |
+| 2 | [MAT-002](MAT-002-gestao-adm.md) | Matrículas pelo administrador | Pleno | MAT-001 |
+| 3 | [MAT-003](MAT-003-aluno.md) | Meus cursos do aluno | Pleno | MAT-001 |
+| 4 | [MAT-004](MAT-004-fiacao.md) | Fiação da matrícula | Pleno | MAT-002, MAT-003 |
+
+## Grafo
+
+```
+MAT-001 (início)
+MAT-001 → MAT-002
+MAT-001 → MAT-003
+MAT-002 + MAT-003 → MAT-004
+```
+
+## RF → tasks
+
+| RF | Tasks |
+|---|---|
+| RF-01 | MAT-002 |
+| RF-02 | MAT-002, MAT-004 |
+| RF-03 | MAT-001 |
+| RF-04 | MAT-001 |
+| RF-05 | MAT-001 |
+| RF-06 | MAT-003 |
+| RF-07 | MAT-003 |
+| RF-08 | MAT-003 |
+| RF-09 | MAT-002, MAT-004 |
+
+## Resumo por nível
+
+- Pleno: 3
+- Sênior: 1
+`````
+
+`.sdd/tasks/matricula-e-acesso-v1.0/MAT-001-dominio-e-politica.md`:
+
+`````markdown
+# MAT-001 — Matrícula e política única de acesso
+
+- **Spec:** .sdd/specs/matricula-e-acesso.spec.md (v1.0) · atende RF-03, RF-04, RF-05
+- **Nível:** Sênior
+- **Agente:** dev-senior
+- **Status:** Pronta
+- **Depende de:** —
+
+## Arquivos a criar/alterar
+
+- `backend/src/main/java/br/com/celke/cursos/matricula/domain/Matricula.java` — `situacao(agora)` pelo `Clock`
+- `backend/src/main/java/br/com/celke/cursos/matricula/domain/SituacaoMatricula.java`
+- `backend/src/main/java/br/com/celke/cursos/matricula/domain/StatusMatricula.java`
+- `backend/src/main/java/br/com/celke/cursos/matricula/domain/FormaPagamento.java`
+- `backend/src/main/java/br/com/celke/cursos/matricula/domain/AcessoAulaPolicy.java`
+- `backend/src/main/java/br/com/celke/cursos/matricula/application/AcessoAulaService.java` — `exigirAcesso` e `exigirAcessoTurma`
+- `backend/src/main/java/br/com/celke/cursos/matricula/infra/MatriculaRepository.java`
+
+## Descrição técnica
+
+A política é uma classe pura com `Clock`; o serviço é a porta de entrada de vídeo, arquivo, fórum, progresso e certificado.
+
+## Restrições
+
+Fim inclusivo; nenhuma tarefa agendada para vencer matrícula.
+
+## Critérios de aceite
+
+- [ ] `MatriculaTest`, `AcessoAulaPolicyTest` (instante antes, exato e depois) verdes
+- [ ] `AcessoConteudoIT` com a matriz de acesso ao conteúdo
+
+## Armadilhas
+
+Cada módulo reimplementar a regra de acesso.
+`````
+
+`.sdd/tasks/matricula-e-acesso-v1.0/MAT-002-gestao-adm.md`:
+
+`````markdown
+# MAT-002 — Matrículas pelo administrador
+
+- **Spec:** .sdd/specs/matricula-e-acesso.spec.md (v1.0) · atende RF-01, RF-02, RF-09
+- **Nível:** Pleno
+- **Agente:** dev-pleno
+- **Status:** Pronta
+- **Depende de:** MAT-001
+
+## Arquivos a criar/alterar
+
+- `backend/src/main/java/br/com/celke/cursos/matricula/api/MatriculaAdmController.java`
+- `backend/src/main/java/br/com/celke/cursos/matricula/api/MatriculaRequests.java`
+- `backend/src/main/java/br/com/celke/cursos/matricula/api/MatriculaResponses.java`
+- `backend/src/main/java/br/com/celke/cursos/matricula/application/MatriculaAdmService.java`
+
+## Descrição técnica
+
+Listar, matricular por e-mail, alterar período e cancelar.
+
+## Restrições
+
+Usa o `UsuarioService`, nunca o repositório de usuário.
+
+## Critérios de aceite
+
+- [ ] `MatriculaAdmServiceTest` verde
+- [ ] `MatriculaAdmIT` verde
+
+## Armadilhas
+
+Permitir duas matrículas ativas.
+`````
+
+`.sdd/tasks/matricula-e-acesso-v1.0/MAT-003-aluno.md`:
+
+`````markdown
+# MAT-003 — Meus cursos do aluno
+
+- **Spec:** .sdd/specs/matricula-e-acesso.spec.md (v1.0) · atende RF-06, RF-07, RF-08
+- **Nível:** Pleno
+- **Agente:** dev-pleno
+- **Status:** Pronta
+- **Depende de:** MAT-001
+
+## Arquivos a criar/alterar
+
+- `backend/src/main/java/br/com/celke/cursos/matricula/api/AlunoController.java`
+- `backend/src/main/java/br/com/celke/cursos/matricula/application/AlunoCursosService.java`
+- `backend/src/main/java/br/com/celke/cursos/matricula/domain/FiltroMeusCursos.java`
+
+## Descrição técnica
+
+Abas `ATIVOS`, `ARQUIVADOS`, `EXPIRADOS`; turma e aula no escopo do token.
+
+## Restrições
+
+Matrícula de outro aluno responde 404.
+
+## Critérios de aceite
+
+- [ ] `AlunoCursosServiceTest` verde
+- [ ] `AlunoCursosIT` e `MatriculaAcessoIT` (IDOR) verdes
+- [ ] `MatriculaE2E` verde
+
+## Armadilhas
+
+Usar id da URL sem conferir o dono.
+`````
+
+`.sdd/tasks/matricula-e-acesso-v1.0/MAT-004-fiacao.md`:
+
+`````markdown
+# MAT-004 — Fiação da matrícula
+
+- **Spec:** .sdd/specs/matricula-e-acesso.spec.md (v1.0) · atende RF-02, RF-09
+- **Nível:** Pleno
+- **Agente:** dev-pleno
+- **Status:** Pronta
+- **Depende de:** MAT-002, MAT-003
+
+## Arquivos a criar/alterar
+
+- `backend/src/main/resources/db/migration/V7__criar_matriculas.sql`
+- `backend/src/main/java/br/com/celke/cursos/shared/security/SecurityConfig.java`
+
+## Descrição técnica
+
+Índices únicos parciais (uma ativa por aluno e turma; transação por forma de pagamento) e FK `RESTRICT` na turma.
+
+## Critérios de aceite
+
+- [ ] `./mvnw verify` verde
+- [ ] Task só de fiação: não tem teste próprio; a verificação é a suíte inteira passando.
+
+## Armadilhas
+
+Índice único total impede rematricular após cancelar.
+`````
+
+Acrescente ao fim da tabela do índice `.sdd/README.md` a linha:
+
+```text
+| [matricula-e-acesso](specs/matricula-e-acesso.spec.md) | 1.0 | [v1.0](tasks/matricula-e-acesso-v1.0/README.md) | `f03-01-matricula-e-acesso.md` |
+```
 
 Vamos criar o módulo `matricula` do backend: a matrícula manual pelo ADM, a área do aluno com os
 cursos dele e a política única que decide o acesso ao conteúdo. Siga o `backend/CLAUDE.md` e o padrão
@@ -2549,7 +2833,7 @@ class MatriculaRequestsTest {
     @DisplayName("matricular exige e-mail válido e forma de pagamento; datas e transação são opcionais")
     void matricular() {
         assertThat(camposInvalidos(
-                        new MatriculaRequests.Matricular("ana@celke.uno", null, null, FormaPagamento.MANUAL, null)))
+                        new MatriculaRequests.Matricular("ana@<dominio>", null, null, FormaPagamento.MANUAL, null)))
                 .isEmpty();
         assertThat(camposInvalidos(new MatriculaRequests.Matricular("ana", null, null, null, "a".repeat(101))))
                 .containsExactlyInAnyOrder("email", "formaPagamento", "transacao");
@@ -2570,9 +2854,9 @@ class MatriculaRequestsTest {
     @Test
     @DisplayName("os dados repassam todos os campos")
     void dados() {
-        var dados = new MatriculaRequests.Matricular("ana@celke.uno", Instant.EPOCH, null, FormaPagamento.PIX, "tx")
+        var dados = new MatriculaRequests.Matricular("ana@<dominio>", Instant.EPOCH, null, FormaPagamento.PIX, "tx")
                 .dados();
-        assertThat(dados.email()).isEqualTo("ana@celke.uno");
+        assertThat(dados.email()).isEqualTo("ana@<dominio>");
         assertThat(dados.inicio()).isEqualTo(Instant.EPOCH);
         assertThat(dados.transacao()).isEqualTo("tx");
     }
@@ -2629,7 +2913,7 @@ import org.springframework.data.domain.Sort;
 class MatriculaAdmServiceTest {
 
     private static final Instant AGORA = Instant.parse("2026-03-10T12:00:00Z");
-    private static final String EMAIL = "ana@celke.uno";
+    private static final String EMAIL = "ana@<dominio>";
 
     @Mock
     private MatriculaRepository matriculas;
@@ -3305,7 +3589,7 @@ import org.springframework.http.HttpStatus;
  * transação repetida, período inválido, alteração de matrícula cancelada, validação e turma com
  * matrículas que não pode ser excluída.
  * Não cobre: acesso do aluno ao conteúdo (AcessoConteudoIT).
- * Dado criado: cursos it-<stamp> e alunos it-<stamp>@teste.celke.uno.
+ * Dado criado: cursos it-<stamp> e alunos it-<stamp>@teste.<dominio>.
  */
 class MatriculaAdmIT extends IntegrationTest {
 
@@ -3389,7 +3673,7 @@ class MatriculaAdmIT extends IntegrationTest {
     @DisplayName("turma encerrada, usuário inexistente e transação repetida são recusados")
     void recusas() {
         String email = criarUsuario(Papel.ALUNO).email();
-        assertThat(helper.matricular(turma, "ninguem-" + stamp() + "@teste.celke.uno", null, null))
+        assertThat(helper.matricular(turma, "ninguem-" + stamp() + "@teste.<dominio>", null, null))
                 .hasStatus(HttpStatus.NOT_FOUND)
                 .bodyJson()
                 .extractingPath("$.detail")
@@ -3950,11 +4234,13 @@ No ambiente local, pelo Swagger, com um curso publicado e uma turma ativa:
   `GET /api/aluno/cursos`.
 - Altere o período para terminar ontem: a turma volta a responder 403 e o curso vai para
   `?situacao=EXPIRADOS`.
+- Com tudo verde, as tasks de `.sdd/tasks/matricula-e-acesso-v1.0/` passam para `Status: Concluída` e os critérios de aceite
+  são marcados (`- [x]`).
 
 ## Depois de executar
 
 ```bash
-git add backend/
+git add backend/ .sdd/
 git commit -m "feat(matricula): adicionar matrícula e política única de acesso"
 git push -u origin feature/matricula-acesso
 ```

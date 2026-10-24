@@ -3,7 +3,361 @@
 **Fase:** 1 — etapa 1.4
 **Branch:** `feature/base-projeto`
 
+> **Configuração do projeto:** troque os marcadores `<dominio>`, `<sub-site>`, `<sub-aluno>`,
+> `<sub-adm>`, `<sub-media>` e `<dono-github>` pelos valores de `docs/configuracao.md` (criado no
+> primeiro prompt) em todo o conteúdo deste prompt, inclusive nos testes. Se o arquivo não existir,
+> pergunte esses valores ao usuário antes de começar.
+
 ## Prompt
+
+### Especificação e tasks (SDD)
+
+Antes do código, registre a funcionalidade no SDD: crie a spec e as tasks abaixo com **exatamente** este conteúdo (troque os marcadores pelos valores de `docs/configuracao.md`). As tasks nascem com `Status: Pronta`; ao fim da **Verificação**, passam para `Concluída`.
+
+`.sdd/specs/autenticacao.spec.md`:
+
+`````markdown
+---
+feature: autenticacao
+versao: 1.0
+status: aprovada
+autor: pm-spec-architect
+---
+
+# Autenticação
+
+## 1. Resumo Executivo
+
+Alunos e administradores entram na plataforma com e-mail e senha e mantêm a sessão sem digitar a senha
+de novo a cada acesso. A sessão é curta para quem a usa (credencial de acesso de 10 minutos) e renovada
+em segundo plano por uma credencial de renovação guardada só no navegador, presa ao host
+`<sub-aluno>.<dominio>` (ou `<sub-adm>.<dominio>`) e invisível para as outras aplicações de `<dominio>`.
+
+Entra: login, renovação da sessão, saída, saída de todos os dispositivos, consulta do usuário logado e
+criação do primeiro administrador pelo terminal do servidor. Fica de fora: cadastro e recuperação de
+senha (spec `cadastro-e-recuperacao-de-senha`) e limites contra abuso (spec `protecao-de-acesso`).
+
+## 2. Atores e Papéis
+
+| Ator | Pode |
+|---|---|
+| Visitante | Entrar com e-mail e senha |
+| Aluno (`ALUNO`) | Renovar e encerrar a própria sessão, sair de todos os dispositivos, ver os próprios dados |
+| Administrador (`ADMIN`) | O mesmo do aluno, nas rotas de administração |
+| Operador do servidor | Criar um administrador pelo terminal, sem expor a senha |
+
+## 3. Requisitos Funcionais
+
+- **RF-01** — O sistema DEVE autenticar por e-mail (sem diferenciar maiúsculas e espaços nas pontas) e
+  senha, devolvendo uma credencial de acesso de 10 minutos com o identificador e os papéis do usuário.
+- **RF-02** — O sistema DEVE responder igual, no conteúdo e no tempo, a e-mail inexistente e a senha
+  errada.
+- **RF-03** — O sistema DEVE emitir uma credencial de renovação de 14 dias, guardada pelo navegador num
+  cookie só do host, inacessível a scripts, enviado só às rotas de sessão e nunca a outros subdomínios.
+- **RF-04** — O sistema DEVE trocar a credencial de renovação a cada uso; a reutilização de uma já
+  trocada DEVE encerrar toda a família de sessões daquele login.
+- **RF-05** — O sistema DEVE encerrar a sessão atual (sair) e todas as sessões do usuário (sair de
+  todos).
+- **RF-06** — O sistema DEVE informar ao usuário logado os próprios dados (nome, e-mail, papéis), sem
+  senha nem hash.
+- **RF-07** — O sistema DEVE guardar senhas apenas com um algoritmo de hash resistente a força bruta e
+  aceitar senhas de sistemas anteriores, regravando-as no formato atual no primeiro login.
+- **RF-08** — O sistema DEVE recusar credenciais de acesso adulteradas, vencidas, assinadas por outra
+  chave, com outro algoritmo, sem algoritmo ou de outro emissor.
+- **RF-09** — O sistema DEVE permitir criar um administrador pelo terminal do servidor, com a senha
+  digitada duas vezes e nunca exibida.
+- **RF-10** — O sistema DEVE exigir para administradores senha de 12 a 128 caracteres.
+
+## 4. Modelo de Domínio
+
+- **Usuário:** nome, e-mail (único, minúsculo), hash da senha, papéis (`ALUNO`, `ADMIN`), ativo,
+  criado em.
+- **Sessão (credencial de renovação):** usuário, família (o login que a originou), hash da credencial,
+  validade, trocada em, revogada em.
+
+## 5. Estados e Fluxos
+
+- Credencial de renovação: `ativa` → `trocada` (uso normal) ou `revogada` (saída, saída de todos,
+  reutilização detectada). Vencida não renova.
+- **Login:** e-mail e senha → confere → emite acesso + renovação (cookie).
+- **Renovação:** cookie → confere a família → emite um par novo e marca o anterior como trocado.
+- **Reutilização:** cookie já trocado → revoga a família inteira → 401.
+
+## 6. Contratos de Interface
+
+| Operação | Entrada | Saída |
+|---|---|---|
+| Entrar | `email`, `senha` | credencial de acesso, validade, usuário; cookie de renovação |
+| Renovar | cookie de renovação | novo par (acesso no corpo, renovação no cookie) |
+| Sair | cookie | cookie apagado |
+| Sair de todos | credencial de acesso | todas as sessões revogadas |
+| Quem sou eu | credencial de acesso | `id`, `nome`, `email`, `papeis` |
+
+Hosts que recebem o cookie: `<sub-aluno>.<dominio>` e `<sub-adm>.<dominio>` (homologação:
+`homolog-<sub-aluno>.<dominio>` e `homolog-<sub-adm>.<dominio>`), cada um só o seu.
+
+## 7. Casos de Borda
+
+- Duas renovações simultâneas com o mesmo cookie: só uma vence; a outra é tratada como reutilização.
+- Usuário desativado com sessão aberta: a próxima renovação é recusada.
+- Segredo de assinatura ausente ou curto: o sistema não sobe.
+- Senha do sistema anterior: aceita uma vez e regravada; nunca guardada de novo no formato antigo.
+
+## 8. Premissas Validadas
+
+- O domínio `<dominio>` tem outras aplicações: por isso o cookie não usa o atributo de domínio.
+- Não há login social nem "lembrar de mim" além dos 14 dias da renovação.
+
+## 9. Riscos
+
+- **Roubo do cookie de renovação:** mitigado pela troca a cada uso e pela revogação da família.
+- **Enumeração de contas:** mitigada pela resposta igual em conteúdo e tempo (RF-02).
+`````
+
+`.sdd/tasks/autenticacao-v1.0/README.md`:
+
+`````markdown
+# Tasks — Autenticação (v1.0)
+
+Spec: [`.sdd/specs/autenticacao.spec.md`](../../specs/autenticacao.spec.md) · versão 1.0 · prompt do tutorial `docs/prompts-iniciais/f01-04-usuarios-e-login.md`.
+
+| Ordem | ID | Título | Nível | Depende de |
+|---|---|---|---|---|
+| 1 | [AUTH-001](AUTH-001-usuario-e-senha.md) | Usuário, papéis e hash de senha | Sênior | — |
+| 2 | [AUTH-002](AUTH-002-tokens-e-sessao.md) | Credencial de acesso e renovação com troca | Sênior | AUTH-001 |
+| 3 | [AUTH-003](AUTH-003-rotas-de-sessao.md) | Rotas de login, renovação, saída e quem sou eu | Pleno | AUTH-002 |
+| 4 | [AUTH-004](AUTH-004-criar-admin.md) | Comando de terminal para criar administrador | Pleno | AUTH-001 |
+| 5 | [AUTH-005](AUTH-005-fiacao.md) | Fiação da autenticação | Pleno | AUTH-003, AUTH-004 |
+
+## Grafo
+
+```
+AUTH-001 (início)
+AUTH-001 → AUTH-002
+AUTH-002 → AUTH-003
+AUTH-001 → AUTH-004
+AUTH-003 + AUTH-004 → AUTH-005
+```
+
+## RF → tasks
+
+| RF | Tasks |
+|---|---|
+| RF-01 | AUTH-002, AUTH-003, AUTH-005 |
+| RF-02 | AUTH-003 |
+| RF-03 | AUTH-002, AUTH-003, AUTH-005 |
+| RF-04 | AUTH-002 |
+| RF-05 | AUTH-002, AUTH-003 |
+| RF-06 | AUTH-003 |
+| RF-07 | AUTH-001 |
+| RF-08 | AUTH-002, AUTH-005 |
+| RF-09 | AUTH-004 |
+| RF-10 | AUTH-001 |
+
+## Resumo por nível
+
+- Pleno: 3
+- Sênior: 2
+`````
+
+`.sdd/tasks/autenticacao-v1.0/AUTH-001-usuario-e-senha.md`:
+
+`````markdown
+# AUTH-001 — Usuário, papéis e hash de senha
+
+- **Spec:** .sdd/specs/autenticacao.spec.md (v1.0) · atende RF-07, RF-10
+- **Nível:** Sênior
+- **Agente:** dev-senior
+- **Status:** Pronta
+- **Depende de:** —
+
+## Arquivos a criar/alterar
+
+- `backend/src/main/java/br/com/celke/cursos/usuario/domain/Usuario.java` — entidade com e-mail único em minúsculas e papéis
+- `backend/src/main/java/br/com/celke/cursos/usuario/domain/Papel.java` — `ALUNO`, `ADMIN`
+- `backend/src/main/java/br/com/celke/cursos/usuario/domain/PoliticaSenha.java` — tamanho por papel
+- `backend/src/main/java/br/com/celke/cursos/usuario/application/SenhaConfig.java` — Argon2 e aceite do formato `$2y$` com regravação
+- `backend/src/main/java/br/com/celke/cursos/usuario/application/UsuarioService.java` — busca por e-mail normalizado
+- `backend/src/main/java/br/com/celke/cursos/usuario/infra/UsuarioRepository.java`
+
+## Descrição técnica
+
+Usuário com e-mail normalizado (minúsculas, sem espaços nas pontas). O codificador de senha grava em Argon2 e reconhece o hash `$2y$` do sistema anterior, sinalizando a regravação no login.
+
+## Restrições
+
+Nunca devolver o hash em DTO. A política do administrador é 12 a 128 caracteres.
+
+## Critérios de aceite
+
+- [ ] `UsuarioTest`, `PoliticaSenhaTest` e `UsuarioServiceTest` verdes
+- [ ] senha `$2y$` aceita e regravada em Argon2 no login
+
+## Armadilhas
+
+Comparar e-mail sem normalizar gera contas duplicadas por maiúsculas.
+`````
+
+`.sdd/tasks/autenticacao-v1.0/AUTH-002-tokens-e-sessao.md`:
+
+`````markdown
+# AUTH-002 — Credencial de acesso e renovação com troca
+
+- **Spec:** .sdd/specs/autenticacao.spec.md (v1.0) · atende RF-01, RF-03, RF-04, RF-05, RF-08
+- **Nível:** Sênior
+- **Agente:** dev-senior
+- **Status:** Pronta
+- **Depende de:** AUTH-001
+
+## Arquivos a criar/alterar
+
+- `backend/src/main/java/br/com/celke/cursos/auth/application/TokenAcessoService.java` — JWT HS256 de 10 min com `sub` e `papeis`
+- `backend/src/main/java/br/com/celke/cursos/auth/application/JwtConfig.java` — Resource Server só com HS256, emissor e validade
+- `backend/src/main/java/br/com/celke/cursos/auth/application/RefreshTokenService.java` — renovação opaca, troca, família e revogação
+- `backend/src/main/java/br/com/celke/cursos/auth/application/TokenSeguro.java` — código aleatório e hash SHA-256
+- `backend/src/main/java/br/com/celke/cursos/auth/domain/RefreshToken.java`
+- `backend/src/main/java/br/com/celke/cursos/auth/infra/RefreshTokenRepository.java`
+
+## Descrição técnica
+
+A renovação guarda só o hash, troca a cada uso com bloqueio da linha (`SELECT ... FOR UPDATE`) e, na reutilização, revoga a família inteira numa transação própria (gravada mesmo com a sessão recusada). `JWT_SEGREDO` é validado ao subir.
+
+## Restrições
+
+Credencial de acesso nunca vai para cookie; renovação nunca vai para o corpo.
+
+## Critérios de aceite
+
+- [ ] `TokenAcessoServiceTest`, `RefreshTokenServiceTest`, `TokenSeguroTest` verdes
+- [ ] `AuthTokenIT`: adulterado, vencido, outra chave, outro algoritmo, `alg: none` e outro emissor recusados
+- [ ] `AuthRefreshIT`: troca, reutilização revoga a família
+
+## Armadilhas
+
+Revogar a família na mesma transação que é revertida pelo erro apaga a revogação.
+`````
+
+`.sdd/tasks/autenticacao-v1.0/AUTH-003-rotas-de-sessao.md`:
+
+`````markdown
+# AUTH-003 — Rotas de login, renovação, saída e quem sou eu
+
+- **Spec:** .sdd/specs/autenticacao.spec.md (v1.0) · atende RF-01, RF-02, RF-03, RF-05, RF-06
+- **Nível:** Pleno
+- **Agente:** dev-pleno
+- **Status:** Pronta
+- **Depende de:** AUTH-002
+
+## Arquivos a criar/alterar
+
+- `backend/src/main/java/br/com/celke/cursos/auth/api/AuthController.java` — `POST /api/auth/login|refresh|logout|sair-de-todos`, `GET /api/auth/me`
+- `backend/src/main/java/br/com/celke/cursos/auth/api/CookieRefresh.java` — cookie `refresh_token` HttpOnly, Secure, SameSite=Strict, Path=/api/auth, sem Domain
+- `backend/src/main/java/br/com/celke/cursos/auth/api/LoginRequest.java`
+- `backend/src/main/java/br/com/celke/cursos/auth/api/SessaoResponse.java`
+- `backend/src/main/java/br/com/celke/cursos/auth/api/UsuarioResponse.java`
+- `backend/src/main/java/br/com/celke/cursos/auth/application/AuthService.java` — mesmo tempo para e-mail inexistente e senha errada
+
+## Descrição técnica
+
+Para e-mail inexistente, o serviço calcula um hash falso para igualar o tempo de resposta.
+
+## Restrições
+
+Os hosts que recebem o cookie são `<sub-aluno>.<dominio>` e `<sub-adm>.<dominio>`, cada um só o seu.
+
+## Critérios de aceite
+
+- [ ] `CookieRefreshTest`, `LoginRequestTest`, `AuthServiceTest` verdes
+- [ ] `AuthLoginIT` e `AuthAcessoIT` (matriz de papéis) verdes
+
+## Armadilhas
+
+Colocar `Domain` no cookie entrega a sessão às outras aplicações do domínio.
+`````
+
+`.sdd/tasks/autenticacao-v1.0/AUTH-004-criar-admin.md`:
+
+`````markdown
+# AUTH-004 — Comando de terminal para criar administrador
+
+- **Spec:** .sdd/specs/autenticacao.spec.md (v1.0) · atende RF-09
+- **Nível:** Pleno
+- **Agente:** dev-pleno
+- **Status:** Pronta
+- **Depende de:** AUTH-001
+
+## Arquivos a criar/alterar
+
+- `backend/src/main/java/br/com/celke/cursos/usuario/api/ComandoCriarAdmin.java` — `criar-admin <email> "<nome>"` sem servidor HTTP
+- `backend/src/main/java/br/com/celke/cursos/usuario/application/CriarAdminService.java`
+
+## Descrição técnica
+
+Lê a senha duas vezes do console sem eco e cria o administrador já confirmado.
+
+## Restrições
+
+A senha nunca aparece em log nem em argumento de linha de comando.
+
+## Critérios de aceite
+
+- [ ] `ComandoCriarAdminTest` e `CriarAdminServiceTest` verdes
+
+## Armadilhas
+
+Ler a senha por argumento deixa a senha no histórico do shell.
+`````
+
+`.sdd/tasks/autenticacao-v1.0/AUTH-005-fiacao.md`:
+
+`````markdown
+# AUTH-005 — Fiação da autenticação
+
+- **Spec:** .sdd/specs/autenticacao.spec.md (v1.0) · atende RF-01, RF-03, RF-08
+- **Nível:** Pleno
+- **Agente:** dev-pleno
+- **Status:** Pronta
+- **Depende de:** AUTH-003, AUTH-004
+
+## Arquivos a criar/alterar
+
+- `backend/src/main/resources/db/migration/V2__criar_usuarios.sql`
+- `backend/src/main/resources/db/migration/V3__criar_refresh_tokens.sql`
+- `backend/src/main/java/br/com/celke/cursos/shared/security/SecurityConfig.java`
+- `backend/src/main/resources/application.yaml`
+- `infra/.env.example`
+
+## Descrição técnica
+
+Migrations de `usuarios`, `usuario_papeis` e `refresh_tokens`; rotas de sessão públicas só no método declarado; `JWT_SEGREDO` obrigatório no `.env.example`.
+
+## Restrições
+
+Nenhum segredo com valor no repositório.
+
+## Critérios de aceite
+
+- [ ] `./mvnw verify` verde
+- [ ] Task só de fiação: não tem teste próprio; a verificação é a suíte inteira passando.
+
+## Armadilhas
+
+Esquecer o método na rota pública libera outros métodos.
+`````
+
+`.sdd/README.md`:
+
+`````markdown
+# SDD — specs e tasks
+
+Uma spec por funcionalidade (`specs/`) e as tasks de cada versão (`tasks/<slug>-v<versao>/`). Os
+valores do projeto (domínio, subdomínios, e-mails) vêm de `docs/configuracao.md`. Formatos:
+`.claude/rules/sdd-artefatos.md` e as skills `write-specs` e `write-tasks`.
+
+| Spec | Versão | Tasks | Prompt |
+|---|---|---|---|
+| [autenticacao](specs/autenticacao.spec.md) | 1.0 | [v1.0](tasks/autenticacao-v1.0/README.md) | `f01-04-usuarios-e-login.md` |
+`````
 
 Vamos criar os módulos `usuario` e `auth` do backend, seguindo o `backend/CLAUDE.md` e o padrão das
 skills de teste. Não faça commit.
@@ -596,7 +950,7 @@ public abstract class IntegrationTest {
      * ou os dados do usuário — os usuários do seed são só leitura.
      */
     protected UsuarioTeste criarUsuario(Papel... papeis) {
-        String email = stamp() + "@teste.celke.uno";
+        String email = stamp() + "@teste.<dominio>";
         var usuario = usuarioService.criar("Usuário " + email, email, SENHA_TESTE, Set.of(papeis));
         return new UsuarioTeste(usuario.getId(), email, SENHA_TESTE);
     }
@@ -623,7 +977,7 @@ app:
   armazenamento:
     cors-origens: http://localhost:5173
   email:
-    remetente: nao-responda@teste.celke.uno
+    remetente: nao-responda@teste.<dominio>
 `````
 
 `infra/compose.yml`:
@@ -768,7 +1122,7 @@ S3_SECRET_KEY=                     # openssl rand -hex 32
 S3_CORS_ORIGENS=http://localhost:5173
 
 # E-mail
-EMAIL_REMETENTE=nao-responda@celke.uno
+EMAIL_REMETENTE=nao-responda@<dominio>
 
 # Portas no host (opcional; só mude se a porta padrão já estiver em uso)
 # API_PORTA=8080
@@ -1170,7 +1524,7 @@ import org.springframework.stereotype.Component;
 /**
  * Comando {@code criar-admin <email> <nome>}: pede a senha duas vezes no terminal, sem eco.
  *
- * <pre>docker compose run --rm api criar-admin admin@celke.uno "Nome do Admin"</pre>
+ * <pre>docker compose run --rm api criar-admin admin@<dominio> "Nome do Admin"</pre>
  */
 @Component
 @Profile(ComandoCriarAdmin.PERFIL)
@@ -1939,8 +2293,8 @@ package br.com.celke.cursos.support;
  */
 public final class UsuariosSeed {
 
-    public static final String ADMIN_EMAIL = "admin.seed@teste.celke.uno";
-    public static final String ALUNO_EMAIL = "aluno.seed@teste.celke.uno";
+    public static final String ADMIN_EMAIL = "admin.seed@teste.<dominio>";
+    public static final String ALUNO_EMAIL = "aluno.seed@teste.<dominio>";
     public static final String SENHA = "senha-do-seed-de-teste";
 
     private UsuariosSeed() {}
@@ -2073,9 +2427,9 @@ class UsuarioTest {
 
     @ParameterizedTest(name = "[{0}]")
     @CsvSource({
-        "ana@celke.uno,          ana@celke.uno",
-        "Ana@Celke.UNO,          ana@celke.uno",
-        "'  ana@celke.uno  ',    ana@celke.uno",
+        "ana@<dominio>,          ana@<dominio>",
+        "Ana@<dominio>,          ana@<dominio>",
+        "'  ana@<dominio>  ',    ana@<dominio>",
     })
     @DisplayName("normaliza o e-mail para minúsculas e sem espaços nas pontas")
     void normalizaEmail(String recebido, String esperado) {
@@ -2085,10 +2439,10 @@ class UsuarioTest {
     @Test
     @DisplayName("novo usuário nasce ativo, com nome sem espaços nas pontas e e-mail normalizado")
     void novoUsuario() {
-        Usuario usuario = new Usuario("  Ana  ", " Ana@Celke.uno ", "{argon2}hash", Set.of(Papel.ALUNO), AGORA);
+        Usuario usuario = new Usuario("  Ana  ", " Ana@<dominio> ", "{argon2}hash", Set.of(Papel.ALUNO), AGORA);
 
         assertThat(usuario.getNome()).isEqualTo("Ana");
-        assertThat(usuario.getEmail()).isEqualTo("ana@celke.uno");
+        assertThat(usuario.getEmail()).isEqualTo("ana@<dominio>");
         assertThat(usuario.isAtivo()).isTrue();
         assertThat(usuario.getPapeis()).containsExactly(Papel.ALUNO);
     }
@@ -2146,13 +2500,13 @@ class UsuarioServiceTest {
     @Test
     @DisplayName("cria o usuário com o e-mail normalizado e a senha em hash")
     void cria() {
-        when(repository.existsByEmail("ana@celke.uno")).thenReturn(false);
+        when(repository.existsByEmail("ana@<dominio>")).thenReturn(false);
         when(passwordEncoder.encode("senha-da-ana-123")).thenReturn("{argon2}hash");
         when(repository.save(any(Usuario.class))).thenAnswer(invocacao -> invocacao.getArgument(0));
 
-        Usuario criado = service.criar("Ana", " Ana@Celke.uno ", "senha-da-ana-123", Set.of(Papel.ALUNO));
+        Usuario criado = service.criar("Ana", " Ana@<dominio> ", "senha-da-ana-123", Set.of(Papel.ALUNO));
 
-        assertThat(criado.getEmail()).isEqualTo("ana@celke.uno");
+        assertThat(criado.getEmail()).isEqualTo("ana@<dominio>");
         assertThat(criado.getSenhaHash()).isEqualTo("{argon2}hash");
         assertThat(criado.getPapeis()).containsExactly(Papel.ALUNO);
     }
@@ -2160,9 +2514,9 @@ class UsuarioServiceTest {
     @Test
     @DisplayName("rejeita e-mail já cadastrado sem gravar nem calcular hash")
     void emailDuplicado() {
-        when(repository.existsByEmail("ana@celke.uno")).thenReturn(true);
+        when(repository.existsByEmail("ana@<dominio>")).thenReturn(true);
 
-        assertThatThrownBy(() -> service.criar("Ana", "ANA@celke.uno", "senha-da-ana-123", Set.of(Papel.ALUNO)))
+        assertThatThrownBy(() -> service.criar("Ana", "ANA@<dominio>", "senha-da-ana-123", Set.of(Papel.ALUNO)))
                 .isInstanceOf(ConflitoException.class)
                 .hasMessage("Já existe um usuário com este e-mail.");
         verify(repository, never()).save(any());
@@ -2172,15 +2526,15 @@ class UsuarioServiceTest {
     @Test
     @DisplayName("busca por e-mail usa o e-mail normalizado")
     void buscaPorEmail() {
-        service.buscarPorEmail(" Ana@Celke.uno ");
+        service.buscarPorEmail(" Ana@<dominio> ");
 
-        verify(repository).findByEmail("ana@celke.uno");
+        verify(repository).findByEmail("ana@<dominio>");
     }
 
     @Test
     @DisplayName("regrava o hash quando ele usa algoritmo antigo")
     void regravaHashAntigo() {
-        Usuario usuario = UsuarioFixture.usuario(1, "ana@celke.uno", "$2y$10$antigo", Papel.ALUNO);
+        Usuario usuario = UsuarioFixture.usuario(1, "ana@<dominio>", "$2y$10$antigo", Papel.ALUNO);
         when(passwordEncoder.upgradeEncoding("$2y$10$antigo")).thenReturn(true);
         when(passwordEncoder.encode("senha-da-ana-123")).thenReturn("{argon2}novo");
 
@@ -2194,7 +2548,7 @@ class UsuarioServiceTest {
     @Test
     @DisplayName("não regrava o hash que já está no algoritmo atual")
     void mantemHashAtual() {
-        Usuario usuario = UsuarioFixture.usuario(1, "ana@celke.uno", "{argon2}atual", Papel.ALUNO);
+        Usuario usuario = UsuarioFixture.usuario(1, "ana@<dominio>", "{argon2}atual", Papel.ALUNO);
         when(passwordEncoder.upgradeEncoding("{argon2}atual")).thenReturn(false);
 
         service.atualizarHashSeNecessario(usuario, "senha-da-ana-123");
@@ -2241,16 +2595,16 @@ class CriarAdminServiceTest {
     @Test
     @DisplayName("cria o usuário só com o papel ADMIN")
     void criaAdmin() {
-        service.criar("Admin", "admin@celke.uno", "senha-longa-do-admin");
+        service.criar("Admin", "admin@<dominio>", "senha-longa-do-admin");
 
-        verify(usuarioService).criar("Admin", "admin@celke.uno", "senha-longa-do-admin", Set.of(Papel.ADMIN));
+        verify(usuarioService).criar("Admin", "admin@<dominio>", "senha-longa-do-admin", Set.of(Papel.ADMIN));
     }
 
     @ParameterizedTest(name = "{0}")
     @CsvSource({
-        "nome em branco,      '  ',  admin@celke.uno, senha-longa-do-admin, O nome é obrigatório.",
-        "e-mail sem arroba,   Admin, admin.celke.uno, senha-longa-do-admin, E-mail inválido.",
-        "senha curta,         Admin, admin@celke.uno, curta-11chr,          A senha deve ter pelo menos 12 caracteres.",
+        "nome em branco,      '  ',  admin@<dominio>, senha-longa-do-admin, O nome é obrigatório.",
+        "e-mail sem arroba,   Admin, admin.<dominio>, senha-longa-do-admin, E-mail inválido.",
+        "senha curta,         Admin, admin@<dominio>, curta-11chr,          A senha deve ter pelo menos 12 caracteres.",
     })
     void rejeitaDadosInvalidos(String caso, String nome, String email, String senha, String mensagem) {
         assertThatThrownBy(() -> service.criar(nome, email, senha))
@@ -2301,7 +2655,7 @@ class ComandoCriarAdminTest {
     void argumentosFaltando() {
         var comando = new ComandoCriarAdmin(criarAdminService);
 
-        assertThatThrownBy(() -> comando.run(new DefaultApplicationArguments("criar-admin", "admin@celke.uno")))
+        assertThatThrownBy(() -> comando.run(new DefaultApplicationArguments("criar-admin", "admin@<dominio>")))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("Uso: criar-admin <email> \"<nome>\"");
         verify(criarAdminService, never()).criar(any(), any(), any());
@@ -2547,19 +2901,19 @@ class AuthServiceTest {
     }
 
     private static Usuario ana() {
-        return UsuarioFixture.usuario(7, "ana@celke.uno", "{argon2}hash-da-ana", Papel.ALUNO);
+        return UsuarioFixture.usuario(7, "ana@<dominio>", "{argon2}hash-da-ana", Papel.ALUNO);
     }
 
     @Test
     @DisplayName("login correto emite access token e refresh token, e regrava hash antigo se preciso")
     void loginCorreto() {
         Usuario ana = ana();
-        when(usuarioService.buscarPorEmail("ana@celke.uno")).thenReturn(Optional.of(ana));
+        when(usuarioService.buscarPorEmail("ana@<dominio>")).thenReturn(Optional.of(ana));
         when(passwordEncoder.matches("senha-certa", "{argon2}hash-da-ana")).thenReturn(true);
         when(refreshTokenService.emitir(7L)).thenReturn(new RefreshEmitido("refresh", 7L, EXPIRA));
         when(tokenAcessoService.emitir(ana)).thenReturn(new TokenAcesso("jwt", EXPIRA));
 
-        var sessao = service.entrar("ana@celke.uno", "senha-certa");
+        var sessao = service.entrar("ana@<dominio>", "senha-certa");
 
         assertThat(sessao.acesso().valor()).isEqualTo("jwt");
         assertThat(sessao.refresh().token()).isEqualTo("refresh");
@@ -2569,10 +2923,10 @@ class AuthServiceTest {
     @Test
     @DisplayName("senha errada é recusada sem emitir tokens")
     void senhaErrada() {
-        when(usuarioService.buscarPorEmail("ana@celke.uno")).thenReturn(Optional.of(ana()));
+        when(usuarioService.buscarPorEmail("ana@<dominio>")).thenReturn(Optional.of(ana()));
         when(passwordEncoder.matches("senha-errada", "{argon2}hash-da-ana")).thenReturn(false);
 
-        assertThatThrownBy(() -> service.entrar("ana@celke.uno", "senha-errada"))
+        assertThatThrownBy(() -> service.entrar("ana@<dominio>", "senha-errada"))
                 .isInstanceOf(CredenciaisInvalidasException.class)
                 .hasMessage("E-mail ou senha inválidos.");
         verify(refreshTokenService, never()).emitir(anyLong());
@@ -2582,9 +2936,9 @@ class AuthServiceTest {
     @Test
     @DisplayName("e-mail inexistente confere a senha contra o hash fictício e recebe a mesma mensagem")
     void emailInexistente() {
-        when(usuarioService.buscarPorEmail("ninguem@celke.uno")).thenReturn(Optional.empty());
+        when(usuarioService.buscarPorEmail("ninguem@<dominio>")).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> service.entrar("ninguem@celke.uno", "qualquer"))
+        assertThatThrownBy(() -> service.entrar("ninguem@<dominio>", "qualquer"))
                 .isInstanceOf(CredenciaisInvalidasException.class)
                 .hasMessage("E-mail ou senha inválidos.");
         verify(passwordEncoder).matches("qualquer", HASH_FICTICIO);
@@ -2594,10 +2948,10 @@ class AuthServiceTest {
     @Test
     @DisplayName("usuário inativo é recusado mesmo com a senha certa")
     void usuarioInativo() {
-        when(usuarioService.buscarPorEmail("ana@celke.uno")).thenReturn(Optional.of(UsuarioFixture.inativo(ana())));
+        when(usuarioService.buscarPorEmail("ana@<dominio>")).thenReturn(Optional.of(UsuarioFixture.inativo(ana())));
         when(passwordEncoder.matches("senha-certa", "{argon2}hash-da-ana")).thenReturn(true);
 
-        assertThatThrownBy(() -> service.entrar("ana@celke.uno", "senha-certa"))
+        assertThatThrownBy(() -> service.entrar("ana@<dominio>", "senha-certa"))
                 .isInstanceOf(CredenciaisInvalidasException.class);
         verify(refreshTokenService, never()).emitir(anyLong());
     }
@@ -2686,7 +3040,7 @@ class TokenAcessoServiceTest {
     @Test
     @DisplayName("token leva emissor, id do usuário, papéis ordenados e validade de 10 minutos")
     void claims() {
-        var usuario = UsuarioFixture.usuario(42, "ana@celke.uno", "hash", Papel.ADMIN, Papel.ALUNO);
+        var usuario = UsuarioFixture.usuario(42, "ana@<dominio>", "hash", Papel.ADMIN, Papel.ALUNO);
 
         var token = service.emitir(usuario);
         Jwt jwt = decoderEm(AGORA.plusSeconds(1)).decode(token.valor());
@@ -2703,7 +3057,7 @@ class TokenAcessoServiceTest {
     @Test
     @DisplayName("token vale até um segundo antes do fim e é recusado no instante em que expira")
     void validade() {
-        var token = service.emitir(UsuarioFixture.usuario(42, "ana@celke.uno", "hash", Papel.ALUNO));
+        var token = service.emitir(UsuarioFixture.usuario(42, "ana@<dominio>", "hash", Papel.ALUNO));
         Instant expira = AGORA.plus(Duration.ofMinutes(10));
 
         assertThat(decoderEm(expira.minusSeconds(1)).decode(token.valor())).isNotNull();
@@ -2788,14 +3142,14 @@ class LoginRequestTest {
     @Test
     @DisplayName("payload válido não tem erros")
     void payloadValido() {
-        assertThat(camposInvalidos(new LoginRequest("ana@celke.uno", "senha"))).isEmpty();
+        assertThat(camposInvalidos(new LoginRequest("ana@<dominio>", "senha"))).isEmpty();
     }
 
     @ParameterizedTest(name = "{0}")
     @CsvSource({
         "e-mail vazio,            '',            senha, email",
-        "e-mail sem formato,      ana.celke.uno, senha, email",
-        "senha vazia,             ana@celke.uno, '',    senha",
+        "e-mail sem formato,      ana.<dominio>, senha, email",
+        "senha vazia,             ana@<dominio>, '',    senha",
     })
     void camposObrigatorios(String caso, String email, String senha, String campo) {
         assertThat(camposInvalidos(new LoginRequest(email, senha))).containsExactly(campo);
@@ -2804,9 +3158,9 @@ class LoginRequestTest {
     @Test
     @DisplayName("senha acima de 128 caracteres é recusada antes de calcular o hash")
     void senhaMuitoLonga() {
-        assertThat(camposInvalidos(new LoginRequest("ana@celke.uno", "a".repeat(129))))
+        assertThat(camposInvalidos(new LoginRequest("ana@<dominio>", "a".repeat(129))))
                 .containsExactly("senha");
-        assertThat(camposInvalidos(new LoginRequest("ana@celke.uno", "a".repeat(128))))
+        assertThat(camposInvalidos(new LoginRequest("ana@<dominio>", "a".repeat(128))))
                 .isEmpty();
     }
 }
@@ -2883,7 +3237,7 @@ import org.springframework.test.web.servlet.assertj.MvcTestResult;
  * Cobre: login (corpo, cookie de refresh, mensagens iguais para e-mail inexistente e senha errada),
  * validação, /api/auth/me, admin criado pelo serviço do comando e hash legado regravado em Argon2.
  * Não cobre: validade e assinatura do JWT (AuthTokenIT) e renovação (AuthRefreshIT).
- * Dado criado: usuários it-<stamp>@teste.celke.uno.
+ * Dado criado: usuários it-<stamp>@teste.<dominio>.
  */
 class AuthLoginIT extends IntegrationTest {
 
@@ -2901,7 +3255,7 @@ class AuthLoginIT extends IntegrationTest {
         assertThat(resposta).bodyJson().isLenientlyEqualTo("""
                         {
                           "tipo": "Bearer",
-                          "usuario": {"email": "aluno.seed@teste.celke.uno", "nome": "Aluno do Seed", "papeis": ["ALUNO"]}
+                          "usuario": {"email": "aluno.seed@teste.<dominio>", "nome": "Aluno do Seed", "papeis": ["ALUNO"]}
                         }
                         """);
         assertThat(resposta)
@@ -2923,14 +3277,14 @@ class AuthLoginIT extends IntegrationTest {
     @Test
     @DisplayName("e-mail é aceito com letras maiúsculas")
     void emailComMaiusculas() {
-        entrar("Aluno.Seed@Teste.Celke.UNO", UsuariosSeed.SENHA);
+        entrar("Aluno.Seed@Teste.<dominio>", UsuariosSeed.SENHA);
     }
 
     @Test
     @DisplayName("senha errada e e-mail inexistente recebem exatamente a mesma resposta")
     void credenciaisInvalidas() throws Exception {
         MvcTestResult senhaErrada = tentarLogin(UsuariosSeed.ALUNO_EMAIL, "senha-errada");
-        MvcTestResult emailInexistente = tentarLogin(stamp() + "@teste.celke.uno", "senha-errada");
+        MvcTestResult emailInexistente = tentarLogin(stamp() + "@teste.<dominio>", "senha-errada");
 
         for (MvcTestResult resposta : new MvcTestResult[] {senhaErrada, emailInexistente}) {
             assertThat(resposta)
@@ -2967,7 +3321,7 @@ class AuthLoginIT extends IntegrationTest {
                 .exchange();
 
         assertThat(resposta).hasStatusOk().bodyJson().isLenientlyEqualTo("""
-                        {"email": "admin.seed@teste.celke.uno", "papeis": ["ADMIN"]}
+                        {"email": "admin.seed@teste.<dominio>", "papeis": ["ADMIN"]}
                         """);
         assertThat(resposta.getResponse().getContentAsString()).doesNotContain("senha", "hash");
     }
@@ -2975,7 +3329,7 @@ class AuthLoginIT extends IntegrationTest {
     @Test
     @DisplayName("admin criado pelo serviço do comando criar-admin entra com o papel ADMIN")
     void adminCriadoPeloComando() {
-        String email = stamp() + "@teste.celke.uno";
+        String email = stamp() + "@teste.<dominio>";
         criarAdminService.criar("Admin do Comando", email, "senha-longa-do-admin");
 
         assertThat(entrar(email, "senha-longa-do-admin"))
@@ -3212,7 +3566,7 @@ import org.springframework.test.web.servlet.assertj.MvcTestResult;
  * Cobre: renovação com rotação do refresh token, detecção de reutilização (revoga a família),
  * logout e "sair de todos os dispositivos".
  * Não cobre: regras de expiração caso a caso (RefreshTokenServiceTest).
- * Dado criado: usuários it-<stamp>@teste.celke.uno (cada teste usa o seu).
+ * Dado criado: usuários it-<stamp>@teste.<dominio> (cada teste usa o seu).
  */
 class AuthRefreshIT extends IntegrationTest {
 
@@ -3373,7 +3727,7 @@ import org.springframework.http.MediaType;
  * Cobre: matriz de papéis das rotas de autenticação — públicas (login, refresh, logout) e privadas
  * (me, sair-de-todos) — para anônimo, ALUNO e ADMIN.
  * Não cobre: comportamento de cada rota (AuthLoginIT, AuthRefreshIT).
- * Dado criado: usuários it-<stamp>@teste.celke.uno para sair-de-todos (o seed é só leitura).
+ * Dado criado: usuários it-<stamp>@teste.<dominio> para sair-de-todos (o seed é só leitura).
  */
 class AuthAcessoIT extends IntegrationTest {
 
@@ -3483,18 +3837,20 @@ Na raiz do repositório:
 
 ```bash
 docker compose -f infra/compose.yml up -d --build --wait
-docker compose -f infra/compose.yml run --rm api criar-admin admin@celke.uno "Admin Local"
+docker compose -f infra/compose.yml run --rm api criar-admin admin@<dominio> "Admin Local"
 ```
 
-- O comando pede a senha duas vezes (mínimo 12 caracteres) e mostra `Administrador admin@celke.uno criado`.
+- O comando pede a senha duas vezes (mínimo 12 caracteres) e mostra `Administrador admin@<dominio> criado`.
 - No Swagger (`http://localhost:8080/swagger-ui/index.html`), `POST /api/auth/login` com esse e-mail e
   senha devolve o `accessToken` e o cookie `refresh_token`; `GET /api/auth/me` com o token devolve o
   admin; `POST /api/auth/refresh` troca o cookie; reapresentar o cookie antigo devolve 401
   `Sessão expirada. Entre novamente.` e derruba também o novo.
+- Com tudo verde, as tasks de `.sdd/tasks/autenticacao-v1.0/` passam para `Status: Concluída` e os critérios de aceite
+  são marcados (`- [x]`).
 
 ## Depois de executar
 
 ```bash
-git add backend/ infra/
+git add backend/ infra/ .sdd/
 git commit -m "feat(auth): adicionar usuários e login com JWT e refresh em cookie"
 ```

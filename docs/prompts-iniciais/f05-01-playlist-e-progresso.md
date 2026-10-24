@@ -3,7 +3,279 @@
 **Fase:** 5
 **Branch:** `feature/entrega-video`
 
+> **Configuração do projeto:** troque os marcadores `<dominio>`, `<sub-site>`, `<sub-aluno>`,
+> `<sub-adm>`, `<sub-media>` e `<dono-github>` pelos valores de `docs/configuracao.md` (criado no
+> primeiro prompt) em todo o conteúdo deste prompt, inclusive nos testes. Se o arquivo não existir,
+> pergunte esses valores ao usuário antes de começar.
+
 ## Prompt
+
+### Especificação e tasks (SDD)
+
+Antes do código, registre a funcionalidade no SDD: crie a spec e as tasks abaixo com **exatamente** este conteúdo (troque os marcadores pelos valores de `docs/configuracao.md`). As tasks nascem com `Status: Pronta`; ao fim da **Verificação**, passam para `Concluída`.
+
+`.sdd/specs/reproducao-e-progresso.spec.md`:
+
+`````markdown
+---
+feature: reproducao-e-progresso
+versao: 1.0
+status: aprovada
+autor: pm-spec-architect
+---
+
+# Reprodução de vídeo e progresso
+
+## 1. Resumo Executivo
+
+O aluno com acesso assiste ao vídeo por uma lista de reprodução gerada a cada pedido, com endereços
+temporários para cada trecho: ninguém acessa o armazenamento direto. O sistema guarda onde o aluno
+parou e quais aulas viu, e mostra o percentual da turma.
+
+Entra: lista de reprodução protegida, progresso por aula e por turma, registro de acesso ao vídeo. Fica
+de fora: criptografia do vídeo.
+
+## 2. Atores e Papéis
+
+| Ator | Pode |
+|---|---|
+| Aluno com acesso | Assistir, salvar posição, marcar vista e "revisar" |
+| Visitante | Assistir só aulas gratuitas abertas |
+| Worker | Apagar os registros de acesso vencidos |
+
+## 3. Requisitos Funcionais
+
+- **RF-01** — O sistema DEVE entregar a lista de reprodução só a quem tem acesso à aula, pela regra
+  única da spec `matricula-e-acesso`.
+- **RF-02** — O sistema DEVE gerar endereços temporários dos trechos válidos pela duração do vídeo mais
+  uma margem de 2 horas, sem guardar a lista em cache.
+- **RF-03** — O sistema DEVE aceitar na lista apenas nomes de trechos no formato produzido pela
+  conversão.
+- **RF-04** — O sistema DEVE guardar, por aluno e aula, a posição, se foi vista e se está marcada para
+  revisar, alterando só os campos enviados.
+- **RF-05** — O sistema DEVE calcular o percentual da turma pelas aulas ativas vistas, arredondado para
+  baixo (turma sem aulas = 0%), exigindo matrícula vigente.
+- **RF-06** — O sistema DEVE registrar cada abertura do vídeo com usuário, aula, IP e navegador, e apagar
+  os registros após 180 dias.
+
+## 4. Modelo de Domínio
+
+- **Progresso da aula:** aluno, aula, posição em segundos, vista, revisar, atualizado em.
+- **Acesso ao vídeo:** usuário, aula, IP, navegador, data.
+
+## 5. Estados e Fluxos
+
+- Aula para o aluno: `não iniciada` → `em andamento` → `vista`; `revisar` é marcação independente.
+- **Reprodução:** abrir aula → lista principal → lista da variante → trechos temporários → posição
+  enviada periodicamente.
+
+## 6. Contratos de Interface
+
+| Operação | Entrada | Saída |
+|---|---|---|
+| Lista principal | aula | variantes |
+| Lista da variante | aula, variante | trechos com endereço temporário |
+| Progresso da aula | `posicaoSegundos`, `vista`, `revisar` | progresso |
+| Progresso da turma | turma | percentual e aulas vistas |
+
+## 7. Casos de Borda
+
+- Trecho pedido depois do prazo: recusado pelo armazenamento.
+- Lista adulterada (nome fora do padrão): recusada.
+- Progresso de outro aluno: nunca visível.
+
+## 8. Premissas Validadas
+
+- Os 180 dias do registro de acesso seguem o Marco Civil da Internet.
+
+## 9. Riscos
+
+- **Compartilhamento do endereço do trecho:** validade limitada à duração do vídeo + margem.
+`````
+
+`.sdd/tasks/reproducao-e-progresso-v1.0/README.md`:
+
+`````markdown
+# Tasks — Reprodução de vídeo e progresso (v1.0)
+
+Spec: [`.sdd/specs/reproducao-e-progresso.spec.md`](../../specs/reproducao-e-progresso.spec.md) · versão 1.0 · prompt do tutorial `docs/prompts-iniciais/f05-01-playlist-e-progresso.md`.
+
+| Ordem | ID | Título | Nível | Depende de |
+|---|---|---|---|---|
+| 1 | [PLAY-001](PLAY-001-playlist.md) | Listas de reprodução assinadas | Sênior | — |
+| 2 | [PLAY-002](PLAY-002-progresso.md) | Progresso da aula e da turma | Pleno | — |
+| 3 | [PLAY-003](PLAY-003-log-acesso.md) | Registro de acesso ao vídeo | Pleno | PLAY-001 |
+| 4 | [PLAY-004](PLAY-004-fiacao.md) | Fiação da reprodução | Pleno | PLAY-001, PLAY-002, PLAY-003 |
+
+## Grafo
+
+```
+PLAY-001 (início)
+PLAY-002 (início)
+PLAY-001 → PLAY-003
+PLAY-001 + PLAY-002 + PLAY-003 → PLAY-004
+```
+
+## RF → tasks
+
+| RF | Tasks |
+|---|---|
+| RF-01 | PLAY-001, PLAY-004 |
+| RF-02 | PLAY-001 |
+| RF-03 | PLAY-001 |
+| RF-04 | PLAY-002 |
+| RF-05 | PLAY-002 |
+| RF-06 | PLAY-003 |
+
+## Resumo por nível
+
+- Pleno: 3
+- Sênior: 1
+`````
+
+`.sdd/tasks/reproducao-e-progresso-v1.0/PLAY-001-playlist.md`:
+
+`````markdown
+# PLAY-001 — Listas de reprodução assinadas
+
+- **Spec:** .sdd/specs/reproducao-e-progresso.spec.md (v1.0) · atende RF-01, RF-02, RF-03
+- **Nível:** Sênior
+- **Agente:** dev-senior
+- **Status:** Pronta
+- **Depende de:** —
+
+## Arquivos a criar/alterar
+
+- `backend/src/main/java/br/com/celke/cursos/video/api/AulaVideoController.java` — `GET /api/aulas/{id}/video.m3u8` e `/video/{variante}.m3u8`
+- `backend/src/main/java/br/com/celke/cursos/video/application/PlaylistService.java`
+- `backend/src/main/java/br/com/celke/cursos/video/domain/ReescritaPlaylist.java`
+- `backend/src/main/java/br/com/celke/cursos/video/application/VideoProperties.java` — `app.video.margem-playlist`
+
+## Descrição técnica
+
+A master aponta para as variantes da API; cada variante traz trechos pré-assinados válidos pela duração + 2 h; `Cache-Control: no-store`.
+
+## Restrições
+
+Passa pela `AcessoAulaService`.
+
+## Critérios de aceite
+
+- [ ] `ReescritaPlaylistTest`, `PlaylistServiceTest` verdes
+- [ ] `PlaylistIT` e `VideoAcessoIT` verdes
+
+## Armadilhas
+
+Aceitar qualquer nome de trecho permite ler outros objetos do bucket.
+`````
+
+`.sdd/tasks/reproducao-e-progresso-v1.0/PLAY-002-progresso.md`:
+
+`````markdown
+# PLAY-002 — Progresso da aula e da turma
+
+- **Spec:** .sdd/specs/reproducao-e-progresso.spec.md (v1.0) · atende RF-04, RF-05
+- **Nível:** Pleno
+- **Agente:** dev-pleno
+- **Status:** Pronta
+- **Depende de:** —
+
+## Arquivos a criar/alterar
+
+- `backend/src/main/java/br/com/celke/cursos/progresso/api/ProgressoController.java`
+- `backend/src/main/java/br/com/celke/cursos/progresso/api/ProgressoRequests.java`
+- `backend/src/main/java/br/com/celke/cursos/progresso/application/ProgressoService.java`
+- `backend/src/main/java/br/com/celke/cursos/progresso/domain/ProgressoAula.java`
+- `backend/src/main/java/br/com/celke/cursos/progresso/domain/PercentualConclusao.java`
+- `backend/src/main/java/br/com/celke/cursos/progresso/infra/ProgressoAulaRepository.java`
+
+## Descrição técnica
+
+`GET`/`PATCH /api/aluno/aulas/{id}/progresso` e `GET /api/aluno/turmas/{id}/progresso`.
+
+## Restrições
+
+Sempre no escopo do token; turma exige matrícula vigente.
+
+## Critérios de aceite
+
+- [ ] `PercentualConclusaoTest`, `ProgressoServiceTest` verdes
+- [ ] `ProgressoIT` verde
+
+## Armadilhas
+
+Arredondar para cima mostra 100% sem ver tudo.
+`````
+
+`.sdd/tasks/reproducao-e-progresso-v1.0/PLAY-003-log-acesso.md`:
+
+`````markdown
+# PLAY-003 — Registro de acesso ao vídeo
+
+- **Spec:** .sdd/specs/reproducao-e-progresso.spec.md (v1.0) · atende RF-06
+- **Nível:** Pleno
+- **Agente:** dev-pleno
+- **Status:** Pronta
+- **Depende de:** PLAY-001
+
+## Arquivos a criar/alterar
+
+- `backend/src/main/java/br/com/celke/cursos/video/application/LogAcessoVideoService.java`
+- `backend/src/main/java/br/com/celke/cursos/video/application/LimpezaLogAcessoVideo.java`
+- `backend/src/main/java/br/com/celke/cursos/video/domain/AcessoVideo.java`
+- `backend/src/main/java/br/com/celke/cursos/video/infra/AcessoVideoRepository.java`
+
+## Descrição técnica
+
+Cada abertura da master grava usuário, aula, IP e navegador; o worker apaga após 180 dias.
+
+## Critérios de aceite
+
+- [ ] `LogAcessoVideoServiceTest` verde
+
+## Armadilhas
+
+Registrar cada variante em vez da abertura.
+`````
+
+`.sdd/tasks/reproducao-e-progresso-v1.0/PLAY-004-fiacao.md`:
+
+`````markdown
+# PLAY-004 — Fiação da reprodução
+
+- **Spec:** .sdd/specs/reproducao-e-progresso.spec.md (v1.0) · atende RF-01
+- **Nível:** Pleno
+- **Agente:** dev-pleno
+- **Status:** Pronta
+- **Depende de:** PLAY-001, PLAY-002, PLAY-003
+
+## Arquivos a criar/alterar
+
+- `backend/src/main/resources/db/migration/V9__criar_progresso_aulas.sql`
+- `backend/src/main/resources/db/migration/V10__criar_acessos_video.sql`
+- `backend/src/main/java/br/com/celke/cursos/shared/security/SecurityConfig.java`
+- `backend/src/main/resources/application.yaml`
+
+## Descrição técnica
+
+Rotas de playlist autenticadas; `app.video.retencao-log-acesso: 180d`.
+
+## Critérios de aceite
+
+- [ ] `./mvnw verify` verde
+- [ ] `EntregaVideoE2E` verde
+- [ ] Task só de fiação: não tem teste próprio; a verificação é a suíte inteira passando.
+
+## Armadilhas
+
+Margem curta demais corta o vídeo no meio.
+`````
+
+Acrescente ao fim da tabela do índice `.sdd/README.md` a linha:
+
+```text
+| [reproducao-e-progresso](specs/reproducao-e-progresso.spec.md) | 1.0 | [v1.0](tasks/reproducao-e-progresso-v1.0/README.md) | `f05-01-playlist-e-progresso.md` |
+```
 
 Vamos entregar o vídeo ao aluno sem abrir o bucket e guardar o progresso dele. Siga o
 `backend/CLAUDE.md` e o padrão das skills de teste. Não faça commit.
@@ -1813,12 +2085,12 @@ class ReescritaPlaylistTest {
     @Test
     @DisplayName("variante: cada segmento vira a URL assinada; as tags ficam como estão")
     void variante() {
-        String reescrita = ReescritaPlaylist.variante(VARIANTE, seg -> "https://media.celke.uno/assinado/" + seg);
+        String reescrita = ReescritaPlaylist.variante(VARIANTE, seg -> "https://<sub-media>.<dominio>/assinado/" + seg);
 
         assertThat(reescrita.lines())
                 .contains(
-                        "https://media.celke.uno/assinado/seg_0000.ts",
-                        "https://media.celke.uno/assinado/seg_0001.ts",
+                        "https://<sub-media>.<dominio>/assinado/seg_0000.ts",
+                        "https://<sub-media>.<dominio>/assinado/seg_0001.ts",
                         "#EXTINF:2.500000,",
                         "#EXT-X-ENDLIST")
                 .doesNotContain("seg_0000.ts");
@@ -3317,11 +3589,13 @@ No ambiente local, pelo Swagger, com uma aula com vídeo pronto e um aluno matri
 - Sem matrícula, as duas rotas respondem 403.
 - `PATCH /api/aluno/aulas/{id}/progresso` com `{"vista":true}` e `GET /api/aluno/turmas/{id}/progresso`
   mostra o percentual.
+- Com tudo verde, as tasks de `.sdd/tasks/reproducao-e-progresso-v1.0/` passam para `Status: Concluída` e os critérios de aceite
+  são marcados (`- [x]`).
 
 ## Depois de executar
 
 ```bash
-git add backend/ infra/ docs/
+git add backend/ infra/ docs/ .sdd/
 git commit -m "feat(video): adicionar playlist assinada, progresso e log de acesso"
 git push -u origin feature/entrega-video
 ```

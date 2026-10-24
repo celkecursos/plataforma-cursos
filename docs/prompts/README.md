@@ -6,6 +6,22 @@ estado deixado pelos anteriores.
 
 Ao final de cada prompt, confira a seção **Verificação** dele antes de seguir para o próximo.
 
+O primeiro prompt pergunta o seu domínio, os subdomínios (site, área do aluno, ADM e mídia) e o dono
+do repositório no GitHub, e grava as respostas em `docs/configuracao.md`. Os prompts seguintes usam os
+marcadores `<dominio>`, `<sub-site>`, `<sub-aluno>`, `<sub-adm>`, `<sub-media>` e `<dono-github>` no
+lugar desses valores.
+
+Cada fase começa registrando a funcionalidade no SDD: cria a spec em `.sdd/specs/` e as tasks em
+`.sdd/tasks/<slug>-v<versao>/`, com os valores de `docs/configuracao.md`, e marca as tasks como
+concluídas ao fim da verificação. As orientações para escrever specs e tasks (rule `sdd-artefatos` e
+skills `write-specs` e `write-tasks`) são criadas no segundo prompt.
+
+Para criar o projeto completo numa execução só, sem rodar os prompts um a um, use a pasta
+[`prompts-iniciais`](../prompts-iniciais/README.md): coloque-a na pasta do novo projeto, abra o Claude
+Code ali e execute `Execute o prompt prompts-iniciais\prompt-para-replicar-projeto.md`. Ele prepara o
+repositório (oferece criar `<seu-usuário-do-github>/plataforma-cursos` ou trabalha no git local) e
+executa a sequência inteira.
+
 | Ordem | Prompt | Fase do plano | Branch |
 |---|---|---|---|
 | 1 | [Estrutura inicial do repositório](f00-01-estrutura-inicial.md) | 0 | `main` |

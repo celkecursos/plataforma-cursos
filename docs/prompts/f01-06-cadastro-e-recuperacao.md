@@ -3,7 +3,304 @@
 **Fase:** 1 — etapa 1.6
 **Branch:** `feature/base-projeto`
 
+> **Configuração do projeto:** troque os marcadores `<dominio>`, `<sub-site>`, `<sub-aluno>`,
+> `<sub-adm>`, `<sub-media>` e `<dono-github>` pelos valores de `docs/configuracao.md` (criado no
+> primeiro prompt) em todo o conteúdo deste prompt, inclusive nos testes. Se o arquivo não existir,
+> pergunte esses valores ao usuário antes de começar.
+
 ## Prompt
+
+### Especificação e tasks (SDD)
+
+Antes do código, registre a funcionalidade no SDD: crie a spec e as tasks abaixo com **exatamente** este conteúdo (troque os marcadores pelos valores de `docs/configuracao.md`). As tasks nascem com `Status: Pronta`; ao fim da **Verificação**, passam para `Concluída`.
+
+`.sdd/specs/cadastro-e-recuperacao-de-senha.spec.md`:
+
+`````markdown
+---
+feature: cadastro-e-recuperacao-de-senha
+versao: 1.0
+status: aprovada
+autor: pm-spec-architect
+---
+
+# Cadastro e recuperação de senha
+
+## 1. Resumo Executivo
+
+O visitante cria a própria conta de aluno e a ativa pelo link enviado ao e-mail. Quem esquece a senha
+recebe um link para definir outra. As respostas nunca revelam se um e-mail já tem conta, e os e-mails
+saem pela fila, a partir do remetente `nao-responda@<dominio>`, com links para `https://<sub-aluno>.<dominio>`.
+
+Entra: cadastro, confirmação de e-mail, reenvio da confirmação, recuperação e redefinição de senha.
+Fica de fora: troca de senha logado (spec `perfil-e-termos`).
+
+## 2. Atores e Papéis
+
+| Ator | Pode |
+|---|---|
+| Visitante | Cadastrar-se, confirmar o e-mail, pedir reenvio, pedir e concluir a recuperação de senha |
+| Aluno | O mesmo; não precisa estar logado |
+| Worker | Montar e enviar os e-mails da fila |
+
+## 3. Requisitos Funcionais
+
+- **RF-01** — O sistema DEVE criar a conta de aluno pendente de confirmação e enviar um link de
+  confirmação válido por 48 horas.
+- **RF-02** — O sistema DEVE responder igual ao cadastro de e-mail novo e de e-mail já cadastrado:
+  conta ativa recebe um aviso (no máximo um por hora); conta pendente recebe o link de novo.
+- **RF-03** — O sistema DEVE ativar a conta ao abrir um link de confirmação válido.
+- **RF-04** — O sistema DEVE recusar o login de conta pendente com resposta própria somente quando a
+  senha estiver certa.
+- **RF-05** — O sistema DEVE enviar um link de redefinição válido por 1 hora, com a mesma resposta
+  exista ou não a conta.
+- **RF-06** — O sistema DEVE, ao redefinir a senha, trocar a senha, confirmar o e-mail e encerrar todas
+  as sessões.
+- **RF-07** — O sistema DEVE tornar cada link de uso único: um link novo invalida os anteriores do
+  mesmo tipo.
+- **RF-08** — O sistema DEVE limitar a 3 e-mails por hora por conta e por tipo.
+- **RF-09** — O sistema DEVE exigir senha de aluno com 10 a 128 caracteres.
+- **RF-10** — O sistema DEVE enviar os e-mails de forma assíncrona, sem atrasar a resposta.
+
+## 4. Modelo de Domínio
+
+- **Usuário:** e-mail confirmado em (vazio = pendente).
+- **Link de uso único:** usuário, tipo (`CONFIRMACAO_EMAIL`, `RECUPERACAO_SENHA`), hash do código,
+  validade, usado em.
+- **E-mail:** destinatário, modelo (`confirmacao-email`, `recuperacao-senha`, `cadastro-existente`),
+  variáveis.
+
+## 5. Estados e Fluxos
+
+- Conta: `pendente` → `confirmada`.
+- Link: `válido` → `usado` | `vencido` | `substituído`.
+- **Cadastro:** dados → conta pendente → e-mail na fila → aluno abre o link → conta confirmada → login.
+- **Recuperação:** e-mail → link na fila → nova senha → sessões encerradas → login.
+
+## 6. Contratos de Interface
+
+| Operação | Entrada | Saída |
+|---|---|---|
+| Cadastrar | `nome`, `email`, `senha` | mensagem genérica |
+| Confirmar e-mail | `token` | confirmado ou link inválido |
+| Reenviar confirmação | `email` | mensagem genérica |
+| Recuperar senha | `email` | mensagem genérica |
+| Redefinir senha | `token`, `senha` | senha trocada ou link inválido |
+
+Links dos e-mails: `https://<sub-aluno>.<dominio>/...` (homologação: `https://homolog-<sub-aluno>.<dominio>/...`).
+
+## 7. Casos de Borda
+
+- Link aberto duas vezes: a segunda é recusada.
+- Pedidos repetidos de recuperação: só o último link vale; acima de 3 por hora, nenhum e-mail sai.
+- Contas criadas pelo terminal ou pelos dados de teste nascem confirmadas.
+- Nome com HTML: aparece escapado no e-mail.
+
+## 8. Premissas Validadas
+
+- Os e-mails de produção saem pela Iagente, com SPF e DKIM configurados em `<dominio>`.
+- No ambiente local e nos testes, os e-mails são capturados sem envio real.
+
+## 9. Riscos
+
+- **E-mail no spam:** mitigado pelo remetente do próprio domínio com SPF e DKIM.
+- **Envio usado para incomodar terceiros:** limitado a 3 por hora por conta e por tipo, além do limite
+  por IP.
+`````
+
+`.sdd/tasks/cadastro-e-recuperacao-de-senha-v1.0/README.md`:
+
+`````markdown
+# Tasks — Cadastro e recuperação de senha (v1.0)
+
+Spec: [`.sdd/specs/cadastro-e-recuperacao-de-senha.spec.md`](../../specs/cadastro-e-recuperacao-de-senha.spec.md) · versão 1.0 · prompt do tutorial `docs/prompts-iniciais/f01-06-cadastro-e-recuperacao.md`.
+
+| Ordem | ID | Título | Nível | Depende de |
+|---|---|---|---|---|
+| 1 | [CONTA-001](CONTA-001-tokens-uso-unico.md) | Links de uso único | Sênior | — |
+| 2 | [CONTA-002](CONTA-002-cadastro.md) | Cadastro e confirmação de e-mail | Pleno | CONTA-001 |
+| 3 | [CONTA-003](CONTA-003-recuperacao.md) | Recuperação e redefinição de senha | Pleno | CONTA-001 |
+| 4 | [CONTA-004](CONTA-004-fiacao.md) | Fiação do cadastro | Pleno | CONTA-002, CONTA-003 |
+
+## Grafo
+
+```
+CONTA-001 (início)
+CONTA-001 → CONTA-002
+CONTA-001 → CONTA-003
+CONTA-002 + CONTA-003 → CONTA-004
+```
+
+## RF → tasks
+
+| RF | Tasks |
+|---|---|
+| RF-01 | CONTA-002 |
+| RF-02 | CONTA-002 |
+| RF-03 | CONTA-002 |
+| RF-04 | CONTA-002 |
+| RF-05 | CONTA-003 |
+| RF-06 | CONTA-003 |
+| RF-07 | CONTA-001 |
+| RF-08 | CONTA-001 |
+| RF-09 | CONTA-002 |
+| RF-10 | CONTA-004 |
+
+## Resumo por nível
+
+- Pleno: 3
+- Sênior: 1
+`````
+
+`.sdd/tasks/cadastro-e-recuperacao-de-senha-v1.0/CONTA-001-tokens-uso-unico.md`:
+
+`````markdown
+# CONTA-001 — Links de uso único
+
+- **Spec:** .sdd/specs/cadastro-e-recuperacao-de-senha.spec.md (v1.0) · atende RF-07, RF-08
+- **Nível:** Sênior
+- **Agente:** dev-senior
+- **Status:** Pronta
+- **Depende de:** —
+
+## Arquivos a criar/alterar
+
+- `backend/src/main/java/br/com/celke/cursos/auth/domain/TokenUsoUnico.java`
+- `backend/src/main/java/br/com/celke/cursos/auth/domain/TipoToken.java`
+- `backend/src/main/java/br/com/celke/cursos/auth/application/TokenUsoUnicoService.java` — novo invalida os anteriores; 3 por hora
+- `backend/src/main/java/br/com/celke/cursos/auth/infra/TokenUsoUnicoRepository.java`
+
+## Descrição técnica
+
+Guarda só o hash (`TokenSeguro`). Um link novo do mesmo tipo invalida os anteriores; acima de 3 por hora por conta e tipo, nenhum e-mail sai.
+
+## Restrições
+
+Nunca guardar o código em texto.
+
+## Critérios de aceite
+
+- [ ] `TokenUsoUnicoServiceTest` verde
+
+## Armadilhas
+
+Contar o limite por e-mail digitado em vez da conta.
+`````
+
+`.sdd/tasks/cadastro-e-recuperacao-de-senha-v1.0/CONTA-002-cadastro.md`:
+
+`````markdown
+# CONTA-002 — Cadastro e confirmação de e-mail
+
+- **Spec:** .sdd/specs/cadastro-e-recuperacao-de-senha.spec.md (v1.0) · atende RF-01, RF-02, RF-03, RF-04, RF-09
+- **Nível:** Pleno
+- **Agente:** dev-pleno
+- **Status:** Pronta
+- **Depende de:** CONTA-001
+
+## Arquivos a criar/alterar
+
+- `backend/src/main/java/br/com/celke/cursos/auth/application/CadastroService.java`
+- `backend/src/main/java/br/com/celke/cursos/auth/api/ContaController.java` — `POST /api/auth/cadastro|confirmar-email|reenviar-confirmacao`
+- `backend/src/main/java/br/com/celke/cursos/auth/api/ContaRequests.java`
+- `backend/src/main/java/br/com/celke/cursos/auth/application/EmailNaoConfirmadoException.java`
+- `backend/src/main/resources/templates/email/confirmacao-email.html`
+- `backend/src/main/resources/templates/email/cadastro-existente.html`
+
+## Descrição técnica
+
+Resposta igual para e-mail novo e existente; conta ativa recebe aviso (1 por hora). Login de conta pendente só recebe 403 próprio com a senha certa.
+
+## Restrições
+
+Links apontam para `FRONT_ALUNO_URL` (`https://<sub-aluno>.<dominio>`).
+
+## Critérios de aceite
+
+- [ ] `CadastroServiceTest`, `ContaRequestsTest` verdes
+- [ ] `CadastroIT` com o e-mail lido no Mailpit
+
+## Armadilhas
+
+Responder 409 para e-mail existente revela a conta.
+`````
+
+`.sdd/tasks/cadastro-e-recuperacao-de-senha-v1.0/CONTA-003-recuperacao.md`:
+
+`````markdown
+# CONTA-003 — Recuperação e redefinição de senha
+
+- **Spec:** .sdd/specs/cadastro-e-recuperacao-de-senha.spec.md (v1.0) · atende RF-05, RF-06
+- **Nível:** Pleno
+- **Agente:** dev-pleno
+- **Status:** Pronta
+- **Depende de:** CONTA-001
+
+## Arquivos a criar/alterar
+
+- `backend/src/main/java/br/com/celke/cursos/auth/application/RecuperacaoSenhaService.java`
+- `backend/src/main/resources/templates/email/recuperacao-senha.html`
+
+## Descrição técnica
+
+Link de 1 h; redefinir troca a senha, confirma o e-mail e encerra todas as sessões.
+
+## Restrições
+
+Mesma resposta exista ou não a conta.
+
+## Critérios de aceite
+
+- [ ] `RecuperacaoSenhaServiceTest` verde
+- [ ] `RecuperacaoSenhaIT` verde
+
+## Armadilhas
+
+Esquecer de encerrar as sessões deixa o invasor logado.
+`````
+
+`.sdd/tasks/cadastro-e-recuperacao-de-senha-v1.0/CONTA-004-fiacao.md`:
+
+`````markdown
+# CONTA-004 — Fiação do cadastro
+
+- **Spec:** .sdd/specs/cadastro-e-recuperacao-de-senha.spec.md (v1.0) · atende RF-10
+- **Nível:** Pleno
+- **Agente:** dev-pleno
+- **Status:** Pronta
+- **Depende de:** CONTA-002, CONTA-003
+
+## Arquivos a criar/alterar
+
+- `backend/src/main/resources/db/migration/V5__confirmacao_email_e_tokens.sql`
+- `backend/src/main/java/br/com/celke/cursos/shared/security/SecurityConfig.java`
+- `backend/src/main/resources/application.yaml`
+- `infra/.env.example`
+- `backend/src/main/java/br/com/celke/cursos/shared/fila/BatimentoWorker.java` — healthcheck do worker por arquivo de batimento
+
+## Descrição técnica
+
+Rotas da conta públicas só em POST e no limite por IP; `FRONT_ALUNO_URL` e SMTP no `.env.example`; contas existentes marcadas como confirmadas na migration.
+
+## Restrições
+
+SMTP sem valor no repositório.
+
+## Critérios de aceite
+
+- [ ] `./mvnw verify` verde
+- [ ] Task só de fiação: não tem teste próprio; a verificação é a suíte inteira passando.
+
+## Armadilhas
+
+Migration que não confirma as contas antigas bloqueia todos.
+`````
+
+Acrescente ao fim da tabela do índice `.sdd/README.md` a linha:
+
+```text
+| [cadastro-e-recuperacao-de-senha](specs/cadastro-e-recuperacao-de-senha.spec.md) | 1.0 | [v1.0](tasks/cadastro-e-recuperacao-de-senha-v1.0/README.md) | `f01-06-cadastro-e-recuperacao.md` |
+```
 
 Vamos permitir que o aluno crie a conta, confirme o e-mail e recupere a senha sozinho, seguindo o
 `backend/CLAUDE.md` e o padrão das skills de teste. Não faça commit.
@@ -211,7 +508,7 @@ app:
   armazenamento:
     cors-origens: http://localhost:5173
   email:
-    remetente: nao-responda@teste.celke.uno
+    remetente: nao-responda@teste.<dominio>
 `````
 
 `backend/src/main/java/br/com/celke/cursos/shared/security/SecurityConfig.java`:
@@ -1022,7 +1319,7 @@ public abstract class IntegrationTest {
      * ou os dados do usuário — os usuários do seed são só leitura.
      */
     protected UsuarioTeste criarUsuario(Papel... papeis) {
-        String email = stamp() + "@teste.celke.uno";
+        String email = stamp() + "@teste.<dominio>";
         var usuario = usuarioService.criarConfirmado("Usuário " + email, email, SENHA_TESTE, Set.of(papeis));
         return new UsuarioTeste(usuario.getId(), email, SENHA_TESTE);
     }
@@ -1200,9 +1497,9 @@ class UsuarioTest {
 
     @ParameterizedTest(name = "[{0}]")
     @CsvSource({
-        "ana@celke.uno,          ana@celke.uno",
-        "Ana@Celke.UNO,          ana@celke.uno",
-        "'  ana@celke.uno  ',    ana@celke.uno",
+        "ana@<dominio>,          ana@<dominio>",
+        "Ana@<dominio>,          ana@<dominio>",
+        "'  ana@<dominio>  ',    ana@<dominio>",
     })
     @DisplayName("normaliza o e-mail para minúsculas e sem espaços nas pontas")
     void normalizaEmail(String recebido, String esperado) {
@@ -1212,10 +1509,10 @@ class UsuarioTest {
     @Test
     @DisplayName("novo usuário nasce ativo, com nome sem espaços nas pontas e e-mail normalizado")
     void novoUsuario() {
-        Usuario usuario = new Usuario("  Ana  ", " Ana@Celke.uno ", "{argon2}hash", Set.of(Papel.ALUNO), true, AGORA);
+        Usuario usuario = new Usuario("  Ana  ", " Ana@<dominio> ", "{argon2}hash", Set.of(Papel.ALUNO), true, AGORA);
 
         assertThat(usuario.getNome()).isEqualTo("Ana");
-        assertThat(usuario.getEmail()).isEqualTo("ana@celke.uno");
+        assertThat(usuario.getEmail()).isEqualTo("ana@<dominio>");
         assertThat(usuario.isAtivo()).isTrue();
         assertThat(usuario.getPapeis()).containsExactly(Papel.ALUNO);
         assertThat(usuario.isEmailConfirmado()).isTrue();
@@ -1224,7 +1521,7 @@ class UsuarioTest {
     @Test
     @DisplayName("cadastro com e-mail pendente é confirmado uma vez; confirmar de novo não muda nada")
     void confirmarEmail() {
-        Usuario usuario = new Usuario("Ana", "ana@celke.uno", "{argon2}hash", Set.of(Papel.ALUNO), false, AGORA);
+        Usuario usuario = new Usuario("Ana", "ana@<dominio>", "{argon2}hash", Set.of(Papel.ALUNO), false, AGORA);
         assertThat(usuario.isEmailConfirmado()).isFalse();
 
         usuario.confirmarEmail(AGORA.plusSeconds(60));
@@ -1287,13 +1584,13 @@ class UsuarioServiceTest {
     @Test
     @DisplayName("cria o usuário confirmado com o e-mail normalizado e a senha em hash")
     void cria() {
-        when(repository.existsByEmail("ana@celke.uno")).thenReturn(false);
+        when(repository.existsByEmail("ana@<dominio>")).thenReturn(false);
         when(passwordEncoder.encode("senha-da-ana-123")).thenReturn("{argon2}hash");
         when(repository.save(any(Usuario.class))).thenAnswer(invocacao -> invocacao.getArgument(0));
 
-        Usuario criado = service.criarConfirmado("Ana", " Ana@Celke.uno ", "senha-da-ana-123", Set.of(Papel.ALUNO));
+        Usuario criado = service.criarConfirmado("Ana", " Ana@<dominio> ", "senha-da-ana-123", Set.of(Papel.ALUNO));
 
-        assertThat(criado.getEmail()).isEqualTo("ana@celke.uno");
+        assertThat(criado.getEmail()).isEqualTo("ana@<dominio>");
         assertThat(criado.getSenhaHash()).isEqualTo("{argon2}hash");
         assertThat(criado.getPapeis()).containsExactly(Papel.ALUNO);
         assertThat(criado.isEmailConfirmado()).isTrue();
@@ -1302,11 +1599,11 @@ class UsuarioServiceTest {
     @Test
     @DisplayName("cadastro do aluno cria conta ALUNO com o e-mail pendente")
     void cadastraAluno() {
-        when(repository.existsByEmail("ana@celke.uno")).thenReturn(false);
+        when(repository.existsByEmail("ana@<dominio>")).thenReturn(false);
         when(passwordEncoder.encode("senha-da-ana-123")).thenReturn("{argon2}hash");
         when(repository.save(any(Usuario.class))).thenAnswer(invocacao -> invocacao.getArgument(0));
 
-        Usuario criado = service.cadastrarAluno("Ana", "ana@celke.uno", "senha-da-ana-123");
+        Usuario criado = service.cadastrarAluno("Ana", "ana@<dominio>", "senha-da-ana-123");
 
         assertThat(criado.getPapeis()).containsExactly(Papel.ALUNO);
         assertThat(criado.isEmailConfirmado()).isFalse();
@@ -1315,7 +1612,7 @@ class UsuarioServiceTest {
     @Test
     @DisplayName("confirma o e-mail e grava")
     void confirmaEmail() {
-        Usuario usuario = UsuarioFixture.naoConfirmado(UsuarioFixture.usuario(1, "ana@celke.uno", "hash", Papel.ALUNO));
+        Usuario usuario = UsuarioFixture.naoConfirmado(UsuarioFixture.usuario(1, "ana@<dominio>", "hash", Papel.ALUNO));
 
         service.confirmarEmail(usuario);
 
@@ -1326,7 +1623,7 @@ class UsuarioServiceTest {
     @Test
     @DisplayName("troca a senha gravando o novo hash")
     void trocaSenha() {
-        Usuario usuario = UsuarioFixture.usuario(1, "ana@celke.uno", "{argon2}antigo", Papel.ALUNO);
+        Usuario usuario = UsuarioFixture.usuario(1, "ana@<dominio>", "{argon2}antigo", Papel.ALUNO);
         when(passwordEncoder.encode("nova-senha-da-ana")).thenReturn("{argon2}novo");
 
         service.trocarSenha(usuario, "nova-senha-da-ana");
@@ -1338,9 +1635,9 @@ class UsuarioServiceTest {
     @Test
     @DisplayName("rejeita e-mail já cadastrado sem gravar nem calcular hash")
     void emailDuplicado() {
-        when(repository.existsByEmail("ana@celke.uno")).thenReturn(true);
+        when(repository.existsByEmail("ana@<dominio>")).thenReturn(true);
 
-        assertThatThrownBy(() -> service.cadastrarAluno("Ana", "ANA@celke.uno", "senha-da-ana-123"))
+        assertThatThrownBy(() -> service.cadastrarAluno("Ana", "ANA@<dominio>", "senha-da-ana-123"))
                 .isInstanceOf(ConflitoException.class)
                 .hasMessage("Já existe um usuário com este e-mail.");
         verify(repository, never()).save(any());
@@ -1350,15 +1647,15 @@ class UsuarioServiceTest {
     @Test
     @DisplayName("busca por e-mail usa o e-mail normalizado")
     void buscaPorEmail() {
-        service.buscarPorEmail(" Ana@Celke.uno ");
+        service.buscarPorEmail(" Ana@<dominio> ");
 
-        verify(repository).findByEmail("ana@celke.uno");
+        verify(repository).findByEmail("ana@<dominio>");
     }
 
     @Test
     @DisplayName("regrava o hash quando ele usa algoritmo antigo")
     void regravaHashAntigo() {
-        Usuario usuario = UsuarioFixture.usuario(1, "ana@celke.uno", "$2y$10$antigo", Papel.ALUNO);
+        Usuario usuario = UsuarioFixture.usuario(1, "ana@<dominio>", "$2y$10$antigo", Papel.ALUNO);
         when(passwordEncoder.upgradeEncoding("$2y$10$antigo")).thenReturn(true);
         when(passwordEncoder.encode("senha-da-ana-123")).thenReturn("{argon2}novo");
 
@@ -1372,7 +1669,7 @@ class UsuarioServiceTest {
     @Test
     @DisplayName("não regrava o hash que já está no algoritmo atual")
     void mantemHashAtual() {
-        Usuario usuario = UsuarioFixture.usuario(1, "ana@celke.uno", "{argon2}atual", Papel.ALUNO);
+        Usuario usuario = UsuarioFixture.usuario(1, "ana@<dominio>", "{argon2}atual", Papel.ALUNO);
         when(passwordEncoder.upgradeEncoding("{argon2}atual")).thenReturn(false);
 
         service.atualizarHashSeNecessario(usuario, "senha-da-ana-123");
@@ -1419,16 +1716,16 @@ class CriarAdminServiceTest {
     @Test
     @DisplayName("cria o usuário só com o papel ADMIN")
     void criaAdmin() {
-        service.criar("Admin", "admin@celke.uno", "senha-longa-do-admin");
+        service.criar("Admin", "admin@<dominio>", "senha-longa-do-admin");
 
-        verify(usuarioService).criarConfirmado("Admin", "admin@celke.uno", "senha-longa-do-admin", Set.of(Papel.ADMIN));
+        verify(usuarioService).criarConfirmado("Admin", "admin@<dominio>", "senha-longa-do-admin", Set.of(Papel.ADMIN));
     }
 
     @ParameterizedTest(name = "{0}")
     @CsvSource({
-        "nome em branco,      '  ',  admin@celke.uno, senha-longa-do-admin, O nome é obrigatório.",
-        "e-mail sem arroba,   Admin, admin.celke.uno, senha-longa-do-admin, E-mail inválido.",
-        "senha curta,         Admin, admin@celke.uno, curta-11chr,          A senha deve ter pelo menos 12 caracteres.",
+        "nome em branco,      '  ',  admin@<dominio>, senha-longa-do-admin, O nome é obrigatório.",
+        "e-mail sem arroba,   Admin, admin.<dominio>, senha-longa-do-admin, E-mail inválido.",
+        "senha curta,         Admin, admin@<dominio>, curta-11chr,          A senha deve ter pelo menos 12 caracteres.",
     })
     void rejeitaDadosInvalidos(String caso, String nome, String email, String senha, String mensagem) {
         assertThatThrownBy(() -> service.criar(nome, email, senha))
@@ -1515,24 +1812,24 @@ class AuthServiceTest {
     }
 
     private static Usuario ana() {
-        return UsuarioFixture.usuario(7, "ana@celke.uno", "{argon2}hash-da-ana", Papel.ALUNO);
+        return UsuarioFixture.usuario(7, "ana@<dominio>", "{argon2}hash-da-ana", Papel.ALUNO);
     }
 
     @Test
     @DisplayName("login correto emite os tokens, zera o bloqueio, audita SUCESSO e regrava hash antigo se preciso")
     void loginCorreto() {
         Usuario ana = ana();
-        when(usuarioService.buscarPorEmail("ana@celke.uno")).thenReturn(Optional.of(ana));
+        when(usuarioService.buscarPorEmail("ana@<dominio>")).thenReturn(Optional.of(ana));
         when(passwordEncoder.matches("senha-certa", "{argon2}hash-da-ana")).thenReturn(true);
         when(refreshTokenService.emitir(7L)).thenReturn(new RefreshEmitido("refresh", 7L, EXPIRA));
         when(tokenAcessoService.emitir(ana)).thenReturn(new TokenAcesso("jwt", EXPIRA));
 
-        var sessao = service.entrar("ana@celke.uno", "senha-certa", ORIGEM);
+        var sessao = service.entrar("ana@<dominio>", "senha-certa", ORIGEM);
 
         assertThat(sessao.acesso().valor()).isEqualTo("jwt");
         assertThat(sessao.refresh().token()).isEqualTo("refresh");
-        verify(auditoriaLoginService).registrar("ana@celke.uno", ana, ResultadoLogin.SUCESSO, ORIGEM);
-        verify(bloqueioLoginService).registrarSucesso("ana@celke.uno", "203.0.113.7");
+        verify(auditoriaLoginService).registrar("ana@<dominio>", ana, ResultadoLogin.SUCESSO, ORIGEM);
+        verify(bloqueioLoginService).registrarSucesso("ana@<dominio>", "203.0.113.7");
         verify(bloqueioLoginService, never()).registrarFalha(anyString(), anyString());
         verify(usuarioService).atualizarHashSeNecessario(ana, "senha-certa");
     }
@@ -1541,14 +1838,14 @@ class AuthServiceTest {
     @DisplayName("senha errada conta falha, audita SENHA_INVALIDA e não emite tokens")
     void senhaErrada() {
         Usuario ana = ana();
-        when(usuarioService.buscarPorEmail("ana@celke.uno")).thenReturn(Optional.of(ana));
+        when(usuarioService.buscarPorEmail("ana@<dominio>")).thenReturn(Optional.of(ana));
         when(passwordEncoder.matches("senha-errada", "{argon2}hash-da-ana")).thenReturn(false);
 
-        assertThatThrownBy(() -> service.entrar("ana@celke.uno", "senha-errada", ORIGEM))
+        assertThatThrownBy(() -> service.entrar("ana@<dominio>", "senha-errada", ORIGEM))
                 .isInstanceOf(CredenciaisInvalidasException.class)
                 .hasMessage("E-mail ou senha inválidos.");
-        verify(auditoriaLoginService).registrar("ana@celke.uno", ana, ResultadoLogin.SENHA_INVALIDA, ORIGEM);
-        verify(bloqueioLoginService).registrarFalha("ana@celke.uno", "203.0.113.7");
+        verify(auditoriaLoginService).registrar("ana@<dominio>", ana, ResultadoLogin.SENHA_INVALIDA, ORIGEM);
+        verify(bloqueioLoginService).registrarFalha("ana@<dominio>", "203.0.113.7");
         verify(refreshTokenService, never()).emitir(anyLong());
         verify(usuarioService, never()).atualizarHashSeNecessario(any(), any());
     }
@@ -1556,14 +1853,14 @@ class AuthServiceTest {
     @Test
     @DisplayName("e-mail inexistente confere a senha contra o hash fictício, conta falha e audita EMAIL_DESCONHECIDO")
     void emailInexistente() {
-        when(usuarioService.buscarPorEmail("ninguem@celke.uno")).thenReturn(Optional.empty());
+        when(usuarioService.buscarPorEmail("ninguem@<dominio>")).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> service.entrar("ninguem@celke.uno", "qualquer", ORIGEM))
+        assertThatThrownBy(() -> service.entrar("ninguem@<dominio>", "qualquer", ORIGEM))
                 .isInstanceOf(CredenciaisInvalidasException.class)
                 .hasMessage("E-mail ou senha inválidos.");
         verify(passwordEncoder).matches("qualquer", HASH_FICTICIO);
-        verify(auditoriaLoginService).registrar("ninguem@celke.uno", null, ResultadoLogin.EMAIL_DESCONHECIDO, ORIGEM);
-        verify(bloqueioLoginService).registrarFalha("ninguem@celke.uno", "203.0.113.7");
+        verify(auditoriaLoginService).registrar("ninguem@<dominio>", null, ResultadoLogin.EMAIL_DESCONHECIDO, ORIGEM);
+        verify(bloqueioLoginService).registrarFalha("ninguem@<dominio>", "203.0.113.7");
         verify(refreshTokenService, never()).emitir(anyLong());
     }
 
@@ -1571,13 +1868,13 @@ class AuthServiceTest {
     @DisplayName("usuário inativo com a senha certa é recusado e auditado como USUARIO_INATIVO")
     void usuarioInativo() {
         Usuario inativa = UsuarioFixture.inativo(ana());
-        when(usuarioService.buscarPorEmail("ana@celke.uno")).thenReturn(Optional.of(inativa));
+        when(usuarioService.buscarPorEmail("ana@<dominio>")).thenReturn(Optional.of(inativa));
         when(passwordEncoder.matches("senha-certa", "{argon2}hash-da-ana")).thenReturn(true);
 
-        assertThatThrownBy(() -> service.entrar("ana@celke.uno", "senha-certa", ORIGEM))
+        assertThatThrownBy(() -> service.entrar("ana@<dominio>", "senha-certa", ORIGEM))
                 .isInstanceOf(CredenciaisInvalidasException.class);
-        verify(auditoriaLoginService).registrar("ana@celke.uno", inativa, ResultadoLogin.USUARIO_INATIVO, ORIGEM);
-        verify(bloqueioLoginService).registrarFalha("ana@celke.uno", "203.0.113.7");
+        verify(auditoriaLoginService).registrar("ana@<dominio>", inativa, ResultadoLogin.USUARIO_INATIVO, ORIGEM);
+        verify(bloqueioLoginService).registrarFalha("ana@<dominio>", "203.0.113.7");
         verify(refreshTokenService, never()).emitir(anyLong());
     }
 
@@ -1585,14 +1882,14 @@ class AuthServiceTest {
     @DisplayName("senha certa com e-mail não confirmado recebe 403 próprio, sem tokens, e zera o bloqueio")
     void emailNaoConfirmado() {
         Usuario pendente = UsuarioFixture.naoConfirmado(ana());
-        when(usuarioService.buscarPorEmail("ana@celke.uno")).thenReturn(Optional.of(pendente));
+        when(usuarioService.buscarPorEmail("ana@<dominio>")).thenReturn(Optional.of(pendente));
         when(passwordEncoder.matches("senha-certa", "{argon2}hash-da-ana")).thenReturn(true);
 
-        assertThatThrownBy(() -> service.entrar("ana@celke.uno", "senha-certa", ORIGEM))
+        assertThatThrownBy(() -> service.entrar("ana@<dominio>", "senha-certa", ORIGEM))
                 .isInstanceOf(EmailNaoConfirmadoException.class)
                 .hasMessage("Confirme o seu e-mail antes de entrar. Se não recebeu o link, peça um novo.");
-        verify(auditoriaLoginService).registrar("ana@celke.uno", pendente, ResultadoLogin.EMAIL_NAO_CONFIRMADO, ORIGEM);
-        verify(bloqueioLoginService).registrarSucesso("ana@celke.uno", "203.0.113.7");
+        verify(auditoriaLoginService).registrar("ana@<dominio>", pendente, ResultadoLogin.EMAIL_NAO_CONFIRMADO, ORIGEM);
+        verify(bloqueioLoginService).registrarSucesso("ana@<dominio>", "203.0.113.7");
         verify(bloqueioLoginService, never()).registrarFalha(anyString(), anyString());
         verify(refreshTokenService, never()).emitir(anyLong());
     }
@@ -1600,11 +1897,11 @@ class AuthServiceTest {
     @Test
     @DisplayName("e-mail não confirmado com a senha errada recebe a mensagem genérica")
     void emailNaoConfirmadoSenhaErrada() {
-        when(usuarioService.buscarPorEmail("ana@celke.uno"))
+        when(usuarioService.buscarPorEmail("ana@<dominio>"))
                 .thenReturn(Optional.of(UsuarioFixture.naoConfirmado(ana())));
         when(passwordEncoder.matches("senha-errada", "{argon2}hash-da-ana")).thenReturn(false);
 
-        assertThatThrownBy(() -> service.entrar("ana@celke.uno", "senha-errada", ORIGEM))
+        assertThatThrownBy(() -> service.entrar("ana@<dominio>", "senha-errada", ORIGEM))
                 .isInstanceOf(CredenciaisInvalidasException.class);
     }
 
@@ -1613,12 +1910,12 @@ class AuthServiceTest {
     void bloqueado() {
         doThrow(new MuitasTentativasException(Duration.ofMinutes(15)))
                 .when(bloqueioLoginService)
-                .verificar("ana@celke.uno", "203.0.113.7");
+                .verificar("ana@<dominio>", "203.0.113.7");
 
-        assertThatThrownBy(() -> service.entrar("ana@celke.uno", "senha-certa", ORIGEM))
+        assertThatThrownBy(() -> service.entrar("ana@<dominio>", "senha-certa", ORIGEM))
                 .isInstanceOf(MuitasTentativasException.class)
                 .hasMessage("Muitas tentativas. Tente novamente em 15 minutos.");
-        verify(auditoriaLoginService).registrar("ana@celke.uno", null, ResultadoLogin.BLOQUEADO, ORIGEM);
+        verify(auditoriaLoginService).registrar("ana@<dominio>", null, ResultadoLogin.BLOQUEADO, ORIGEM);
         verify(usuarioService, never()).buscarPorEmail(any());
         verify(passwordEncoder, never()).matches(any(), any());
         verify(bloqueioLoginService, never()).registrarFalha(anyString(), anyString());
@@ -1870,7 +2167,7 @@ import org.springframework.http.MediaType;
  * Cobre: matriz de papéis das rotas de autenticação — públicas (login, refresh, logout) e privadas
  * (me, sair-de-todos) — para anônimo, ALUNO e ADMIN.
  * Não cobre: comportamento de cada rota (AuthLoginIT, AuthRefreshIT).
- * Dado criado: usuários it-<stamp>@teste.celke.uno para sair-de-todos (o seed é só leitura).
+ * Dado criado: usuários it-<stamp>@teste.<dominio> para sair-de-todos (o seed é só leitura).
  */
 class AuthAcessoIT extends IntegrationTest {
 
@@ -1985,7 +2282,7 @@ import org.springframework.test.web.servlet.assertj.MvcTestResult;
  * Cobre: bloqueio do login depois de falhas seguidas (429 com Retry-After), liberação em outro IP,
  * auditoria de cada tentativa e o limite por IP ligado nas rotas de autenticação.
  * Não cobre: regras de tempo e contagem caso a caso (BloqueioLoginServiceTest, LimitePorIpFilterTest).
- * Dado criado: usuários it-<stamp>@teste.celke.uno e as tentativas deles na auditoria.
+ * Dado criado: usuários it-<stamp>@teste.<dominio> e as tentativas deles na auditoria.
  */
 class AuthBloqueioIT extends IntegrationTest {
 
@@ -2029,7 +2326,7 @@ class AuthBloqueioIT extends IntegrationTest {
     @DisplayName("toda tentativa fica na auditoria com resultado, IP e user-agent")
     void auditoria() {
         UsuarioTeste usuario = criarUsuario(Papel.ALUNO);
-        String desconhecido = stamp() + "@teste.celke.uno";
+        String desconhecido = stamp() + "@teste.<dominio>";
 
         tentar(usuario.email(), "senha-errada", IP_ATACANTE);
         tentar(usuario.email(), usuario.senha(), IP_DONO);
@@ -2270,7 +2567,7 @@ S3_SECRET_KEY=                     # openssl rand -hex 32
 S3_CORS_ORIGENS=http://localhost:5173
 
 # E-mail
-EMAIL_REMETENTE=nao-responda@celke.uno
+EMAIL_REMETENTE=nao-responda@<dominio>
 
 # Portas no host (opcional; só mude se a porta padrão já estiver em uso)
 # API_PORTA=8080
@@ -3346,7 +3643,7 @@ class CadastroServiceTest {
     }
 
     private static Usuario ana() {
-        return UsuarioFixture.usuario(7, "ana@celke.uno", "hash", Papel.ALUNO);
+        return UsuarioFixture.usuario(7, "ana@<dominio>", "hash", Papel.ALUNO);
     }
 
     private void esperarToken(String token) {
@@ -3357,16 +3654,16 @@ class CadastroServiceTest {
     @Test
     @DisplayName("e-mail novo: cria a conta pendente e envia o link de confirmação")
     void emailNovo() {
-        when(usuarioService.buscarPorEmail("ana@celke.uno")).thenReturn(Optional.empty());
-        when(usuarioService.cadastrarAluno("Ana", "ana@celke.uno", "senha-da-ana"))
+        when(usuarioService.buscarPorEmail("ana@<dominio>")).thenReturn(Optional.empty());
+        when(usuarioService.cadastrarAluno("Ana", "ana@<dominio>", "senha-da-ana"))
                 .thenReturn(UsuarioFixture.naoConfirmado(ana()));
         esperarToken("abc");
 
-        service.cadastrar("Ana", "ana@celke.uno", "senha-da-ana");
+        service.cadastrar("Ana", "ana@<dominio>", "senha-da-ana");
 
         verify(emailService)
                 .enviar(
-                        "ana@celke.uno",
+                        "ana@<dominio>",
                         "Confirme o seu e-mail",
                         "confirmacao-email",
                         Map.of(
@@ -3378,15 +3675,15 @@ class CadastroServiceTest {
     @Test
     @DisplayName("e-mail de conta ativa: não cria nada e avisa o dono só uma vez por hora")
     void emailExistente() {
-        when(usuarioService.buscarPorEmail("ana@celke.uno")).thenReturn(Optional.of(ana()));
+        when(usuarioService.buscarPorEmail("ana@<dominio>")).thenReturn(Optional.of(ana()));
 
-        service.cadastrar("Outra Pessoa", "ana@celke.uno", "outra-senha-qualquer");
-        service.cadastrar("Outra Pessoa", "ana@celke.uno", "outra-senha-qualquer");
+        service.cadastrar("Outra Pessoa", "ana@<dominio>", "outra-senha-qualquer");
+        service.cadastrar("Outra Pessoa", "ana@<dominio>", "outra-senha-qualquer");
 
         verify(usuarioService, never()).cadastrarAluno(any(), any(), any());
         verify(emailService, times(1))
                 .enviar(
-                        "ana@celke.uno",
+                        "ana@<dominio>",
                         "Tentativa de cadastro com o seu e-mail",
                         "cadastro-existente",
                         Map.of(
@@ -3398,22 +3695,22 @@ class CadastroServiceTest {
     @Test
     @DisplayName("e-mail com cadastro pendente: reenvia o link, sem criar outra conta")
     void emailPendente() {
-        when(usuarioService.buscarPorEmail("ana@celke.uno"))
+        when(usuarioService.buscarPorEmail("ana@<dominio>"))
                 .thenReturn(Optional.of(UsuarioFixture.naoConfirmado(ana())));
         esperarToken("novo");
 
-        service.cadastrar("Ana", "ana@celke.uno", "senha-da-ana");
+        service.cadastrar("Ana", "ana@<dominio>", "senha-da-ana");
 
         verify(usuarioService, never()).cadastrarAluno(any(), any(), any());
-        verify(emailService).enviar(eq("ana@celke.uno"), eq("Confirme o seu e-mail"), eq("confirmacao-email"), any());
+        verify(emailService).enviar(eq("ana@<dominio>"), eq("Confirme o seu e-mail"), eq("confirmacao-email"), any());
     }
 
     @Test
     @DisplayName("e-mail de conta inativa: nada acontece")
     void contaInativa() {
-        when(usuarioService.buscarPorEmail("ana@celke.uno")).thenReturn(Optional.of(UsuarioFixture.inativo(ana())));
+        when(usuarioService.buscarPorEmail("ana@<dominio>")).thenReturn(Optional.of(UsuarioFixture.inativo(ana())));
 
-        service.cadastrar("Ana", "ana@celke.uno", "senha-da-ana");
+        service.cadastrar("Ana", "ana@<dominio>", "senha-da-ana");
 
         verify(emailService, never()).enviar(anyString(), anyString(), anyString(), any());
     }
@@ -3421,11 +3718,11 @@ class CadastroServiceTest {
     @Test
     @DisplayName("limite de e-mails atingido: a conta é criada, mas o link não é enviado")
     void limiteDeEmails() {
-        when(usuarioService.buscarPorEmail("ana@celke.uno")).thenReturn(Optional.empty());
+        when(usuarioService.buscarPorEmail("ana@<dominio>")).thenReturn(Optional.empty());
         when(usuarioService.cadastrarAluno(any(), any(), any())).thenReturn(UsuarioFixture.naoConfirmado(ana()));
         when(tokens.emitir(7L, TipoToken.CONFIRMACAO_EMAIL)).thenReturn(Optional.empty());
 
-        service.cadastrar("Ana", "ana@celke.uno", "senha-da-ana");
+        service.cadastrar("Ana", "ana@<dominio>", "senha-da-ana");
 
         verify(emailService, never()).enviar(anyString(), anyString(), anyString(), any());
     }
@@ -3433,11 +3730,11 @@ class CadastroServiceTest {
     @Test
     @DisplayName("cadastro simultâneo com o mesmo e-mail não vira erro para o cliente")
     void cadastroSimultaneo() {
-        when(usuarioService.buscarPorEmail("ana@celke.uno")).thenReturn(Optional.empty());
+        when(usuarioService.buscarPorEmail("ana@<dominio>")).thenReturn(Optional.empty());
         when(usuarioService.cadastrarAluno(any(), any(), any()))
                 .thenThrow(new ConflitoException("Já existe um usuário com este e-mail."));
 
-        assertThatCode(() -> service.cadastrar("Ana", "ana@celke.uno", "senha-da-ana"))
+        assertThatCode(() -> service.cadastrar("Ana", "ana@<dominio>", "senha-da-ana"))
                 .doesNotThrowAnyException();
         verify(emailService, never()).enviar(anyString(), anyString(), anyString(), any());
     }
@@ -3445,15 +3742,15 @@ class CadastroServiceTest {
     @Test
     @DisplayName("reenviar confirmação só envia para conta ativa com e-mail pendente")
     void reenviar() {
-        when(usuarioService.buscarPorEmail("pendente@celke.uno"))
+        when(usuarioService.buscarPorEmail("pendente@<dominio>"))
                 .thenReturn(Optional.of(UsuarioFixture.naoConfirmado(ana())));
-        when(usuarioService.buscarPorEmail("confirmada@celke.uno")).thenReturn(Optional.of(ana()));
-        when(usuarioService.buscarPorEmail("ninguem@celke.uno")).thenReturn(Optional.empty());
+        when(usuarioService.buscarPorEmail("confirmada@<dominio>")).thenReturn(Optional.of(ana()));
+        when(usuarioService.buscarPorEmail("ninguem@<dominio>")).thenReturn(Optional.empty());
         esperarToken("abc");
 
-        service.reenviarConfirmacao("pendente@celke.uno");
-        service.reenviarConfirmacao("confirmada@celke.uno");
-        service.reenviarConfirmacao("ninguem@celke.uno");
+        service.reenviarConfirmacao("pendente@<dominio>");
+        service.reenviarConfirmacao("confirmada@<dominio>");
+        service.reenviarConfirmacao("ninguem@<dominio>");
 
         verify(emailService, times(1)).enviar(anyString(), anyString(), anyString(), any());
     }
@@ -3540,21 +3837,21 @@ class RecuperacaoSenhaServiceTest {
     }
 
     private static Usuario ana() {
-        return UsuarioFixture.usuario(7, "ana@celke.uno", "hash", Papel.ALUNO);
+        return UsuarioFixture.usuario(7, "ana@<dominio>", "hash", Papel.ALUNO);
     }
 
     @Test
     @DisplayName("conta ativa recebe o link de 1 hora para criar nova senha")
     void solicitar() {
-        when(usuarioService.buscarPorEmail("ana@celke.uno")).thenReturn(Optional.of(ana()));
+        when(usuarioService.buscarPorEmail("ana@<dominio>")).thenReturn(Optional.of(ana()));
         when(tokens.emitir(7L, TipoToken.RECUPERACAO_SENHA)).thenReturn(Optional.of("abc"));
         when(tokens.validade(TipoToken.RECUPERACAO_SENHA)).thenReturn(Duration.ofHours(1));
 
-        service.solicitar("ana@celke.uno");
+        service.solicitar("ana@<dominio>");
 
         verify(emailService)
                 .enviar(
-                        "ana@celke.uno",
+                        "ana@<dominio>",
                         "Crie uma nova senha",
                         "recuperacao-senha",
                         Map.of(
@@ -3566,11 +3863,11 @@ class RecuperacaoSenhaServiceTest {
     @Test
     @DisplayName("e-mail sem conta ou de conta inativa não recebe nada e não gera token")
     void semConta() {
-        when(usuarioService.buscarPorEmail("ninguem@celke.uno")).thenReturn(Optional.empty());
-        when(usuarioService.buscarPorEmail("ana@celke.uno")).thenReturn(Optional.of(UsuarioFixture.inativo(ana())));
+        when(usuarioService.buscarPorEmail("ninguem@<dominio>")).thenReturn(Optional.empty());
+        when(usuarioService.buscarPorEmail("ana@<dominio>")).thenReturn(Optional.of(UsuarioFixture.inativo(ana())));
 
-        service.solicitar("ninguem@celke.uno");
-        service.solicitar("ana@celke.uno");
+        service.solicitar("ninguem@<dominio>");
+        service.solicitar("ana@<dominio>");
 
         verify(tokens, never()).emitir(anyLong(), any());
         verify(emailService, never()).enviar(anyString(), anyString(), anyString(), any());
@@ -3579,10 +3876,10 @@ class RecuperacaoSenhaServiceTest {
     @Test
     @DisplayName("limite de e-mails atingido: nada é enviado")
     void limiteDeEmails() {
-        when(usuarioService.buscarPorEmail("ana@celke.uno")).thenReturn(Optional.of(ana()));
+        when(usuarioService.buscarPorEmail("ana@<dominio>")).thenReturn(Optional.of(ana()));
         when(tokens.emitir(7L, TipoToken.RECUPERACAO_SENHA)).thenReturn(Optional.empty());
 
-        service.solicitar("ana@celke.uno");
+        service.solicitar("ana@<dominio>");
 
         verify(emailService, never()).enviar(anyString(), anyString(), anyString(), any());
     }
@@ -3655,7 +3952,7 @@ class ContaRequestsTest {
     }
 
     private static ContaRequests.Cadastro cadastroValido() {
-        return new ContaRequests.Cadastro("Ana", "ana@celke.uno", "senha-ok-10");
+        return new ContaRequests.Cadastro("Ana", "ana@<dominio>", "senha-ok-10");
     }
 
     @Test
@@ -3672,7 +3969,7 @@ class ContaRequestsTest {
         "129 caracteres passa do máximo,  129, senha",
     })
     void tamanhoDaSenha(String caso, int tamanho, String campoInvalido) {
-        var request = new ContaRequests.Cadastro("Ana", "ana@celke.uno", "a".repeat(tamanho));
+        var request = new ContaRequests.Cadastro("Ana", "ana@<dominio>", "a".repeat(tamanho));
         Set<String> invalidos = camposInvalidos(request);
         if (campoInvalido == null) {
             assertThat(invalidos).isEmpty();
@@ -3684,13 +3981,13 @@ class ContaRequestsTest {
     @Test
     @DisplayName("cadastro exige nome até 120 caracteres e e-mail válido")
     void nomeEEmail() {
-        assertThat(camposInvalidos(new ContaRequests.Cadastro(" ", "ana@celke.uno", "senha-ok-10")))
+        assertThat(camposInvalidos(new ContaRequests.Cadastro(" ", "ana@<dominio>", "senha-ok-10")))
                 .containsExactly("nome");
-        assertThat(camposInvalidos(new ContaRequests.Cadastro("a".repeat(121), "ana@celke.uno", "senha-ok-10")))
+        assertThat(camposInvalidos(new ContaRequests.Cadastro("a".repeat(121), "ana@<dominio>", "senha-ok-10")))
                 .containsExactly("nome");
-        assertThat(camposInvalidos(new ContaRequests.Cadastro("a".repeat(120), "ana@celke.uno", "senha-ok-10")))
+        assertThat(camposInvalidos(new ContaRequests.Cadastro("a".repeat(120), "ana@<dominio>", "senha-ok-10")))
                 .isEmpty();
-        assertThat(camposInvalidos(new ContaRequests.Cadastro("Ana", "ana.celke.uno", "senha-ok-10")))
+        assertThat(camposInvalidos(new ContaRequests.Cadastro("Ana", "ana.<dominio>", "senha-ok-10")))
                 .containsExactly("email");
     }
 
@@ -3784,7 +4081,7 @@ import org.springframework.test.web.servlet.assertj.MvcTestResult;
  * Cobre: cadastro → e-mail de confirmação → confirmação → login; mesma resposta para e-mail novo e já
  * cadastrado; reenvio do link; link de uso único; limite de e-mails por hora.
  * Não cobre: regras caso a caso (CadastroServiceTest, TokenUsoUnicoServiceTest).
- * Dado criado: contas it-<stamp>@teste.celke.uno e os e-mails delas no Mailpit.
+ * Dado criado: contas it-<stamp>@teste.<dominio> e os e-mails delas no Mailpit.
  */
 class CadastroIT extends IntegrationTest {
 
@@ -3800,7 +4097,7 @@ class CadastroIT extends IntegrationTest {
     @Test
     @DisplayName("cadastro, confirmação pelo link do e-mail e login")
     void jornadaCompleta() {
-        String email = stamp() + "@teste.celke.uno";
+        String email = stamp() + "@teste.<dominio>";
 
         assertThat(cadastrar("Ana Souza", email, SENHA))
                 .hasStatus(HttpStatus.ACCEPTED)
@@ -3839,7 +4136,7 @@ class CadastroIT extends IntegrationTest {
     @Test
     @DisplayName("o link de confirmação vale uma vez só")
     void linkDeUsoUnico() {
-        String email = stamp() + "@teste.celke.uno";
+        String email = stamp() + "@teste.<dominio>";
         cadastrar("Ana", email, SENHA);
         processarFila();
         String token = Mailpit.tokenDoLink(mailpit.aguardarEmailPara(email));
@@ -3870,7 +4167,7 @@ class CadastroIT extends IntegrationTest {
     @Test
     @DisplayName("reenviar confirmação manda um link novo e invalida o anterior")
     void reenviarInvalidaAnterior() {
-        String email = stamp() + "@teste.celke.uno";
+        String email = stamp() + "@teste.<dominio>";
         cadastrar("Ana", email, SENHA);
         processarFila();
         String primeiro = Mailpit.tokenDoLink(mailpit.aguardarEmailPara(email));
@@ -3887,7 +4184,7 @@ class CadastroIT extends IntegrationTest {
     @Test
     @DisplayName("reenviar para e-mail sem cadastro responde igual e não envia nada")
     void reenviarSemCadastro() {
-        String email = stamp() + "@teste.celke.uno";
+        String email = stamp() + "@teste.<dominio>";
 
         assertThat(reenviar(email))
                 .hasStatus(HttpStatus.ACCEPTED)
@@ -3902,7 +4199,7 @@ class CadastroIT extends IntegrationTest {
     @Test
     @DisplayName("no máximo 3 e-mails de confirmação por hora para a mesma conta")
     void limiteDeEmailsPorHora() {
-        String email = stamp() + "@teste.celke.uno";
+        String email = stamp() + "@teste.<dominio>";
         cadastrar("Ana", email, SENHA);
         for (int i = 0; i < 3; i++) {
             assertThat(reenviar(email)).hasStatus(HttpStatus.ACCEPTED);
@@ -3915,7 +4212,7 @@ class CadastroIT extends IntegrationTest {
     @Test
     @DisplayName("senha curta é recusada com o campo indicado")
     void senhaCurta() {
-        assertThat(cadastrar("Ana", stamp() + "@teste.celke.uno", "curta"))
+        assertThat(cadastrar("Ana", stamp() + "@teste.<dominio>", "curta"))
                 .hasStatus(HttpStatus.BAD_REQUEST)
                 .bodyJson()
                 .extractingPath("$.erros[*].campo")
@@ -3994,7 +4291,7 @@ import org.springframework.test.web.servlet.assertj.MvcTestResult;
  * Cobre: pedido de recuperação → e-mail com link → nova senha → sessões antigas encerradas; mesma
  * resposta para e-mail sem conta; link de uso único; e-mail confirmado pela redefinição.
  * Não cobre: regras caso a caso (RecuperacaoSenhaServiceTest, TokenUsoUnicoServiceTest).
- * Dado criado: contas it-<stamp>@teste.celke.uno e os e-mails delas no Mailpit.
+ * Dado criado: contas it-<stamp>@teste.<dominio> e os e-mails delas no Mailpit.
  */
 class RecuperacaoSenhaIT extends IntegrationTest {
 
@@ -4058,7 +4355,7 @@ class RecuperacaoSenhaIT extends IntegrationTest {
     @Test
     @DisplayName("e-mail sem conta recebe a mesma resposta e nenhum e-mail é enviado")
     void emailSemConta() {
-        String email = stamp() + "@teste.celke.uno";
+        String email = stamp() + "@teste.<dominio>";
 
         assertThat(solicitar(email))
                 .hasStatus(HttpStatus.ACCEPTED)
@@ -4073,7 +4370,7 @@ class RecuperacaoSenhaIT extends IntegrationTest {
     @Test
     @DisplayName("redefinir a senha também confirma o e-mail de um cadastro pendente")
     void confirmaEmailPendente() {
-        String email = stamp() + "@teste.celke.uno";
+        String email = stamp() + "@teste.<dominio>";
         post(
                 "/api/auth/cadastro",
                 "{\"nome\":\"Ana\",\"email\":\"%s\",\"senha\":\"senha-do-cadastro\"}".formatted(email));
@@ -4150,10 +4447,12 @@ docker compose -f infra/compose.yml ps
   200; depois o login responde 200.
 - `POST /api/auth/recuperar-senha` envia "Crie uma nova senha"; `POST /api/auth/redefinir-senha` com o
   token e uma nova senha faz a senha antiga deixar de valer.
+- Com tudo verde, as tasks de `.sdd/tasks/cadastro-e-recuperacao-de-senha-v1.0/` passam para `Status: Concluída` e os critérios de aceite
+  são marcados (`- [x]`).
 
 ## Depois de executar
 
 ```bash
-git add backend/ infra/
+git add backend/ infra/ .sdd/
 git commit -m "feat(auth): adicionar cadastro, confirmação de e-mail e recuperação de senha"
 ```

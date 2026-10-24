@@ -3,7 +3,273 @@
 **Fase:** 1 — etapa 1.7
 **Branch:** `feature/base-projeto`
 
+> **Configuração do projeto:** troque os marcadores `<dominio>`, `<sub-site>`, `<sub-aluno>`,
+> `<sub-adm>`, `<sub-media>` e `<dono-github>` pelos valores de `docs/configuracao.md` (criado no
+> primeiro prompt) em todo o conteúdo deste prompt, inclusive nos testes. Se o arquivo não existir,
+> pergunte esses valores ao usuário antes de começar.
+
 ## Prompt
+
+### Especificação e tasks (SDD)
+
+Antes do código, registre a funcionalidade no SDD: crie a spec e as tasks abaixo com **exatamente** este conteúdo (troque os marcadores pelos valores de `docs/configuracao.md`). As tasks nascem com `Status: Pronta`; ao fim da **Verificação**, passam para `Concluída`.
+
+`.sdd/specs/ambientes-e-entrega.spec.md`:
+
+`````markdown
+---
+feature: ambientes-e-entrega
+versao: 1.0
+status: aprovada
+autor: pm-spec-architect
+---
+
+# Ambientes e entrega
+
+## 1. Resumo Executivo
+
+A plataforma roda em dois ambientes na mesma VPS — produção e homologação — e cada versão chega a eles
+pelo pipeline, testada de ponta a ponta antes, sem ninguém copiar arquivos à mão. Uma versão que não
+fica saudável volta sozinha para a anterior.
+
+Endereços:
+
+| Produção | Homologação | Serve |
+|---|---|---|
+| `<sub-site>.<dominio>` | `homolog-<sub-site>.<dominio>` | site público |
+| `<sub-aluno>.<dominio>` | `homolog-<sub-aluno>.<dominio>` | área do aluno e API |
+| `<sub-adm>.<dominio>` | `homolog-<sub-adm>.<dominio>` | painel administrativo e API |
+| `<sub-media>.<dominio>` | `homolog-<sub-media>.<dominio>` | vídeos e arquivos |
+
+Entra: testes de ponta a ponta da stack completa, pipeline, preparação da VPS, publicação das versões e
+deploy com volta automática. Fica de fora: backup e alertas (spec `operacao`).
+
+## 2. Atores e Papéis
+
+| Ator | Pode |
+|---|---|
+| Desenvolvedor | Abrir Pull Request; o pipeline testa |
+| Pipeline | Testar, publicar a versão testada e implantar no ambiente do branch |
+| Operador da VPS | Preparar o servidor uma vez, preencher os `.env`, criar os administradores |
+| Visitante | Acessar só os endereços públicos; homologação e painel restritos por IP |
+
+## 3. Requisitos Funcionais
+
+- **RF-01** — O sistema DEVE rodar, em todo Pull Request e push para `homolog` e `main`, os testes e as
+  jornadas de ponta a ponta contra a stack completa atrás do proxy.
+- **RF-02** — O sistema DEVE publicar as imagens testadas, sem reconstruir, com a versão igual ao
+  commit, no registro `ghcr.io/<dono-github>`.
+- **RF-03** — O sistema DEVE implantar a homologação a cada push em `homolog` e a produção a cada push em
+  `main`, um deploy por ambiente de cada vez.
+- **RF-04** — O sistema DEVE, antes de cada deploy, guardar uma cópia do banco e, se algum serviço não
+  ficar saudável, voltar à versão anterior (arquivos e imagens).
+- **RF-05** — O sistema DEVE aceitar a chave de deploy apenas para executar o script de deploy, com
+  ambiente e versão validados.
+- **RF-06** — O sistema DEVE servir os dois ambientes por um único proxy com HTTPS automático, com
+  redes separadas por ambiente e nenhuma porta publicada além de 80 e 443.
+- **RF-07** — O sistema DEVE restringir por IP a homologação inteira e o painel de produção, e manter a
+  homologação fora dos buscadores.
+- **RF-08** — O sistema DEVE gerar o `.env` de cada ambiente com segredos aleatórios e diferentes entre
+  os ambientes, deixando para o operador apenas SMTP e registro de imagens.
+- **RF-09** — O sistema DEVE preparar a VPS com acesso só por chave, sem login de root, firewall com 22,
+  80 e 443, atualizações automáticas e proteção contra força bruta.
+
+## 4. Modelo de Domínio
+
+- **Ambiente:** nome (`producao`, `homolog`), hosts, versão no ar, versões guardadas (5), cópias do
+  banco (10), histórico de deploys.
+- **Versão:** commit, imagens publicadas, resultado do deploy.
+
+## 5. Estados e Fluxos
+
+- Deploy: `iniciado` → `cópia do banco` → `subindo` → `saudável` | `falhou` → `versão anterior
+  restaurada`.
+- **Fluxo:** PR → testes + ponta a ponta → merge em `homolog` → publica → deploy na homologação →
+  validação humana → PR `homolog` → `main` → deploy na produção.
+
+## 6. Contratos de Interface
+
+| Entrada | Significado |
+|---|---|
+| `<producao|homolog> <commit>` | única forma aceita pelo script de deploy |
+| `REGISTRO` | origem das imagens (`ghcr.io/<dono-github>`) |
+| `ADM_IPS`, `HOMOLOG_IPS` | IPs liberados (preenchidos pelo operador; não versionados) |
+| Secrets do repositório | `VPS_HOST`, `VPS_SSH_KEY`, `VPS_KNOWN_HOSTS` (só no GitHub) |
+
+## 7. Casos de Borda
+
+- Dois deploys simultâneos no mesmo ambiente: o segundo é recusado.
+- Argumento com injeção de comando: recusado antes de qualquer ação.
+- Queda da conexão no meio do deploy: o deploy continua no servidor.
+- Variável obrigatória ausente: o serviço não sobe e o deploy volta à versão anterior.
+
+## 8. Premissas Validadas
+
+- Uma VPS Hostinger KVM 4 (Ubuntu 24.04) comporta os dois ambientes.
+- O repositório `<dono-github>/plataforma-cursos` é o dono das imagens.
+
+## 9. Riscos
+
+- **Deploy quebrado em produção:** volta automática e cópia do banco antes de cada deploy.
+- **Chave de deploy vazada:** só executa o script, sem shell, túnel ou terminal.
+`````
+
+`.sdd/tasks/ambientes-e-entrega-v1.0/README.md`:
+
+`````markdown
+# Tasks — Ambientes e entrega (v1.0)
+
+Spec: [`.sdd/specs/ambientes-e-entrega.spec.md`](../../specs/ambientes-e-entrega.spec.md) · versão 1.0 · prompt do tutorial `docs/prompts-iniciais/f01-07-e2e-e-pipeline.md`.
+
+| Ordem | ID | Título | Nível | Depende de |
+|---|---|---|---|---|
+| 1 | [ENTREGA-001](ENTREGA-001-e2e-e-pipeline.md) | Stack de e2e e pipeline | Sênior | — |
+| 2 | [ENTREGA-002](ENTREGA-002-vps.md) | Preparação da VPS e dos dois ambientes | Sênior | ENTREGA-001 |
+| 3 | [ENTREGA-003](ENTREGA-003-deploy.md) | Deploy automático com volta | Sênior | ENTREGA-002 |
+
+## Grafo
+
+```
+ENTREGA-001 (início)
+ENTREGA-001 → ENTREGA-002
+ENTREGA-002 → ENTREGA-003
+```
+
+## RF → tasks
+
+| RF | Tasks |
+|---|---|
+| RF-01 | ENTREGA-001 |
+| RF-02 | ENTREGA-001 |
+| RF-03 | ENTREGA-003 |
+| RF-04 | ENTREGA-003 |
+| RF-05 | ENTREGA-003 |
+| RF-06 | ENTREGA-002 |
+| RF-07 | ENTREGA-002 |
+| RF-08 | ENTREGA-002 |
+| RF-09 | ENTREGA-002 |
+
+## Resumo por nível
+
+- Sênior: 3
+`````
+
+`.sdd/tasks/ambientes-e-entrega-v1.0/ENTREGA-001-e2e-e-pipeline.md`:
+
+`````markdown
+# ENTREGA-001 — Stack de e2e e pipeline
+
+- **Spec:** .sdd/specs/ambientes-e-entrega.spec.md (v1.0) · atende RF-01, RF-02
+- **Nível:** Sênior
+- **Agente:** dev-senior
+- **Status:** Pronta
+- **Depende de:** —
+
+## Arquivos a criar/alterar
+
+- `infra/compose.prod.yml` — stack de um ambiente, imagens de `${REGISTRO}`
+- `infra/compose.e2e.yml`
+- `infra/e2e.env` — só valores de teste
+- `infra/caddy/Caddyfile` — só `/api/*` e `/actuator/health` chegam à API
+- `.github/workflows/pipeline.yml` — testes → imagens → e2e → publicação em push
+- `backend/src/e2e/` — `CadastroE2E`, `SessaoE2E`, `ProxyE2E`
+
+## Descrição técnica
+
+O pipeline roda em PR e em push para `homolog` e `main`; as imagens testadas recebem a tag do commit e vão para `ghcr.io/<dono-github>` sem rebuild.
+
+## Restrições
+
+Prompt: `f01-07-e2e-e-pipeline.md`.
+
+## Critérios de aceite
+
+- [ ] pipeline verde com as três jornadas
+- [ ] `docker compose logs` anexado em falha
+
+## Armadilhas
+
+Reconstruir a imagem para publicar publica algo que não foi testado.
+`````
+
+`.sdd/tasks/ambientes-e-entrega-v1.0/ENTREGA-002-vps.md`:
+
+`````markdown
+# ENTREGA-002 — Preparação da VPS e dos dois ambientes
+
+- **Spec:** .sdd/specs/ambientes-e-entrega.spec.md (v1.0) · atende RF-06, RF-07, RF-08, RF-09
+- **Nível:** Sênior
+- **Agente:** dev-senior
+- **Status:** Pronta
+- **Depende de:** ENTREGA-001
+
+## Arquivos a criar/alterar
+
+- `infra/scripts/preparar-vps.sh`
+- `infra/scripts/gerar-env-servidor.sh` — segredos aleatórios, `REGISTRO` e SMTP para preencher
+- `infra/compose.homolog.yml`
+- `infra/caddy/compose.yml`
+- `infra/caddy/sites/producao.caddy`
+- `infra/caddy/sites/homolog.caddy`
+- `docs/vps.md`
+
+## Descrição técnica
+
+Um Caddy nas portas 80/443 ligado às redes `plataforma-cursos-producao` e `plataforma-cursos-homolog`; homologação e `<sub-adm>.<dominio>` restritos por `HOMOLOG_IPS` e `ADM_IPS`; homologação com `noindex`.
+
+## Restrições
+
+Prompt: `f01-08-vps.md`. IPs e senhas só no servidor.
+
+## Critérios de aceite
+
+- [ ] `shellcheck` sem avisos
+- [ ] e2e usando o mesmo `Caddyfile`
+
+## Armadilhas
+
+Senha básica no Caddy ocupa o cabeçalho `Authorization` do JWT.
+`````
+
+`.sdd/tasks/ambientes-e-entrega-v1.0/ENTREGA-003-deploy.md`:
+
+`````markdown
+# ENTREGA-003 — Deploy automático com volta
+
+- **Spec:** .sdd/specs/ambientes-e-entrega.spec.md (v1.0) · atende RF-03, RF-04, RF-05
+- **Nível:** Sênior
+- **Agente:** dev-senior
+- **Status:** Pronta
+- **Depende de:** ENTREGA-002
+
+## Arquivos a criar/alterar
+
+- `infra/scripts/deploy.sh` — `<producao|homolog> <sha>`, backup, `up --wait`, rollback, `flock`
+- `.github/workflows/deploy.yml` — um deploy por ambiente, nunca cancelado
+
+## Descrição técnica
+
+Push em `homolog` implanta a homologação; push em `main` implanta a produção com `DEPLOY_ATIVO=true`. A chave do deploy fica presa ao script no `authorized_keys`.
+
+## Restrições
+
+Prompt: `f01-09-deploy-automatico.md`. Secrets `VPS_*` só no GitHub.
+
+## Critérios de aceite
+
+- [ ] `shellcheck` e `actionlint` sem avisos
+- [ ] simulação local: versão boa sobe; versão quebrada volta
+
+## Armadilhas
+
+Deploy cancelado no meio deixa o ambiente entre duas versões.
+`````
+
+Acrescente ao fim da tabela do índice `.sdd/README.md` a linha:
+
+```text
+| [ambientes-e-entrega](specs/ambientes-e-entrega.spec.md) | 1.0 | [v1.0](tasks/ambientes-e-entrega-v1.0/README.md) | `f01-07-e2e-e-pipeline.md` |
+```
 
 Vamos testar a plataforma como caixa-preta, com a stack inteira no ar e as mesmas imagens que vão
 para os servidores, e ligar o pipeline do GitHub Actions. Siga o padrão da skill `criar-teste-e2e`.
@@ -523,7 +789,7 @@ src/e2e/resources/
   fica num teste só, com passos comentados.
 - Os usuários do seed são **só leitura**: logout, troca de senha e sessões são feitos com um
   usuário criado pela própria classe.
-- Identificador único com prefixo `e2e-`: `e2e-<stamp>@teste.celke.uno`.
+- Identificador único com prefixo `e2e-`: `e2e-<stamp>@teste.<dominio>`.
 
 ## Espera assíncrona
 
@@ -746,7 +1012,7 @@ services:
         condition: service_healthy
 
   api:
-    image: ${IMAGEM_API:-ghcr.io/celkecursos/plataforma-cursos-api}:${TAG:?defina TAG}
+    image: ${REGISTRO:?defina REGISTRO}/plataforma-cursos-api:${TAG:?defina TAG}
     restart: unless-stopped
     environment:
       <<: *app
@@ -763,7 +1029,7 @@ services:
       retries: 20
 
   worker:
-    image: ${IMAGEM_WORKER:-ghcr.io/celkecursos/plataforma-cursos-worker}:${TAG:?defina TAG}
+    image: ${REGISTRO:?defina REGISTRO}/plataforma-cursos-worker:${TAG:?defina TAG}
     restart: unless-stopped
     environment:
       <<: *app
@@ -874,6 +1140,8 @@ services:
 `````dotenv
 # Variáveis da stack de e2e. Valores só de teste (nenhum é usado em servidor): podem ficar no git.
 TAG=e2e
+# Registro das imagens: no e2e elas são construídas na hora (compose.e2e.yml)
+REGISTRO=local
 E2E_PORTA=8088
 E2E_MAILPIT_PORTA=8026
 
@@ -901,7 +1169,7 @@ SMTP_HOST=mailpit
 SMTP_PORT=1025
 SMTP_AUTH=false
 SMTP_STARTTLS=false
-EMAIL_REMETENTE=nao-responda@teste.celke.uno
+EMAIL_REMETENTE=nao-responda@teste.<dominio>
 
 SEED_E2E_SENHA='123456A#b123'
 `````
@@ -928,8 +1196,8 @@ import org.springframework.stereotype.Component;
 @Profile("e2e")
 public class SeedE2e implements ApplicationRunner {
 
-    public static final String ADMIN_EMAIL = "admin@celke.com.br";
-    public static final String ALUNO_EMAIL = "aluno@celke.com.br";
+    public static final String ADMIN_EMAIL = "admin@<dominio>";
+    public static final String ALUNO_EMAIL = "aluno@<dominio>";
 
     private final UsuarioService usuarioService;
     private final String senha;
@@ -980,8 +1248,8 @@ public final class E2eConfig {
     public static final String HOST_ALUNO = "aluno.localhost";
     public static final String HOST_ADM = "adm.localhost";
 
-    public static final String ADMIN_SEED = "admin@celke.com.br";
-    public static final String ALUNO_SEED = "aluno@celke.com.br";
+    public static final String ADMIN_SEED = "admin@<dominio>";
+    public static final String ALUNO_SEED = "aluno@<dominio>";
 
     private E2eConfig() {}
 
@@ -1060,7 +1328,7 @@ public final class Dados {
     }
 
     public static String email() {
-        return stamp() + "@teste.celke.uno";
+        return stamp() + "@teste.<dominio>";
     }
 }
 `````
@@ -1200,7 +1468,7 @@ class CadastroE2E {
 
         // 2. O worker consome a fila e entrega o e-mail com o link para a área do aluno
         Mailpit.EmailRecebido recebido = Mailpit.aguardar(email, "Confirme o seu e-mail");
-        assertThat(recebido.remetente()).isEqualTo("nao-responda@teste.celke.uno");
+        assertThat(recebido.remetente()).isEqualTo("nao-responda@teste.<dominio>");
         assertThat(recebido.html()).contains("http://aluno.localhost:8088/confirmar-email?token=");
 
         // 3. Antes de confirmar, a senha certa recebe a orientação de confirmar
@@ -1517,11 +1785,13 @@ Dentro de `backend/`:
 - Depois, na raiz: `docker compose -f infra/compose.prod.yml -f infra/compose.e2e.yml --env-file infra/e2e.env down -v`.
 - No GitHub, ao abrir um PR para `homolog`, os jobs `Testes (unitários e integração)` e
   `e2e (stack completa)` rodam e ficam verdes.
+- Com tudo verde, as tasks de `.sdd/tasks/ambientes-e-entrega-v1.0/` passam para `Status: Concluída` e os critérios de aceite
+  são marcados (`- [x]`).
 
 ## Depois de executar
 
 ```bash
-git add .github/ backend/ infra/
+git add .github/ backend/ infra/ .sdd/
 git commit -m "ci: adicionar testes e2e e pipeline no GitHub Actions"
 ```
 

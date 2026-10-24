@@ -3,7 +3,222 @@
 **Fase:** 18
 **Branch:** `feature/forum-anexos`
 
+> **Configuração do projeto:** troque os marcadores `<dominio>`, `<sub-site>`, `<sub-aluno>`,
+> `<sub-adm>`, `<sub-media>` e `<dono-github>` pelos valores de `docs/configuracao.md` (criado no
+> primeiro prompt) em todo o conteúdo deste prompt, inclusive nos testes. Se o arquivo não existir,
+> pergunte esses valores ao usuário antes de começar.
+
 ## Prompt
+
+### Especificação e tasks (SDD)
+
+Antes do código, registre a mudança no SDD. A spec `forum` sobe para a versão 1.1: substitua `.sdd/specs/forum.spec.md` pelo conteúdo abaixo e crie as tasks da versão nova em `.sdd/tasks/forum-v1.1/`, com **exatamente** este conteúdo (troque os marcadores pelos valores de `docs/configuracao.md`). As tasks das versões anteriores não mudam.
+
+`.sdd/specs/forum.spec.md`:
+
+`````markdown
+---
+feature: forum
+versao: 1.1
+status: aprovada
+autor: pm-spec-architect
+---
+
+# Fórum de dúvidas
+
+## 1. Resumo Executivo
+
+O aluno matriculado pergunta no fórum da turma ou de uma aula, outros alunos respondem e o instrutor
+responde pela moderação. O texto é escrito em Markdown e chega ao navegador já filtrado, sem nenhum
+HTML perigoso. Mensagens podem ter imagens.
+
+Entra: tópicos, respostas, imagens, moderação e limite de mensagens. Na versão 1.1, as imagens também
+podem ser anexadas e vistas nas telas do aluno e da moderação.
+
+## 2. Atores e Papéis
+
+| Ator | Pode |
+|---|---|
+| Aluno com matrícula vigente | Listar, perguntar, ver e responder tópicos visíveis da turma |
+| Administrador (instrutor) | Ver tudo (ocultos inclusive), ocultar, mostrar, fixar e responder como instrutor |
+
+## 3. Requisitos Funcionais
+
+- **RF-01** — O sistema DEVE manter tópicos da turma ou de uma aula da turma; tópico de aula excluída
+  passa a ser da turma.
+- **RF-02** — O sistema DEVE listar ao aluno os tópicos visíveis, fixados primeiro, com filtro por aula
+  e contagem de respostas.
+- **RF-03** — O sistema DEVE permitir perguntar e responder só com matrícula vigente na turma.
+- **RF-04** — O sistema DEVE converter o Markdown em HTML filtrado por lista fechada de elementos, sem
+  eventos, estilos, imagens embutidas ou quadros, com links marcados como externos não seguidos.
+- **RF-05** — O sistema DEVE aceitar até 3 imagens por mensagem, enviadas direto ao armazenamento,
+  conferindo que a chave é do próprio usuário e regravando-as sem metadados em até 1600 × 1600.
+- **RF-06** — O sistema DEVE permitir à moderação ocultar e mostrar tópicos, fixar tópicos, ocultar
+  respostas e responder como instrutor, marcando o tópico como respondido.
+- **RF-07** — O sistema DEVE tratar tópico ou resposta oculta como inexistente para o aluno.
+- **RF-08** — O sistema DEVE limitar cada aluno a 20 perguntas e respostas por hora, respondendo "muitas
+  requisições" até a mais antiga sair da janela.
+- **RF-09** — O sistema DEVE permitir ao aluno anexar imagens na pergunta e na resposta escolhendo,
+  arrastando ou colando um print, com prévia, remoção e progresso do envio.
+- **RF-10** — O sistema DEVE conferir tipo (JPEG ou PNG), tamanho (até 5 MB) e quantidade (até 3) em
+  todos os caminhos de escolha, antes de enviar.
+- **RF-11** — O sistema DEVE enviar as imagens ao armazenamento só ao publicar a mensagem; uma nova
+  tentativa envia de novo.
+- **RF-12** — O sistema DEVE mostrar as imagens publicadas na pergunta e nas respostas, para o aluno e
+  na moderação, com visualização em tela cheia.
+
+## 4. Modelo de Domínio
+
+- **Tópico:** turma, aula (opcional), autor, título, texto (Markdown e HTML filtrado), fixado, oculto,
+  respondido.
+- **Resposta:** tópico, autor, texto, de instrutor, oculta.
+- **Imagem:** tópico **ou** resposta, chave.
+
+## 5. Estados e Fluxos
+
+- Tópico: `aberto` → `respondido`; `visível` ⇄ `oculto`; `fixado` independente.
+- **Fluxo:** aluno pergunta → instrutor responde → aluno vê a resposta.
+
+## 6. Contratos de Interface
+
+| Operação | Entrada | Saída |
+|---|---|---|
+| Listar tópicos | turma, aula opcional | tópicos visíveis |
+| Perguntar | `titulo`, `texto`, `aulaId`, `anexos` | tópico |
+| Responder | `texto`, `anexos` | resposta |
+| Pedir envio de imagem | `contentType`, `tamanho` | endereço de envio e chave |
+| Moderar | ocultar, mostrar, fixar, responder como instrutor | item atualizado |
+
+As imagens publicadas saem por endereços temporários de `<sub-media>.<dominio>`.
+
+## 7. Casos de Borda
+
+- Texto com `<script>` ou `onerror`: guardado como texto, nunca executado.
+- Chave de imagem de outro usuário: recusada.
+- Aluno sem matrícula ou com matrícula vencida: 403.
+- 21ª mensagem na hora: 429 com o tempo de espera.
+- Imagem arrastada ou colada fora do tipo ou acima do tamanho: recusada na tela, sem envio.
+- Publicação que falha depois do envio: a imagem é enviada de novo na próxima tentativa.
+
+## 8. Premissas Validadas
+
+- O fórum é por turma; não há fórum geral da plataforma.
+
+## 9. Riscos
+
+- **XSS guardado:** duas camadas de filtro e só o HTML filtrado sai na resposta.
+- **Spam:** limite por aluno e moderação.
+`````
+
+`.sdd/tasks/forum-v1.1/README.md`:
+
+`````markdown
+# Tasks — Fórum de dúvidas (v1.1)
+
+Spec: [`.sdd/specs/forum.spec.md`](../../specs/forum.spec.md) · versão 1.1 · prompt do tutorial `docs/prompts-iniciais/f18-01-anexos-no-forum.md`.
+
+| Ordem | ID | Título | Nível | Depende de |
+|---|---|---|---|---|
+| 1 | [FORUM-005](FORUM-005-campo-imagens.md) | Campo de imagens com escolher, arrastar e colar | Pleno | — |
+| 2 | [FORUM-006](FORUM-006-envio-e-galeria.md) | Envio ao publicar e galeria | Pleno | FORUM-005 |
+
+## Grafo
+
+```
+FORUM-005 (início)
+FORUM-005 → FORUM-006
+```
+
+## RF → tasks
+
+| RF | Tasks |
+|---|---|
+| RF-09 | FORUM-005 |
+| RF-10 | FORUM-005 |
+| RF-11 | FORUM-006 |
+| RF-12 | FORUM-006 |
+
+## Resumo por nível
+
+- Pleno: 2
+`````
+
+`.sdd/tasks/forum-v1.1/FORUM-005-campo-imagens.md`:
+
+`````markdown
+# FORUM-005 — Campo de imagens com escolher, arrastar e colar
+
+- **Spec:** .sdd/specs/forum.spec.md (v1.1) · atende RF-09, RF-10
+- **Nível:** Pleno
+- **Agente:** dev-pleno
+- **Status:** Pronta
+- **Depende de:** —
+
+## Arquivos a criar/alterar
+
+- `web/compartilhado/src/ui/CampoImagens.tsx`
+- `web/compartilhado/src/ui/imagens.ts`
+- `web/aluno/src/paginas/forum/useImagensMensagem.ts`
+
+## Descrição técnica
+
+Prévia, remoção e progresso; tipo, tamanho e quantidade conferidos em todos os caminhos.
+
+## Restrições
+
+O `accept` do seletor não filtra arrastar e colar.
+
+## Critérios de aceite
+
+- [ ] Vitest do campo verde
+
+## Armadilhas
+
+Conferir só no seletor de arquivo.
+`````
+
+`.sdd/tasks/forum-v1.1/FORUM-006-envio-e-galeria.md`:
+
+`````markdown
+# FORUM-006 — Envio ao publicar e galeria
+
+- **Spec:** .sdd/specs/forum.spec.md (v1.1) · atende RF-11, RF-12
+- **Nível:** Pleno
+- **Agente:** dev-pleno
+- **Status:** Pronta
+- **Depende de:** FORUM-005
+
+## Arquivos a criar/alterar
+
+- `web/compartilhado/src/ui/GaleriaImagens.tsx`
+- `web/aluno/src/paginas/forum/TopicoPagina.tsx`
+- `web/aluno/src/paginas/forum/ForumLista.tsx`
+- `web/adm/src/paginas/turma/ForumAba.tsx`
+
+## Descrição técnica
+
+Envia as imagens só ao publicar; mostra as publicadas com visualização em tela cheia.
+
+## Critérios de aceite
+
+- [ ] `web/e2e/aluno/forum.spec.ts` (caminho feliz e infeliz) verde
+
+## Armadilhas
+
+Reaproveitar a chave de uma tentativa que falhou: a API já apagou o envio.
+`````
+
+No índice `.sdd/README.md`, troque a linha
+
+```text
+| [forum](specs/forum.spec.md) | 1.0 | [v1.0](tasks/forum-v1.0/README.md) | `f07-01-forum.md` |
+```
+
+por
+
+```text
+| [forum](specs/forum.spec.md) | 1.1 | [v1.0](tasks/forum-v1.0/README.md) · [v1.1](tasks/forum-v1.1/README.md) | `f07-01-forum.md` · `f18-01-anexos-no-forum.md` |
+```
 
 Vamos completar o fórum de dúvidas: o backend recebe imagens nas perguntas e respostas desde a Fase 7,
 mas a área do aluno não tinha onde anexá-las e nem o aluno nem a moderação viam as imagens publicadas.
@@ -91,7 +306,7 @@ capítulo.
   - Funcionalidades que vêm do CLMS legado: cursos, turmas, módulos, aulas em vídeo, matrícula, progresso, arquivos de apoio, fórum, certificado, perfil e termos.
   - O que fica de fora: LeadLovers, automação de e-mail, clube de desafios. A venda pela Hotmart entra no fim, na Parte 10, numa estrutura que aceita outros meios de pagamento.
   - Arquitetura: uma VPS da Hostinger (2 vCPU, 8 GB, 100 GB NVMe) com tudo em Docker — Caddy (HTTPS e roteamento), API e worker Spring Boot, PostgreSQL 18 e Garage (S3) — servindo produção e uma homologação leve.
-  - Domínios, todos subdomínios de `celke.uno` (o domínio principal pertence a outras aplicações): `cursos.` (site), `aluno.`, `adm.` e `media.`, e os equivalentes `homolog-*`.
+  - Domínios, todos subdomínios de `<dominio>` (o domínio principal pertence a outras aplicações): `cursos.` (site), `aluno.`, `adm.` e `media.`, e os equivalentes `homolog-*`.
   - Fluxo do vídeo: upload direto ao Garage → worker com ffmpeg → HLS → playlist assinada pela API.
   - Modelo de dados enxuto: usuário, papel, curso, turma, módulo, aula, matrícula, vídeo, progresso, fórum, certificado, termo.
 - **Entrega:** diagrama da arquitetura e lista de funcionalidades.
@@ -102,7 +317,7 @@ capítulo.
 
 - **Objetivo:** deixar o repositório pronto para o fluxo de PRs com testes e deploy.
 - **Conteúdo:**
-  - Repositório `celkecursos/plataforma-cursos` com README e `.gitignore` (segredos, `target/`, `node_modules/`).
+  - Repositório `<dono-github>/plataforma-cursos` com README e `.gitignore` (segredos, `target/`, `node_modules/`).
   - Branches: `main` (produção), `homolog` (homologação), `feature/nome` e `fix/nome` temporárias, `hotfix/nome` a partir da `main`.
   - A `main` recebe código só da `homolog`; alteração reprovada na homologação é desfeita com `git revert`; depois de um hotfix, merge da `main` de volta na `homolog`.
   - Exclusão automática da branch após o merge; environments `homolog` e `production` no GitHub.
@@ -190,7 +405,7 @@ capítulo.
 - **Conteúdo:**
   - Access token de 10 minutos no corpo da resposta, guardado pelo frontend só em memória.
   - Refresh token opaco, com o hash salvo no banco e rotação a cada uso. Se um refresh já usado reaparecer, toda a família de tokens é revogada.
-  - Cookie `HttpOnly; Secure; SameSite=Strict; Path=/api/auth`, **sem `Domain`**, para não ser enviado às outras aplicações de `celke.uno`.
+  - Cookie `HttpOnly; Secure; SameSite=Strict; Path=/api/auth`, **sem `Domain`**, para não ser enviado às outras aplicações de `<dominio>`.
   - JWT assinado e validado pelo Resource Server do Spring Security: só HS256, emissor e validade conferidos.
   - Login com a mesma resposta e o mesmo tempo para e-mail inexistente e senha errada.
   - Logout e "sair de todos os dispositivos"; `login()`, `bearer()` e `criarUsuario()` no `IntegrationTest`.
@@ -216,7 +431,7 @@ capítulo.
 - **Conteúdo:**
   - Limite por IP com Bucket4j em login e refresh, num filtro que roda antes da segurança e conta até as requisições inválidas; 429 com `Retry-After`.
   - Bloqueio temporário após falhas seguidas: 5 por e-mail + IP (o dono ainda entra de outro lugar) e 20 por e-mail vindas de qualquer IP; verificado antes de calcular o hash.
-  - Proteção CSRF no refresh e no logout: `Origin` e `Sec-Fetch-Site` conferidos, porque outras aplicações em `*.celke.uno` são o mesmo site para o navegador e o `SameSite=Strict` não as barra.
+  - Proteção CSRF no refresh e no logout: `Origin` e `Sec-Fetch-Site` conferidos, porque outras aplicações em `*.<dominio>` são o mesmo site para o navegador e o `SameSite=Strict` não as barra.
   - Auditoria de login: resultado, IP e user-agent de toda tentativa, gravada mesmo quando o login falha.
   - IP real do cliente atrás do proxy: `X-Forwarded-For` aceito só de proxy interno (`forward-headers-strategy: native`).
   - Sem CORS na API: o Caddy serve front e API na mesma origem.
@@ -232,7 +447,7 @@ capítulo.
   - Cadastro com conta pendente e link de confirmação válido por 48 horas; login só depois de confirmar.
   - Recuperação de senha com link de 1 hora; a nova senha encerra todas as sessões e também confirma o e-mail.
   - Tokens de uso único com só o hash no banco; um link novo invalida o anterior.
-  - E-mails pela fila, montados com Thymeleaf e enviados pelo worker: Mailpit no desenvolvimento, Iagente nos servidores (remetente de `celke.uno` com SPF e DKIM).
+  - E-mails pela fila, montados com Thymeleaf e enviados pelo worker: Mailpit no desenvolvimento, Iagente nos servidores (remetente de `<dominio>` com SPF e DKIM).
   - Healthcheck do worker por arquivo de batimento, para o compose e o deploy saberem que ele subiu.
 - **Segurança:**
   - Cadastro, reenvio e recuperação respondem sempre o mesmo, exista ou não a conta; quem descobre o que aconteceu é o dono da caixa, pelo e-mail que recebe.
@@ -287,7 +502,7 @@ capítulo.
   - Homologação restrita por IP e com `noindex` (senha do Caddy não serve: ocuparia o cabeçalho `Authorization` do JWT); `adm.` de produção restrito por IP.
   - Headers no Caddy: HSTS sem `includeSubDomains`, `X-Content-Type-Options`, `Referrer-Policy`, sem `Server`; `lb_try_duration` para a API reiniciar sem erro 502.
   - Limites de memória e CPU por container (produção: API 1 GB, worker 2 GB e 1,5 CPU, PostgreSQL 1 GB, Garage 768 MB; homologação menor, com o worker em meia CPU) e `-Xmx` de acordo.
-- **Entrega:** `homolog-aluno.celke.uno/api` e `aluno.celke.uno/api` respondendo com HTTPS.
+- **Entrega:** `homolog-<sub-aluno>.<dominio>/api` e `<sub-aluno>.<dominio>/api` respondendo com HTTPS.
 
 ### Cap. 14 — Deploy automático com rollback
 
@@ -387,7 +602,7 @@ capítulo.
 
 - **Objetivo:** enviar vídeos grandes sem passar pela API.
 - **Conteúdo:**
-  - O ADM pede URLs pré-assinadas de upload multipart, e o navegador envia direto para `media.celke.uno` (prefixo `uploads/` do bucket `midia`).
+  - O ADM pede URLs pré-assinadas de upload multipart, e o navegador envia direto para `<sub-media>.<dominio>` (prefixo `uploads/` do bucket `midia`).
   - A API valida tipo e tamanho antes de assinar.
 - **Segurança:** depois do upload, a API confere o tamanho e o tipo real do arquivo antes de enfileirar.
 - **Testes:** upload multipart contra o Garage do Testcontainers; arquivo com extensão falsa rejeitado.
@@ -558,9 +773,9 @@ Fica antes do frontend porque precisa estar pronta antes de entrarem dados reais
   - Client HTTP com token em memória, refresh silencioso e fila de requisições durante o refresh; proteção de rotas por papel; tratamento de termo pendente.
   - Telas de login, cadastro, confirmação de e-mail e recuperação de senha.
   - Imagem `web`: build dos fronts + Caddy servindo `/srv/site`, `/srv/aluno` e `/srv/adm`; proxy do Vite `/api` no desenvolvimento.
-- **Segurança:** CSP (`connect-src 'self' https://media.celke.uno`), `X-Frame-Options`, cache longo nos assets com hash e sem cache no `index.html`.
+- **Segurança:** CSP (`connect-src 'self' https://<sub-media>.<dominio>`), `X-Frame-Options`, cache longo nos assets com hash e sem cache no `index.html`.
 - **Testes:** Vitest + Testing Library; Playwright no pipeline (login do aluno e do admin, aluno barrado no ADM, logout).
-- **Entrega:** login funcionando em `aluno.celke.uno` e `adm.celke.uno`.
+- **Entrega:** login funcionando em `<sub-aluno>.<dominio>` e `<sub-adm>.<dominio>`.
 
 ### Cap. 34 — ADM
 
@@ -586,7 +801,7 @@ Fica antes do frontend porque precisa estar pronta antes de entrarem dados reais
 
 - **Objetivo:** vitrine pública rápida e bem indexada.
 - **Conteúdo:**
-  - Pré-renderização estática (cada página vira um HTML) em `cursos.celke.uno`, gerada pelo container `site` a partir da API do próprio ambiente ao subir e a cada 5 minutos.
+  - Pré-renderização estática (cada página vira um HTML) em `<sub-site>.<dominio>`, gerada pelo container `site` a partir da API do próprio ambiente ao subir e a cada 5 minutos.
   - Home, catálogo, página do curso, validar certificado e páginas legais.
   - Layout novo com os mesmos tokens visuais da `@celke/kole-react`.
   - SEO: meta tags, Open Graph, sitemap, `robots.txt`.
@@ -722,29 +937,30 @@ com a `@celke/kole-react` instalada do GitHub (commit fixo no `package.json`).
 - ❌ Versionamento, ACLs e bucket policies. Não fazem falta: o bucket é privado e o acesso é por chave com permissão por bucket.
 - Um bucket privado `midia`, com os prefixos `uploads/` (originais enviados) e `videos/` (HLS e thumbnails). O próprio Garage cria o bucket e a chave da aplicação na primeira subida (`--default-bucket`); a expiração de uploads abandonados é feita por prefixo.
 
-### Domínios (somente subdomínios de `celke.uno`)
+### Domínios (somente subdomínios de `<dominio>`)
 
-O domínio principal `celke.uno` já é usado por outras aplicações e não será tocado.
+O domínio principal `<dominio>` pode ter outras aplicações e não é tocado: o projeto usa só os subdomínios abaixo.
 
 | Produção | Homologação | Serve |
 |---|---|---|
-| `cursos.celke.uno` | `homolog-cursos.celke.uno` | site |
-| `aluno.celke.uno` | `homolog-aluno.celke.uno` | SPA do aluno + `/api` |
-| `adm.celke.uno` | `homolog-adm.celke.uno` | SPA do ADM + `/api` (restrito por IP) |
-| `media.celke.uno` | `homolog-media.celke.uno` | Garage (subdomínio próprio: a assinatura depende do host) |
+| `<sub-site>.<dominio>` | `homolog-<sub-site>.<dominio>` | site |
+| `<sub-aluno>.<dominio>` | `homolog-<sub-aluno>.<dominio>` | SPA do aluno + `/api` |
+| `<sub-adm>.<dominio>` | `homolog-<sub-adm>.<dominio>` | SPA do ADM + `/api` (restrito por IP) |
+| `<sub-media>.<dominio>` | `homolog-<sub-media>.<dominio>` | Garage (subdomínio próprio: a assinatura depende do host) |
 
 > Nomes propostos — confirmar que nenhum desses subdomínios já está em uso antes da etapa 1.8 (VPS).
 
 Cuidados por dividir o domínio com outras aplicações:
 
-- Cookies **sem** atributo `Domain` (cookie só do host). Com `Domain=celke.uno`, todas as outras aplicações dos subdomínios receberiam o refresh token.
-- A CSP e o CORS do Garage listam os subdomínios exatos, nunca `*.celke.uno`.
-- HSTS sem `includeSubDomains`, a não ser que todas as aplicações de `celke.uno` já usem HTTPS.
+- Cookies **sem** atributo `Domain` (cookie só do host). Com `Domain=<dominio>`, todas as outras aplicações dos subdomínios receberiam o refresh token.
+- A CSP e o CORS do Garage listam os subdomínios exatos, nunca `*.<dominio>`.
+- HSTS sem `includeSubDomains`, a não ser que todas as aplicações de `<dominio>` já usem HTTPS.
 
 ### SMTP Iagente
 
+- Conta: cadastro pelo link https://celke.com.br/page/iagente, que dá alguns e-mails gratuitos para enviar.
 - Host, porta e credenciais vêm do painel da Iagente (porta 587 com STARTTLS é o padrão esperado; confirmar no painel).
-- Remetente: endereço de `celke.uno` com SPF e DKIM configurados na Iagente.
+- Remetente: endereço de `<dominio>` com SPF e DKIM configurados na Iagente.
 - Credenciais só no `.env` de cada ambiente. Homologação com remetente identificado ("[HOMOLOG]") ou envio restrito a e-mails de teste.
 - No dev e no e2e: Mailpit no compose (captura os e-mails sem enviar).
 
@@ -862,7 +1078,7 @@ Definição de pronto de **todo** PR:
 
 ### Fase 0 — Preparação (sem branch)
 
-- [x] Criar repositório `celkecursos/plataforma-cursos` no GitHub
+- [x] Criar repositório `<dono-github>/plataforma-cursos` no GitHub
 - [x] Primeiro commit na `main` (README, `.gitignore`, `docs/`)
 - [x] Criar `homolog` a partir da `main`
 - [x] Orientações para agentes de IA em `.claude/`: rules por caminho (segurança, fronts, testes, prompts),
@@ -870,8 +1086,8 @@ Definição de pronto de **todo** PR:
   `/revisar-dod` e o pipeline SDD com portões humanos
 - [ ] Regras de proteção em `main` e `homolog`: só PR, checks obrigatórios (ativar quando o pipeline existir)
 - [ ] Environments `homolog` e `production` com seus secrets
-- [ ] Confirmar os subdomínios livres em `celke.uno`
-- [ ] Obter host, porta e credenciais SMTP no painel da Iagente; configurar SPF/DKIM
+- [ ] Confirmar os subdomínios livres em `<dominio>`
+- [ ] Criar a conta na Iagente (https://celke.com.br/page/iagente, com alguns e-mails gratuitos), obter host, porta e credenciais SMTP no painel e configurar SPF/DKIM
 
 ---
 
@@ -940,7 +1156,7 @@ deploy automático. Depois desta fase, toda funcionalidade nova segue o fluxo no
 - [x] `SecurityFilterChain` nega tudo por padrão; rotas públicas declaradas com método HTTP; papéis do token + `@PreAuthorize` (matriz de papéis testada)
 - [x] Limite por IP com Bucket4j nas rotas de autenticação (`LimitePorIpFilter`): conta toda requisição, roda antes da segurança, 429 em ProblemDetail com `Retry-After`
 - [x] Bloqueio temporário por falhas seguidas: 5 por e-mail + IP e 20 por e-mail (qualquer IP), 15 min, contadores zerados por login correto ou após 1 h sem falhas; verificado antes de calcular o hash
-- [x] Refresh e logout: verificação de `Origin` e `Sec-Fetch-Site` (CSRF), porque outras aplicações em `*.celke.uno` contam como o mesmo site; origens em `AUTH_ORIGENS`
+- [x] Refresh e logout: verificação de `Origin` e `Sec-Fetch-Site` (CSRF), porque outras aplicações em `*.<dominio>` contam como o mesmo site; origens em `AUTH_ORIGENS`
 - [x] Auditoria de login (`auditoria_login`): resultado, IP e user-agent de toda tentativa, em transação própria
 - [x] `server.forward-headers-strategy: native`: `X-Forwarded-For` aceito só de proxy interno e lido da direita para a esquerda
 - [x] Erros que nascem em filtros escritos por `ProblemDetailJson` (mesmo formato do handler global)
@@ -979,7 +1195,7 @@ deploy automático. Depois desta fase, toda funcionalidade nova segue o fluxo no
   - `adm.` de produção restrito por IP (`ADM_IPS`)
   - HSTS sem `includeSubDomains`, `X-Content-Type-Options`, `Referrer-Policy`, sem `Server`, `lb_try_duration`; `X-Forwarded-For` substituído pelo IP real
 - [x] e2e usando o mesmo `Caddyfile` com `caddy/e2e.caddy`
-- [x] `infra/scripts/gerar-env-servidor.sh`: `.env` de cada ambiente com segredos aleatórios e diferentes, hosts de `celke.uno`, SMTP para preencher
+- [x] `infra/scripts/gerar-env-servidor.sh`: `.env` de cada ambiente com segredos aleatórios e diferentes, hosts de `<dominio>`, SMTP para preencher
 - [x] Roteiro `docs/vps.md`: painel, DNS, chaves, preparação, cópia dos arquivos, `.env`, GHCR, primeira subida, verificação
 - [ ] Executar o roteiro na VPS (painel, DNS dos seis subdomínios, preparação, `.env`, login no GHCR)
 - [ ] Primeira subida dos dois ambientes e do Caddy, com as imagens publicadas pelo deploy automático (1.9)
@@ -1005,8 +1221,8 @@ Limites de recursos:
 - [ ] Secrets `VPS_HOST`, `VPS_SSH_KEY` e `VPS_KNOWN_HOSTS` e variável `DEPLOY_ATIVO=true` no repositório (conta dona) e, se o plano permitir, aprovação obrigatória no environment `production`
 - [ ] Primeiro deploy nos dois ambientes pelo pipeline; Caddy no ar; administrador criado em cada um
 
-**Pronto quando:** cadastro, login e logout funcionando pela API em `homolog-aluno.celke.uno/api` e
-`aluno.celke.uno/api`, e-mail chegando pela Iagente, pipeline completo verde e um rollback testado de propósito.
+**Pronto quando:** cadastro, login e logout funcionando pela API em `homolog-<sub-aluno>.<dominio>/api` e
+`<sub-aluno>.<dominio>/api`, e-mail chegando pela Iagente, pipeline completo verde e um rollback testado de propósito.
 
 ---
 
@@ -1213,7 +1429,7 @@ Capítulo 35.
 Capítulo 36.
 
 - [x] Layout novo com os tokens da `@celke/kole-react` (HTML estático, sem JavaScript de layout)
-- [x] Pré-renderização estática (uma página HTML por rota) em `cursos.celke.uno`: o container `site` gera ao subir e a cada `SITE_INTERVALO` (padrão 5 min) a partir da API do próprio ambiente, com troca atômica da versão; a mesma imagem serve homologação e produção
+- [x] Pré-renderização estática (uma página HTML por rota) em `<sub-site>.<dominio>`: o container `site` gera ao subir e a cada `SITE_INTERVALO` (padrão 5 min) a partir da API do próprio ambiente, com troca atômica da versão; a mesma imagem serve homologação e produção
 - [x] Home, catálogo, página do curso, validar certificado, termos, privacidade, 404
 - [x] SEO: meta tags, canônico, Open Graph, dados estruturados (Course), sitemap, `robots.txt` (homologação fora dos buscadores)
 - [x] Meta de Lighthouse no CI (desktop): desempenho ≥ 90, acessibilidade ≥ 95, boas práticas ≥ 95, SEO ≥ 90 em todas as páginas
@@ -3053,11 +3269,13 @@ git switch -c feature/forum-anexos
   print; as imagens aparecem na pergunta e na resposta e abrem ampliadas; um GIF e a quarta imagem são
   recusados na tela.
 - No ADM, Turma → Fórum: o tópico mostra as imagens da pergunta e da resposta.
+- Com tudo verde, as tasks de `.sdd/tasks/forum-v1.1/` passam para `Status: Concluída` e os critérios de aceite
+  são marcados (`- [x]`).
 
 ## Depois de executar
 
 ```bash
-git add web/ docs/
+git add web/ docs/ .sdd/
 git commit -m "feat(forum): imagens nas perguntas e respostas do fórum"
 git push -u origin feature/forum-anexos
 ```
