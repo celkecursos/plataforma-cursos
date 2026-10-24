@@ -17,6 +17,8 @@ código.
 - **Contexto do produto:** leia `README.md` e `docs/plano-implementacao.md` para usar os mesmos termos
   do domínio (curso, turma, matrícula, aula, oferta, pedido…) e não especificar o que já existe.
 - **Portão:** pergunte explicitamente se o usuário aprova antes de qualquer avanço.
+- **Valores do projeto:** use os de `docs/configuracao.md` (domínio, subdomínios, e-mails, dono do
+  repositório) nos contratos e nas premissas. Senha, token, chave e IP nunca entram na spec.
 
 ## Passos
 
@@ -25,7 +27,7 @@ código.
    conflitos com regras que já existem (acesso ao conteúdo, pagamentos, LGPD, auditoria), volume.
    Desafie a complexidade: se parece grande demais, proponha a versão menor que resolve.
 3. **Premissas e riscos:** liste e espere a confirmação **antes** de redigir.
-4. **Redija** no modelo abaixo e salve.
+4. **Redija** no modelo abaixo, salve e acrescente a spec ao índice `.sdd/README.md`.
 5. **Pare** e pergunte: _"Esta é a especificação baseada na nossa conversa. Revise cada seção (comente
    ou peça alterações). Você aprova?"_ Só depois de um "sim" explícito informe:
    `/gerar-tasks .sdd/specs/<slug>.spec.md`.
