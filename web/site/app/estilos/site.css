@@ -180,6 +180,15 @@ h3 {
   text-decoration: none;
 }
 
+.s-marca-logo {
+  flex: none;
+  color: var(--acento);
+}
+
+.s-rodape .s-marca-logo {
+  color: var(--acento-claro);
+}
+
 .s-menu {
   display: flex;
   flex-wrap: wrap;
