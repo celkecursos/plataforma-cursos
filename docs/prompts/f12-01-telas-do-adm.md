@@ -3785,7 +3785,7 @@ test('admin cria um curso completo e envia o vídeo da aula até ficar pronto', 
   await expect(page.getByText('Na fila').or(page.getByText('Processando'))).toBeVisible();
   await expect(page.getByText('Pronto', { exact: true })).toBeVisible({ timeout: 150_000 });
   await expect(page.getByRole('img', { name: 'Quadro do vídeo' })).toBeVisible();
-  await expect(page.getByText('0:03')).toBeVisible();
+  await expect(page.getByText('0:03', { exact: true })).toBeVisible();
 
   // Arquivo de apoio da aula
   const arquivosAula = page.getByRole('region', { name: 'Arquivos de apoio da aula' });

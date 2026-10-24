@@ -1981,14 +1981,29 @@ tar -C /opt/plataforma-cursos/producao/versoes/<sha> -cz compose.prod.yml garage
 
 O rollback não desfaz migrations: por isso toda migration precisa ser compatível com a versão anterior.
 
-**Atualizar o Caddy** (é compartilhado pelos dois ambientes, então não entra no deploy automático):
-copie os arquivos novos de `infra/caddy/` (`Caddyfile` e `sites/`) para `/opt/plataforma-cursos/caddy/`
-e, como `deploy`:
+**Atualizar o Caddy** (é compartilhado pelos dois ambientes, então não entra no deploy automático).
+Do seu computador, na raiz do repositório, com a `main` atualizada (`git switch main && git pull`): os
+arquivos têm que ser os da versão no ar, não os de uma branch de trabalho antiga. Como na etapa 5, o
+`scp` roda no seu computador; o `deploy` não tem terminal e `/opt/plataforma-cursos` só ele lê, por isso
+a cópia passa pelo `/tmp` do administrador e o `docker compose` roda com `sudo -u deploy`:
 
 ```bash
-cd /opt/plataforma-cursos
-docker compose -f caddy/compose.yml --env-file caddy/.env --project-directory caddy up -d --force-recreate
+VPS=cesar@<ip-da-vps>
+ssh $VPS 'rm -rf /tmp/caddy && mkdir -p /tmp/caddy/sites'
+scp infra/caddy/compose.yml infra/caddy/Caddyfile $VPS:/tmp/caddy/
+scp infra/caddy/sites/producao.caddy infra/caddy/sites/homolog.caddy $VPS:/tmp/caddy/sites/
+ssh -t $VPS 'C=/opt/plataforma-cursos/caddy \
+  && sudo cp -p $C/Caddyfile $C/Caddyfile.bak-$(date +%F-%H%M) \
+  && sudo cp -r /tmp/caddy/. $C/ && sudo chown -R deploy:deploy $C && rm -rf /tmp/caddy \
+  && sudo -u deploy docker compose -f $C/compose.yml --env-file $C/.env --project-directory $C up -d --force-recreate'
+curl -s https://aluno.celke.uno/actuator/health   # {"groups":[...],"status":"UP"}
 ```
+
+O `Caddyfile` anterior fica em `caddy/Caddyfile.bak-<data>`; para voltar, copie-o por cima do
+`Caddyfile` e rode de novo o `docker compose ... up -d --force-recreate`. Sem SSH do seu computador (só
+o terminal do navegador da Hostinger, como root), o repositório privado não pode ser baixado na VPS:
+edite `/opt/plataforma-cursos/caddy/Caddyfile` lá mesmo, igual ao `infra/caddy/Caddyfile` da `main`, e
+rode o mesmo `docker compose` com `sudo -u deploy`.
 
 **Site público (Fase 14):** além do DNS de `cursos` e `homolog-cursos` (etapa 2), o `caddy/.env`
 precisa de `PRODUCAO_HOST_SITE` e `HOMOLOG_HOST_SITE` (veja `infra/caddy/.env.example`). O endereço
