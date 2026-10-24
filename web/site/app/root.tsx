@@ -20,7 +20,6 @@ import { NOME, type Contexto } from './seo.ts';
 
 export const links: LinksFunction = () => [
   { rel: 'icon', href: '/favicon.ico', sizes: '32x32' },
-  { rel: 'icon', href: '/icone.svg', type: 'image/svg+xml' },
   { rel: 'stylesheet', href: tokens },
   { rel: 'stylesheet', href: estilos },
 ];
