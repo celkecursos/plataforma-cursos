@@ -5,6 +5,8 @@ services:
     environment:
       JAVA_TOOL_OPTIONS: -Xmx384m
       DOCS_ENABLED: "true"
+      # Seis cursos publicados para ver o site e a área do aluno com conteúdo (CursosExemplo)
+      CURSOS_EXEMPLO: "true"
     deploy:
       resources:
         limits:
