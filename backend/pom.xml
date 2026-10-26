@@ -5,7 +5,7 @@
 	<parent>
 		<groupId>org.springframework.boot</groupId>
 		<artifactId>spring-boot-starter-parent</artifactId>
-		<version>4.1.1</version>
+		<version>4.1.2</version>
 		<relativePath/>
 	</parent>
 	<groupId>br.com.celke</groupId>
@@ -25,12 +25,12 @@
 		<jackson-bom.version>3.1.7</jackson-bom.version>
 		<jackson-2-bom.version>2.21.7</jackson-2-bom.version>
 		<springdoc.version>3.1.1</springdoc.version>
-		<aws-sdk.version>2.57.1</aws-sdk.version>
+		<aws-sdk.version>2.57.3</aws-sdk.version>
 		<bouncycastle.version>1.86</bouncycastle.version>
 		<bucket4j.version>8.21.0</bucket4j.version>
-		<commonmark.version>0.30.0</commonmark.version>
+		<commonmark.version>0.31.0</commonmark.version>
 		<owasp-html-sanitizer.version>20260924.2</owasp-html-sanitizer.version>
-		<openhtmltopdf.version>1.1.87</openhtmltopdf.version>
+		<openhtmltopdf.version>1.1.100</openhtmltopdf.version>
 		<rest-assured.version>6.2.0</rest-assured.version>
 		<spotless.version>3.10.4</spotless.version>
 		<palantir-java-format.version>2.102.0</palantir-java-format.version>
