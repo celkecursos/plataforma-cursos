@@ -322,10 +322,8 @@ jobs:
           cache: npm
           cache-dependency-path: web/package-lock.json
 
-      # O lock guarda o kole-react como git+ssh; o repositório é público e vem por HTTPS
       - name: Dependências
         run: |
-          git config --global url."https://github.com/".insteadOf "ssh://git@github.com/"
           npm ci --no-audit --no-fund
 
       - run: npm run format:check
@@ -449,7 +447,6 @@ jobs:
       - name: Jornadas e2e dos fronts (Playwright)
         working-directory: web
         run: |
-          git config --global url."https://github.com/".insteadOf "ssh://git@github.com/"
           npm ci --no-audit --no-fund
           npx playwright install --with-deps chromium
           npm run e2e
@@ -1535,10 +1532,6 @@ volumes:
 # O Caddy da VPS manda /api para a API e o resto para o container web.
 
 FROM node:24.11-bookworm-slim AS build
-RUN apt-get update -q && apt-get install -y -q --no-install-recommends git ca-certificates \
-    && rm -rf /var/lib/apt/lists/*
-# O lock guarda o kole-react como git+ssh; o repositório é público e é baixado por HTTPS
-RUN git config --global url."https://github.com/".insteadOf "ssh://git@github.com/"
 WORKDIR /web
 COPY package.json package-lock.json ./
 RUN npm ci --no-audit --no-fund
@@ -1564,6 +1557,8 @@ HEALTHCHECK --interval=5s --timeout=3s --start-period=60s --retries=20 \
 CMD ["node", "site/gerar.ts"]
 
 FROM caddy:2.11.7-alpine AS web
+# Correções do sistema publicadas depois da imagem base
+RUN apk upgrade --no-cache
 COPY Caddyfile /etc/caddy/Caddyfile
 COPY --from=build /web/dist/aluno /srv/aluno
 COPY --from=build /web/dist/adm /srv/adm
@@ -1868,7 +1863,7 @@ export default tseslint.config(
     "lighthouse": "node e2e/lighthouse.ts"
   },
   "dependencies": {
-    "@celke/kole-react": "github:celkecursos/kole-react#fc87d5c4409e1e65e8c571321c08d56871d2a4d3",
+    "@celke/kole-react": "^0.1.0",
     "hls.js": "^1.7.3",
     "lucide-react": "^1.61.0",
     "react": "^19.3.1",

@@ -8,7 +8,7 @@ cada fase vira uma branch e um ou mais capítulos.
 na ordem do índice, eles recriam o projeto do zero.
 
 **Ordem de trabalho:** primeiro todo o backend (com infraestrutura, CI e deploy), depois o frontend,
-com a `@celke/kole-react` instalada do GitHub (commit fixo no `package.json`).
+com a `@celke/kole-react` instalada do npm (versão no `package.json`).
 
 ---
 
@@ -24,7 +24,7 @@ com a `@celke/kole-react` instalada do GitHub (commit fixo no `package.json`).
 | Acesso ao S3 | Somente AWS SDK v2 com path-style; trocar de servidor = trocar endpoint no `.env` |
 | Vídeo | Upload direto por URL pré-assinada → ffmpeg → HLS 720p + 1080p → playlist reescrita pela API com segmentos assinados |
 | E-mail | **SMTP da Iagente** |
-| Frontend | Pacote único em `web/` com `aluno`, `adm` e o gerador do `site`; `@celke/kole-react` instalada **do GitHub** com commit fixo |
+| Frontend | Pacote único em `web/` com `aluno`, `adm` e o gerador do `site`; `@celke/kole-react` instalada **do npm** |
 | Hospedagem | Tudo em Docker na VPS (2 vCPU, 8 GB, 100 GB NVMe); Caddy com HTTPS automático serve os fronts e faz proxy de `/api` |
 | Ambientes | Produção + homologação leve na mesma VPS |
 | Branches | `main` (produção), `homolog` (homologação), `feature/nome` e `fix/nome` temporárias, `hotfix/nome` a partir da `main` |
@@ -483,8 +483,8 @@ e-mail e o pipeline barra imagens com vulnerabilidade crítica conhecida.
 
 ## Bloco B — Frontend
 
-**Biblioteca de layout:** `@celke/kole-react`, instalada do GitHub (`github:celkecursos/kole-react`)
-com o commit fixo no `package.json`. Ela traz a moldura (`Estrutura`, `TelaLogin`), formulários,
+**Biblioteca de layout:** `@celke/kole-react`, instalada do npm com a versão
+no `package.json`. Ela traz a moldura (`Estrutura`, `TelaLogin`), formulários,
 tabelas e feedback. Os componentes próprios da área do aluno (`PlayerVideo` com hls.js, `CardCurso`,
 `ListaAulas`, fórum) ficam no app enquanto não existirem na biblioteca.
 
@@ -493,7 +493,7 @@ tabelas e feedback. Os componentes próprios da área do aluno (`PlayerVideo` co
 Capítulo 33.
 
 - [x] `web/` com `aluno` e `adm` (Vite + React + TypeScript, Node 24); um pacote só, sem workspaces; `site` entra na Fase 14
-- [x] `@celke/kole-react` do GitHub com commit fixo
+- [x] `@celke/kole-react` instalada do npm
 - [x] Cliente HTTP: token em memória, refresh silencioso, fila de requisições durante o refresh
 - [x] Rotas protegidas por papel; tratamento de termo pendente
 - [x] Aluno: login, cadastro, confirmação de e-mail, recuperar senha
