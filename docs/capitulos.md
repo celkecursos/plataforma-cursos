@@ -490,7 +490,7 @@ Fica antes do frontend porque precisa estar pronta antes de entrarem dados reais
 **Pré-requisito do frontend** (repositório da biblioteca)
 
 - **Objetivo:** conhecer a biblioteca de layout usada pelos fronts e como instalá-la.
-- **Conteúdo:** moldura (`Estrutura`, `TelaLogin`), formulários, tabelas, diálogos, avisos e o visualizador de arquivos; instalação do GitHub (`github:celkecursos/kole-react#<commit>`). Os componentes próprios da área do aluno (player de vídeo, lista de aulas, fórum, campo de imagens) ficam no app.
+- **Conteúdo:** moldura (`Estrutura`, `TelaLogin`), formulários, tabelas, diálogos, avisos e o visualizador de arquivos; instalação pelo npm (`@celke/kole-react`). Os componentes próprios da área do aluno (player de vídeo, lista de aulas, fórum, campo de imagens) ficam no app.
 - **Testes:** componentes testados com Vitest no repositório da biblioteca.
 - **Entrega:** commit da biblioteca fixado no `web/package.json`.
 
@@ -501,7 +501,7 @@ Fica antes do frontend porque precisa estar pronta antes de entrarem dados reais
 - **Objetivo:** base dos três frontends servida pelo Caddy.
 - **Conteúdo:**
   - Pacote único em `web/` com `aluno` e `adm` (Vite + React + TypeScript); o `site` entra na Fase 14.
-  - `@celke/kole-react` instalada do GitHub com commit fixo.
+  - `@celke/kole-react` instalada do npm.
   - Client HTTP com token em memória, refresh silencioso e fila de requisições durante o refresh; proteção de rotas por papel; tratamento de termo pendente.
   - Telas de login, cadastro, confirmação de e-mail e recuperação de senha.
   - Imagem `web`: build dos fronts + Caddy servindo `/srv/site`, `/srv/aluno` e `/srv/adm`; proxy do Vite `/api` no desenvolvimento.

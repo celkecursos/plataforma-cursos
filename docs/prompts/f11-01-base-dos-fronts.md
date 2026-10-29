@@ -235,7 +235,7 @@ Aluno barrado no painel.
 
 ## Arquivos a criar/alterar
 
-- `web/package.json` — `@celke/kole-react` do GitHub com commit fixo
+- `web/package.json` — `@celke/kole-react` instalada do npm
 - `web/aluno/src/rotas.tsx`
 - `web/adm/src/rotas.tsx`
 - `web/Dockerfile`
@@ -270,7 +270,7 @@ backend. Não faça commit.
 O que esta etapa entrega:
 
 - **Pacote `web/`** com `aluno` e `adm` (Vite + React + TypeScript, Node 24), um pacote só, sem
-  workspaces; `@celke/kole-react` do GitHub com commit fixo.
+  workspaces; `@celke/kole-react` instalada do npm.
 - **Cliente HTTP** (`compartilhado`): access token só em memória, refresh silencioso pelo cookie
   `HttpOnly`, uma renovação só para vários 401 ao mesmo tempo, erros da API (ProblemDetail) prontos para
   a tela.
@@ -374,10 +374,8 @@ jobs:
           cache: npm
           cache-dependency-path: web/package-lock.json
 
-      # O lock guarda o kole-react como git+ssh; o repositório é público e vem por HTTPS
       - name: Dependências
         run: |
-          git config --global url."https://github.com/".insteadOf "ssh://git@github.com/"
           npm ci --no-audit --no-fund
 
       - run: npm run format:check
@@ -482,7 +480,6 @@ jobs:
       - name: Jornadas e2e dos fronts (Playwright)
         working-directory: web
         run: |
-          git config --global url."https://github.com/".insteadOf "ssh://git@github.com/"
           npm ci --no-audit --no-fund
           npx playwright install --with-deps chromium
           npm run e2e
@@ -1465,10 +1462,6 @@ package-lock.json
 # API e o resto para este container: aluno na porta 8081, ADM na 8082.
 
 FROM node:24.11-bookworm-slim AS build
-RUN apt-get update -q && apt-get install -y -q --no-install-recommends git ca-certificates \
-    && rm -rf /var/lib/apt/lists/*
-# O lock guarda o kole-react como git+ssh; o repositório é público e é baixado por HTTPS
-RUN git config --global url."https://github.com/".insteadOf "ssh://git@github.com/"
 WORKDIR /web
 COPY package.json package-lock.json ./
 RUN npm ci --no-audit --no-fund
@@ -1476,6 +1469,8 @@ COPY . .
 RUN npm run build
 
 FROM caddy:2.11.7-alpine
+# Correções do sistema publicadas depois da imagem base
+RUN apk upgrade --no-cache
 COPY Caddyfile /etc/caddy/Caddyfile
 COPY --from=build /web/dist/aluno /srv/aluno
 COPY --from=build /web/dist/adm /srv/adm
@@ -3856,7 +3851,7 @@ export default tseslint.config(
     "e2e:report": "playwright show-report"
   },
   "dependencies": {
-    "@celke/kole-react": "github:celkecursos/kole-react#fc87d5c4409e1e65e8c571321c08d56871d2a4d3",
+    "@celke/kole-react": "^0.1.0",
     "lucide-react": "^1.61.0",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
