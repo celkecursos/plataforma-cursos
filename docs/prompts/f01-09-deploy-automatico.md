@@ -795,7 +795,7 @@ fi
 
 # 4. Falhou: volta para a anterior
 log "FALHOU: algum container não ficou saudável"
-compose ps -a | tee -a deploy.log
+compose ps -a 2>&1 | tee -a deploy.log || true
 if [[ -z "$ANTERIOR" ]]; then
   falhar "não há versão anterior para voltar"
 fi
