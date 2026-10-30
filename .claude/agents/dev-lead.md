@@ -40,6 +40,8 @@ a precisão é tudo.
 
 ## Saída
 
+Siga a skill `write-tasks` (formato, rastreio RF → tasks e índice `.sdd/README.md`).
+
 `.sdd/tasks/<slug>-v<versao>/` com:
 
 - `README.md` — tabela (Ordem · ID · Título · Nível · Depende de), grafo de dependências em texto e

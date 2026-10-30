@@ -3,7 +3,243 @@
 **Fase:** 21
 **Branch:** `feature/site-layout`
 
+> **Configuração do projeto:** troque os marcadores `<dominio>`, `<sub-site>`, `<sub-aluno>`,
+> `<sub-adm>`, `<sub-media>` e `<dono-github>` pelos valores de `docs/configuracao.md` (criado no
+> primeiro prompt) em todo o conteúdo deste prompt, inclusive nos testes. Se o arquivo não existir,
+> pergunte esses valores ao usuário antes de começar.
+
 ## Prompt
+
+### Especificação e tasks (SDD)
+
+Antes do código, registre a mudança no SDD. A spec `site-publico` sobe para a versão 1.1: substitua `.sdd/specs/site-publico.spec.md` pelo conteúdo abaixo e crie as tasks da versão nova em `.sdd/tasks/site-publico-v1.1/`, com **exatamente** este conteúdo (troque os marcadores pelos valores de `docs/configuracao.md`). As tasks das versões anteriores não mudam.
+
+`.sdd/specs/site-publico.spec.md`:
+
+`````markdown
+---
+feature: site-publico
+versao: 1.1
+status: aprovada
+autor: pm-spec-architect
+---
+
+# Site público
+
+## 1. Resumo Executivo
+
+O site `<sub-site>.<dominio>` apresenta a plataforma e o catálogo aos visitantes e aos buscadores: cada
+curso publicado no painel aparece no site sozinho, com página própria, dados para os buscadores e boa
+nota de desempenho e acessibilidade.
+
+Na versão 1.1, as páginas passam a ser montadas no servidor a cada requisição, com um layout novo,
+busca no catálogo e tema escuro.
+
+## 2. Atores e Papéis
+
+| Ator | Pode |
+|---|---|
+| Visitante | Navegar, ver os cursos, validar certificados, ler termos e privacidade |
+| Buscador | Indexar a produção; a homologação fica fora |
+
+## 3. Requisitos Funcionais
+
+- **RF-01** — O sistema DEVE oferecer as páginas início, catálogo, curso, validar certificado, termos,
+  privacidade e "não encontrada".
+- **RF-02** — REMOVIDO (substituído pelo RF-07).
+- **RF-03** — O sistema DEVE publicar título, descrição, endereço canônico, dados de compartilhamento e
+  dados estruturados de curso em cada página.
+- **RF-04** — O sistema DEVE publicar o mapa do site e as regras para buscadores, mantendo a homologação
+  (`homolog-<sub-site>.<dominio>`) fora dos buscadores.
+- **RF-05** — O sistema DEVE atingir no Lighthouse (desktop) desempenho ≥ 90, acessibilidade ≥ 95, boas
+  práticas ≥ 95 e SEO ≥ 90 em todas as páginas.
+- **RF-06** — O sistema DEVE usar os tokens visuais da biblioteca de componentes da Celke.
+- **RF-07** — O sistema DEVE montar cada página no servidor a cada requisição, com o HTML completo para
+  os buscadores, e torná-la interativa no navegador.
+- **RF-08** — O sistema DEVE guardar as leituras da API em cache curto (30 segundos) e responder 404 de
+  verdade para curso inexistente.
+- **RF-09** — O sistema DEVE aplicar uma política de conteúdo com valor único por requisição para os
+  scripts.
+- **RF-10** — O sistema DEVE apresentar topo fixo, abertura com ilustração, vantagens, cursos em
+  destaque, como funciona, página do curso com coluna de compra fixa e conteúdo por módulo, rodapé e
+  tema escuro.
+- **RF-11** — O sistema DEVE buscar no catálogo direto no navegador, sem diferenciar acentos e
+  maiúsculas.
+- **RF-12** — O sistema DEVE usar o mesmo ícone da biblioteca de componentes nos três fronts.
+
+## 4. Modelo de Domínio
+
+Usa os cursos publicados (spec `catalogo-de-cursos`), a validação de certificado (spec `certificado`) e
+os termos vigentes (spec `perfil-e-termos`).
+
+## 5. Estados e Fluxos
+
+- **Publicação:** curso publicado no painel → em até 30 segundos a página está no ar e no mapa.
+
+## 6. Contratos de Interface
+
+| Página | Caminho |
+|---|---|
+| Início | `/` |
+| Catálogo | `/cursos` |
+| Curso | `/cursos/<slug>` |
+| Validar certificado | `/certificados/validar` |
+| Termos / privacidade | `/termos`, `/privacidade` |
+| Mapa do site / buscadores | `/sitemap.xml`, `/robots.txt` |
+
+Endereço canônico: `https://<sub-site>.<dominio>`.
+
+## 7. Casos de Borda
+
+- Curso despublicado: sai do site quando o cache curto vence.
+- Endereço de curso inexistente: 404 de verdade, não uma página vazia.
+
+## 8. Premissas Validadas
+
+- A mesma imagem serve homologação e produção; o ambiente define os endereços.
+
+## 9. Riscos
+
+- **Conteúdo desatualizado:** cache de no máximo 30 segundos.
+- **Script injetado:** política de conteúdo com valor único por requisição.
+`````
+
+`.sdd/tasks/site-publico-v1.1/README.md`:
+
+`````markdown
+# Tasks — Site público (v1.1)
+
+Spec: [`.sdd/specs/site-publico.spec.md`](../../specs/site-publico.spec.md) · versão 1.1 · prompt do tutorial `docs/prompts-iniciais/f21-01-site-react-ssr.md`.
+
+| Ordem | ID | Título | Nível | Depende de |
+|---|---|---|---|---|
+| 1 | [SITE-004](SITE-004-ssr.md) | Renderização no servidor | Sênior | — |
+| 2 | [SITE-005](SITE-005-layout.md) | Layout, busca e tema escuro | Pleno | SITE-004 |
+| 3 | [SITE-006](SITE-006-fiacao.md) | Fiação do site no servidor | Pleno | SITE-004, SITE-005 |
+
+## Grafo
+
+```
+SITE-004 (início)
+SITE-004 → SITE-005
+SITE-004 + SITE-005 → SITE-006
+```
+
+## RF → tasks
+
+| RF | Tasks |
+|---|---|
+| RF-07 | SITE-004, SITE-006 |
+| RF-08 | SITE-004 |
+| RF-09 | SITE-004 |
+| RF-10 | SITE-005 |
+| RF-11 | SITE-005 |
+| RF-12 | SITE-005 |
+
+## Resumo por nível
+
+- Pleno: 2
+- Sênior: 1
+`````
+
+`.sdd/tasks/site-publico-v1.1/SITE-004-ssr.md`:
+
+`````markdown
+# SITE-004 — Renderização no servidor
+
+- **Spec:** .sdd/specs/site-publico.spec.md (v1.1) · atende RF-07, RF-08, RF-09
+- **Nível:** Sênior
+- **Agente:** dev-senior
+- **Status:** Pronta
+- **Depende de:** —
+
+## Arquivos a criar/alterar
+
+- `web/site/app/root.tsx`
+- `web/site/app/entry.server.tsx`
+- `web/site/app/api.server.ts` — cache de `SITE_CACHE_SEGUNDOS`
+- `web/site/app/config.server.ts`
+- `web/site/app/nonce.ts`
+- `web/site/app/routes.ts`
+- `web/site/react-router.config.ts`
+
+## Descrição técnica
+
+React Router em modo framework; servidor Node na porta 3000; 404 de verdade.
+
+## Critérios de aceite
+
+- [ ] `web/e2e/site/site.spec.ts` verde
+
+## Armadilhas
+
+CSP sem nonce bloqueia a hidratação.
+`````
+
+`.sdd/tasks/site-publico-v1.1/SITE-005-layout.md`:
+
+`````markdown
+# SITE-005 — Layout, busca e tema escuro
+
+- **Spec:** .sdd/specs/site-publico.spec.md (v1.1) · atende RF-10, RF-11, RF-12
+- **Nível:** Pleno
+- **Agente:** dev-pleno
+- **Status:** Pronta
+- **Depende de:** SITE-004
+
+## Arquivos a criar/alterar
+
+- `web/site/app/rotas/inicio.tsx`
+- `web/site/app/rotas/cursos.tsx`
+- `web/site/app/rotas/curso.tsx`
+- `web/site/app/componentes/CartaoCurso.tsx`
+- `web/site/app/estilos/site.css`
+- `web/site/public/favicon.ico`
+
+## Descrição técnica
+
+Busca sem acento e sem diferenciar maiúsculas, no navegador.
+
+## Critérios de aceite
+
+- [ ] Lighthouse com as metas
+`````
+
+`.sdd/tasks/site-publico-v1.1/SITE-006-fiacao.md`:
+
+`````markdown
+# SITE-006 — Fiação do site no servidor
+
+- **Spec:** .sdd/specs/site-publico.spec.md (v1.1) · atende RF-07
+- **Nível:** Pleno
+- **Agente:** dev-pleno
+- **Status:** Pronta
+- **Depende de:** SITE-004, SITE-005
+
+## Arquivos a criar/alterar
+
+- `web/Dockerfile`
+- `infra/compose.prod.yml` — `site` na porta 3000
+- `infra/caddy/sites/producao.caddy`
+- `infra/caddy/sites/homolog.caddy`
+
+## Critérios de aceite
+
+- [ ] Playwright e Lighthouse verdes
+- [ ] Task só de fiação: não tem teste próprio; a verificação é a suíte inteira passando.
+`````
+
+No índice `.sdd/README.md`, troque a linha
+
+```text
+| [site-publico](specs/site-publico.spec.md) | 1.0 | [v1.0](tasks/site-publico-v1.0/README.md) | `f14-01-site-publico.md` |
+```
+
+por
+
+```text
+| [site-publico](specs/site-publico.spec.md) | 1.1 | [v1.0](tasks/site-publico-v1.0/README.md) · [v1.1](tasks/site-publico-v1.1/README.md) | `f14-01-site-publico.md` · `f21-01-site-react-ssr.md` |
+```
 
 Vamos trocar o site público gerado de tempos em tempos por um site em React renderizado no servidor a
 cada requisição: o conteúdo aparece assim que é publicado no ADM e os buscadores continuam recebendo o
@@ -461,10 +697,8 @@ jobs:
           cache: npm
           cache-dependency-path: web/package-lock.json
 
-      # O lock guarda o kole-react como git+ssh; o repositório é público e vem por HTTPS
       - name: Dependências
         run: |
-          git config --global url."https://github.com/".insteadOf "ssh://git@github.com/"
           npm ci --no-audit --no-fund
 
       # Falha com vulnerabilidade alta ou crítica nas dependências que vão para o navegador
@@ -591,7 +825,6 @@ jobs:
       - name: Jornadas e2e dos fronts (Playwright)
         working-directory: web
         run: |
-          git config --global url."https://github.com/".insteadOf "ssh://git@github.com/"
           npm ci --no-audit --no-fund
           npx playwright install --with-deps chromium
           npm run e2e
@@ -729,7 +962,7 @@ de exemplo já criadas. Os valores de `infra/e2e.env` são só para uso local.
 **1. Clonar o repositório**
 
 ```bash
-git clone https://github.com/celkecursos/plataforma-cursos.git
+git clone https://github.com/<dono-github>/plataforma-cursos.git
 cd plataforma-cursos
 ```
 
@@ -761,8 +994,8 @@ Os navegadores atuais resolvem `*.localhost` sozinhos; não é preciso mexer no 
 
 | Conta | E-mail | Senha |
 |---|---|---|
-| Administrador | `admin@celke.com.br` | `123456A#b123` |
-| Aluno | `aluno@celke.com.br` | `123456A#b123` |
+| Administrador | `admin@<dominio>` | `123456A#b123` |
+| Aluno | `aluno@<dominio>` | `123456A#b123` |
 
 O administrador entra em duas etapas: depois da senha, informe o código de 6 dígitos de um aplicativo
 autenticador (Google Authenticator, Microsoft Authenticator, 1Password...). No aplicativo, adicione uma
@@ -962,7 +1195,7 @@ capítulo.
   - Funcionalidades que vêm do CLMS legado: cursos, turmas, módulos, aulas em vídeo, matrícula, progresso, arquivos de apoio, fórum, certificado, perfil e termos.
   - O que fica de fora: LeadLovers, automação de e-mail, clube de desafios. A venda pela Hotmart entra no fim, na Parte 10, numa estrutura que aceita outros meios de pagamento.
   - Arquitetura: uma VPS da Hostinger (2 vCPU, 8 GB, 100 GB NVMe) com tudo em Docker — Caddy (HTTPS e roteamento), API e worker Spring Boot, PostgreSQL 18 e Garage (S3) — servindo produção e uma homologação leve.
-  - Domínios, todos subdomínios de `celke.uno` (o domínio principal pertence a outras aplicações): `cursos.` (site), `aluno.`, `adm.` e `media.`, e os equivalentes `homolog-*`.
+  - Domínios, todos subdomínios de `<dominio>` (o domínio principal pertence a outras aplicações): `cursos.` (site), `aluno.`, `adm.` e `media.`, e os equivalentes `homolog-*`.
   - Fluxo do vídeo: upload direto ao Garage → worker com ffmpeg → HLS → playlist assinada pela API.
   - Modelo de dados enxuto: usuário, papel, curso, turma, módulo, aula, matrícula, vídeo, progresso, fórum, certificado, termo.
 - **Entrega:** diagrama da arquitetura e lista de funcionalidades.
@@ -973,7 +1206,7 @@ capítulo.
 
 - **Objetivo:** deixar o repositório pronto para o fluxo de PRs com testes e deploy.
 - **Conteúdo:**
-  - Repositório `celkecursos/plataforma-cursos` com README e `.gitignore` (segredos, `target/`, `node_modules/`).
+  - Repositório `<dono-github>/plataforma-cursos` com README e `.gitignore` (segredos, `target/`, `node_modules/`).
   - Branches: `main` (produção), `homolog` (homologação), `feature/nome` e `fix/nome` temporárias, `hotfix/nome` a partir da `main`.
   - A `main` recebe código só da `homolog`; alteração reprovada na homologação é desfeita com `git revert`; depois de um hotfix, merge da `main` de volta na `homolog`.
   - Exclusão automática da branch após o merge; environments `homolog` e `production` no GitHub.
@@ -1061,7 +1294,7 @@ capítulo.
 - **Conteúdo:**
   - Access token de 10 minutos no corpo da resposta, guardado pelo frontend só em memória.
   - Refresh token opaco, com o hash salvo no banco e rotação a cada uso. Se um refresh já usado reaparecer, toda a família de tokens é revogada.
-  - Cookie `HttpOnly; Secure; SameSite=Strict; Path=/api/auth`, **sem `Domain`**, para não ser enviado às outras aplicações de `celke.uno`.
+  - Cookie `HttpOnly; Secure; SameSite=Strict; Path=/api/auth`, **sem `Domain`**, para não ser enviado às outras aplicações de `<dominio>`.
   - JWT assinado e validado pelo Resource Server do Spring Security: só HS256, emissor e validade conferidos.
   - Login com a mesma resposta e o mesmo tempo para e-mail inexistente e senha errada.
   - Logout e "sair de todos os dispositivos"; `login()`, `bearer()` e `criarUsuario()` no `IntegrationTest`.
@@ -1087,7 +1320,7 @@ capítulo.
 - **Conteúdo:**
   - Limite por IP com Bucket4j em login e refresh, num filtro que roda antes da segurança e conta até as requisições inválidas; 429 com `Retry-After`.
   - Bloqueio temporário após falhas seguidas: 5 por e-mail + IP (o dono ainda entra de outro lugar) e 20 por e-mail vindas de qualquer IP; verificado antes de calcular o hash.
-  - Proteção CSRF no refresh e no logout: `Origin` e `Sec-Fetch-Site` conferidos, porque outras aplicações em `*.celke.uno` são o mesmo site para o navegador e o `SameSite=Strict` não as barra.
+  - Proteção CSRF no refresh e no logout: `Origin` e `Sec-Fetch-Site` conferidos, porque outras aplicações em `*.<dominio>` são o mesmo site para o navegador e o `SameSite=Strict` não as barra.
   - Auditoria de login: resultado, IP e user-agent de toda tentativa, gravada mesmo quando o login falha.
   - IP real do cliente atrás do proxy: `X-Forwarded-For` aceito só de proxy interno (`forward-headers-strategy: native`).
   - Sem CORS na API: o Caddy serve front e API na mesma origem.
@@ -1103,7 +1336,7 @@ capítulo.
   - Cadastro com conta pendente e link de confirmação válido por 48 horas; login só depois de confirmar.
   - Recuperação de senha com link de 1 hora; a nova senha encerra todas as sessões e também confirma o e-mail.
   - Tokens de uso único com só o hash no banco; um link novo invalida o anterior.
-  - E-mails pela fila, montados com Thymeleaf e enviados pelo worker: Mailpit no desenvolvimento, Iagente nos servidores (remetente de `celke.uno` com SPF e DKIM).
+  - E-mails pela fila, montados com Thymeleaf e enviados pelo worker: Mailpit no desenvolvimento, Iagente nos servidores (remetente de `<dominio>` com SPF e DKIM).
   - Healthcheck do worker por arquivo de batimento, para o compose e o deploy saberem que ele subiu.
 - **Segurança:**
   - Cadastro, reenvio e recuperação respondem sempre o mesmo, exista ou não a conta; quem descobre o que aconteceu é o dono da caixa, pelo e-mail que recebe.
@@ -1158,7 +1391,7 @@ capítulo.
   - Homologação restrita por IP e com `noindex` (senha do Caddy não serve: ocuparia o cabeçalho `Authorization` do JWT); `adm.` de produção restrito por IP.
   - Headers no Caddy: HSTS sem `includeSubDomains`, `X-Content-Type-Options`, `Referrer-Policy`, sem `Server`; `lb_try_duration` para a API reiniciar sem erro 502.
   - Limites de memória e CPU por container (produção: API 1 GB, worker 2 GB e 1,5 CPU, PostgreSQL 1 GB, Garage 768 MB; homologação menor, com o worker em meia CPU) e `-Xmx` de acordo.
-- **Entrega:** `homolog-aluno.celke.uno/api` e `aluno.celke.uno/api` respondendo com HTTPS.
+- **Entrega:** `homolog-<sub-aluno>.<dominio>/api` e `<sub-aluno>.<dominio>/api` respondendo com HTTPS.
 
 ### Cap. 14 — Deploy automático com rollback
 
@@ -1258,7 +1491,7 @@ capítulo.
 
 - **Objetivo:** enviar vídeos grandes sem passar pela API.
 - **Conteúdo:**
-  - O ADM pede URLs pré-assinadas de upload multipart, e o navegador envia direto para `media.celke.uno` (prefixo `uploads/` do bucket `midia`).
+  - O ADM pede URLs pré-assinadas de upload multipart, e o navegador envia direto para `<sub-media>.<dominio>` (prefixo `uploads/` do bucket `midia`).
   - A API valida tipo e tamanho antes de assinar.
 - **Segurança:** depois do upload, a API confere o tamanho e o tipo real do arquivo antes de enfileirar.
 - **Testes:** upload multipart contra o Garage do Testcontainers; arquivo com extensão falsa rejeitado.
@@ -1414,7 +1647,7 @@ Fica antes do frontend porque precisa estar pronta antes de entrarem dados reais
 **Pré-requisito do frontend** (repositório da biblioteca)
 
 - **Objetivo:** conhecer a biblioteca de layout usada pelos fronts e como instalá-la.
-- **Conteúdo:** moldura (`Estrutura`, `TelaLogin`), formulários, tabelas, diálogos, avisos e o visualizador de arquivos; instalação do GitHub (`github:celkecursos/kole-react#<commit>`). Os componentes próprios da área do aluno (player de vídeo, lista de aulas, fórum, campo de imagens) ficam no app.
+- **Conteúdo:** moldura (`Estrutura`, `TelaLogin`), formulários, tabelas, diálogos, avisos e o visualizador de arquivos; instalação pelo npm (`@celke/kole-react`). Os componentes próprios da área do aluno (player de vídeo, lista de aulas, fórum, campo de imagens) ficam no app.
 - **Testes:** componentes testados com Vitest no repositório da biblioteca.
 - **Entrega:** commit da biblioteca fixado no `web/package.json`.
 
@@ -1425,13 +1658,13 @@ Fica antes do frontend porque precisa estar pronta antes de entrarem dados reais
 - **Objetivo:** base dos três frontends servida pelo Caddy.
 - **Conteúdo:**
   - Pacote único em `web/` com `aluno` e `adm` (Vite + React + TypeScript); o `site` entra na Fase 14.
-  - `@celke/kole-react` instalada do GitHub com commit fixo.
+  - `@celke/kole-react` instalada do npm.
   - Client HTTP com token em memória, refresh silencioso e fila de requisições durante o refresh; proteção de rotas por papel; tratamento de termo pendente.
   - Telas de login, cadastro, confirmação de e-mail e recuperação de senha.
   - Imagem `web`: build dos fronts + Caddy servindo `/srv/site`, `/srv/aluno` e `/srv/adm`; proxy do Vite `/api` no desenvolvimento.
-- **Segurança:** CSP (`connect-src 'self' https://media.celke.uno`), `X-Frame-Options`, cache longo nos assets com hash e sem cache no `index.html`.
+- **Segurança:** CSP (`connect-src 'self' https://<sub-media>.<dominio>`), `X-Frame-Options`, cache longo nos assets com hash e sem cache no `index.html`.
 - **Testes:** Vitest + Testing Library; Playwright no pipeline (login do aluno e do admin, aluno barrado no ADM, logout).
-- **Entrega:** login funcionando em `aluno.celke.uno` e `adm.celke.uno`.
+- **Entrega:** login funcionando em `<sub-aluno>.<dominio>` e `<sub-adm>.<dominio>`.
 
 ### Cap. 34 — ADM
 
@@ -1457,7 +1690,7 @@ Fica antes do frontend porque precisa estar pronta antes de entrarem dados reais
 
 - **Objetivo:** vitrine pública rápida e bem indexada.
 - **Conteúdo:**
-  - Pré-renderização estática (cada página vira um HTML) em `cursos.celke.uno`, gerada pelo container `site` a partir da API do próprio ambiente ao subir e a cada 5 minutos.
+  - Pré-renderização estática (cada página vira um HTML) em `<sub-site>.<dominio>`, gerada pelo container `site` a partir da API do próprio ambiente ao subir e a cada 5 minutos.
   - Home, catálogo, página do curso, validar certificado e páginas legais.
   - Layout novo com os mesmos tokens visuais da `@celke/kole-react`.
   - SEO: meta tags, Open Graph, sitemap, `robots.txt`.
@@ -1708,7 +1941,7 @@ produção mais recente.
 
 | O quê | Como |
 |---|---|
-| Site fora do ar | Monitor externo (UptimeRobot ou Better Stack, plano gratuito) a cada 5 minutos em `https://aluno.celke.uno/actuator/health` e `https://cursos.celke.uno`, com aviso por e-mail e celular |
+| Site fora do ar | Monitor externo (UptimeRobot ou Better Stack, plano gratuito) a cada 5 minutos em `https://<sub-aluno>.<dominio>/actuator/health` e `https://<sub-site>.<dominio>`, com aviso por e-mail e celular |
 | Job que desistiu (conversão de vídeo, por exemplo) | O worker verifica a cada 15 minutos os jobs que foram para `ERRO` e envia um e-mail para `ALERTA_EMAIL` com o resumo |
 | Pagamento contestado ou notificação com erro | Chargeback, disputa aberta e notificação de pagamento que foi para `ERRO` geram um e-mail para `ALERTA_EMAIL` na hora (veja `docs/pagamentos.md`) |
 | Disco quase cheio | O mesmo verificador do worker mede o disco da VPS (o sistema de arquivos do container é o do host) e alerta abaixo de 15% livre, repetindo a cada 6 horas enquanto não melhorar |
@@ -1812,10 +2045,10 @@ ADM mostra para cada vídeo: medir com os vídeos reais e atualizar esta tabela.
 Quando o HLS passar de ~40 GB, ou se a banda da VPS virar gargalo, os vídeos vão para o Cloudflare R2
 (sem taxa de saída) ou o Backblaze B2. Como a aplicação só fala S3 pelo AWS SDK:
 
-1. Criar o bucket no R2, a chave da aplicação e o CORS para `aluno.celke.uno` e `adm.celke.uno`.
+1. Criar o bucket no R2, a chave da aplicação e o CORS para `<sub-aluno>.<dominio>` e `<sub-adm>.<dominio>`.
 2. Copiar o conteúdo: `rclone sync garage:midia r2:midia` (com as duas origens no `rclone.conf`).
 3. No `.env` da produção, trocar `S3_ENDPOINT` e `S3_ENDPOINT_PUBLICO` (endpoint do R2 ou domínio
-   próprio `media.celke.uno` apontado para o bucket), `S3_BUCKET`, `S3_ACCESS_KEY` e `S3_SECRET_KEY`.
+   próprio `<sub-media>.<dominio>` apontado para o bucket), `S3_BUCKET`, `S3_ACCESS_KEY` e `S3_SECRET_KEY`.
 4. Rodar o `rclone sync` de novo (o que entrou durante a cópia) e reiniciar a API e o worker.
 5. Depois de uma semana sem problema, tirar o Garage da produção e o host de mídia do Caddy.
 
@@ -1848,7 +2081,7 @@ Quando o HLS passar de ~40 GB, ou se a banda da VPS virar gargalo, os vídeos v�
 
   ```bash
   cd /opt/plataforma-cursos/producao
-  docker compose -p plataforma-cursos-producao -f compose.prod.yml run --rm api redefinir-2fa admin@celke.com.br
+  docker compose -p plataforma-cursos-producao -f compose.prod.yml run --rm api redefinir-2fa admin@<dominio>
   ```
 
   O comando apaga o segundo fator e encerra as sessões; o próximo login pede o cadastro de novo.
@@ -1876,7 +2109,7 @@ Quando o HLS passar de ~40 GB, ou se a banda da VPS virar gargalo, os vídeos v�
   (`same-site`). "Non-Storable Content" é esperado: a API responde sem cache.
 
   ```bash
-  docker run --rm ghcr.io/zaproxy/zaproxy:stable zap-baseline.py -t https://homolog-aluno.celke.uno/api/cursos -I
+  docker run --rm ghcr.io/zaproxy/zaproxy:stable zap-baseline.py -t https://homolog-<sub-aluno>.<dominio>/api/cursos -I
   ```
 `````
 
@@ -1893,7 +2126,7 @@ cada fase vira uma branch e um ou mais capítulos.
 na ordem do índice, eles recriam o projeto do zero.
 
 **Ordem de trabalho:** primeiro todo o backend (com infraestrutura, CI e deploy), depois o frontend,
-com a `@celke/kole-react` instalada do GitHub (commit fixo no `package.json`).
+com a `@celke/kole-react` instalada do npm (versão no `package.json`).
 
 ---
 
@@ -1909,7 +2142,7 @@ com a `@celke/kole-react` instalada do GitHub (commit fixo no `package.json`).
 | Acesso ao S3 | Somente AWS SDK v2 com path-style; trocar de servidor = trocar endpoint no `.env` |
 | Vídeo | Upload direto por URL pré-assinada → ffmpeg → HLS 720p + 1080p → playlist reescrita pela API com segmentos assinados |
 | E-mail | **SMTP da Iagente** |
-| Frontend | Pacote único em `web/` com `aluno`, `adm` e o gerador do `site`; `@celke/kole-react` instalada **do GitHub** com commit fixo |
+| Frontend | Pacote único em `web/` com `aluno`, `adm` e o gerador do `site`; `@celke/kole-react` instalada **do npm** |
 | Hospedagem | Tudo em Docker na VPS (2 vCPU, 8 GB, 100 GB NVMe); Caddy com HTTPS automático serve os fronts e faz proxy de `/api` |
 | Ambientes | Produção + homologação leve na mesma VPS |
 | Branches | `main` (produção), `homolog` (homologação), `feature/nome` e `fix/nome` temporárias, `hotfix/nome` a partir da `main` |
@@ -1922,29 +2155,30 @@ com a `@celke/kole-react` instalada do GitHub (commit fixo no `package.json`).
 - ❌ Versionamento, ACLs e bucket policies. Não fazem falta: o bucket é privado e o acesso é por chave com permissão por bucket.
 - Um bucket privado `midia`, com os prefixos `uploads/` (originais enviados) e `videos/` (HLS e thumbnails). O próprio Garage cria o bucket e a chave da aplicação na primeira subida (`--default-bucket`); a expiração de uploads abandonados é feita por prefixo.
 
-### Domínios (somente subdomínios de `celke.uno`)
+### Domínios (somente subdomínios de `<dominio>`)
 
-O domínio principal `celke.uno` já é usado por outras aplicações e não será tocado.
+O domínio principal `<dominio>` pode ter outras aplicações e não é tocado: o projeto usa só os subdomínios abaixo.
 
 | Produção | Homologação | Serve |
 |---|---|---|
-| `cursos.celke.uno` | `homolog-cursos.celke.uno` | site |
-| `aluno.celke.uno` | `homolog-aluno.celke.uno` | SPA do aluno + `/api` |
-| `adm.celke.uno` | `homolog-adm.celke.uno` | SPA do ADM + `/api` (restrito por IP) |
-| `media.celke.uno` | `homolog-media.celke.uno` | Garage (subdomínio próprio: a assinatura depende do host) |
+| `<sub-site>.<dominio>` | `homolog-<sub-site>.<dominio>` | site |
+| `<sub-aluno>.<dominio>` | `homolog-<sub-aluno>.<dominio>` | SPA do aluno + `/api` |
+| `<sub-adm>.<dominio>` | `homolog-<sub-adm>.<dominio>` | SPA do ADM + `/api` (restrito por IP) |
+| `<sub-media>.<dominio>` | `homolog-<sub-media>.<dominio>` | Garage (subdomínio próprio: a assinatura depende do host) |
 
 > Nomes propostos — confirmar que nenhum desses subdomínios já está em uso antes da etapa 1.8 (VPS).
 
 Cuidados por dividir o domínio com outras aplicações:
 
-- Cookies **sem** atributo `Domain` (cookie só do host). Com `Domain=celke.uno`, todas as outras aplicações dos subdomínios receberiam o refresh token.
-- A CSP e o CORS do Garage listam os subdomínios exatos, nunca `*.celke.uno`.
-- HSTS sem `includeSubDomains`, a não ser que todas as aplicações de `celke.uno` já usem HTTPS.
+- Cookies **sem** atributo `Domain` (cookie só do host). Com `Domain=<dominio>`, todas as outras aplicações dos subdomínios receberiam o refresh token.
+- A CSP e o CORS do Garage listam os subdomínios exatos, nunca `*.<dominio>`.
+- HSTS sem `includeSubDomains`, a não ser que todas as aplicações de `<dominio>` já usem HTTPS.
 
 ### SMTP Iagente
 
+- Conta: cadastro pelo link https://celke.com.br/page/iagente, que dá alguns e-mails gratuitos para enviar.
 - Host, porta e credenciais vêm do painel da Iagente (porta 587 com STARTTLS é o padrão esperado; confirmar no painel).
-- Remetente: endereço de `celke.uno` com SPF e DKIM configurados na Iagente.
+- Remetente: endereço de `<dominio>` com SPF e DKIM configurados na Iagente.
 - Credenciais só no `.env` de cada ambiente. Homologação com remetente identificado ("[HOMOLOG]") ou envio restrito a e-mails de teste.
 - No dev e no e2e: Mailpit no compose (captura os e-mails sem enviar).
 
@@ -2062,7 +2296,7 @@ Definição de pronto de **todo** PR:
 
 ### Fase 0 — Preparação (sem branch)
 
-- [x] Criar repositório `celkecursos/plataforma-cursos` no GitHub
+- [x] Criar repositório `<dono-github>/plataforma-cursos` no GitHub
 - [x] Primeiro commit na `main` (README, `.gitignore`, `docs/`)
 - [x] Criar `homolog` a partir da `main`
 - [x] Orientações para agentes de IA em `.claude/`: rules por caminho (segurança, fronts, testes, prompts),
@@ -2070,8 +2304,8 @@ Definição de pronto de **todo** PR:
   `/revisar-dod` e o pipeline SDD com portões humanos
 - [ ] Regras de proteção em `main` e `homolog`: só PR, checks obrigatórios (ativar quando o pipeline existir)
 - [ ] Environments `homolog` e `production` com seus secrets
-- [ ] Confirmar os subdomínios livres em `celke.uno`
-- [ ] Obter host, porta e credenciais SMTP no painel da Iagente; configurar SPF/DKIM
+- [ ] Confirmar os subdomínios livres em `<dominio>`
+- [ ] Criar a conta na Iagente (https://celke.com.br/page/iagente, com alguns e-mails gratuitos), obter host, porta e credenciais SMTP no painel e configurar SPF/DKIM
 
 ---
 
@@ -2140,7 +2374,7 @@ deploy automático. Depois desta fase, toda funcionalidade nova segue o fluxo no
 - [x] `SecurityFilterChain` nega tudo por padrão; rotas públicas declaradas com método HTTP; papéis do token + `@PreAuthorize` (matriz de papéis testada)
 - [x] Limite por IP com Bucket4j nas rotas de autenticação (`LimitePorIpFilter`): conta toda requisição, roda antes da segurança, 429 em ProblemDetail com `Retry-After`
 - [x] Bloqueio temporário por falhas seguidas: 5 por e-mail + IP e 20 por e-mail (qualquer IP), 15 min, contadores zerados por login correto ou após 1 h sem falhas; verificado antes de calcular o hash
-- [x] Refresh e logout: verificação de `Origin` e `Sec-Fetch-Site` (CSRF), porque outras aplicações em `*.celke.uno` contam como o mesmo site; origens em `AUTH_ORIGENS`
+- [x] Refresh e logout: verificação de `Origin` e `Sec-Fetch-Site` (CSRF), porque outras aplicações em `*.<dominio>` contam como o mesmo site; origens em `AUTH_ORIGENS`
 - [x] Auditoria de login (`auditoria_login`): resultado, IP e user-agent de toda tentativa, em transação própria
 - [x] `server.forward-headers-strategy: native`: `X-Forwarded-For` aceito só de proxy interno e lido da direita para a esquerda
 - [x] Erros que nascem em filtros escritos por `ProblemDetailJson` (mesmo formato do handler global)
@@ -2179,7 +2413,7 @@ deploy automático. Depois desta fase, toda funcionalidade nova segue o fluxo no
   - `adm.` de produção restrito por IP (`ADM_IPS`)
   - HSTS sem `includeSubDomains`, `X-Content-Type-Options`, `Referrer-Policy`, sem `Server`, `lb_try_duration`; `X-Forwarded-For` substituído pelo IP real
 - [x] e2e usando o mesmo `Caddyfile` com `caddy/e2e.caddy`
-- [x] `infra/scripts/gerar-env-servidor.sh`: `.env` de cada ambiente com segredos aleatórios e diferentes, hosts de `celke.uno`, SMTP para preencher
+- [x] `infra/scripts/gerar-env-servidor.sh`: `.env` de cada ambiente com segredos aleatórios e diferentes, hosts de `<dominio>`, SMTP para preencher
 - [x] Roteiro `docs/vps.md`: painel, DNS, chaves, preparação, cópia dos arquivos, `.env`, GHCR, primeira subida, verificação
 - [ ] Executar o roteiro na VPS (painel, DNS dos seis subdomínios, preparação, `.env`, login no GHCR)
 - [ ] Primeira subida dos dois ambientes e do Caddy, com as imagens publicadas pelo deploy automático (1.9)
@@ -2205,8 +2439,8 @@ Limites de recursos:
 - [ ] Secrets `VPS_HOST`, `VPS_SSH_KEY` e `VPS_KNOWN_HOSTS` e variável `DEPLOY_ATIVO=true` no repositório (conta dona) e, se o plano permitir, aprovação obrigatória no environment `production`
 - [ ] Primeiro deploy nos dois ambientes pelo pipeline; Caddy no ar; administrador criado em cada um
 
-**Pronto quando:** cadastro, login e logout funcionando pela API em `homolog-aluno.celke.uno/api` e
-`aluno.celke.uno/api`, e-mail chegando pela Iagente, pipeline completo verde e um rollback testado de propósito.
+**Pronto quando:** cadastro, login e logout funcionando pela API em `homolog-<sub-aluno>.<dominio>/api` e
+`<sub-aluno>.<dominio>/api`, e-mail chegando pela Iagente, pipeline completo verde e um rollback testado de propósito.
 
 ---
 
@@ -2368,8 +2602,8 @@ e-mail e o pipeline barra imagens com vulnerabilidade crítica conhecida.
 
 ## Bloco B — Frontend
 
-**Biblioteca de layout:** `@celke/kole-react`, instalada do GitHub (`github:celkecursos/kole-react`)
-com o commit fixo no `package.json`. Ela traz a moldura (`Estrutura`, `TelaLogin`), formulários,
+**Biblioteca de layout:** `@celke/kole-react`, instalada do npm com a versão
+no `package.json`. Ela traz a moldura (`Estrutura`, `TelaLogin`), formulários,
 tabelas e feedback. Os componentes próprios da área do aluno (`PlayerVideo` com hls.js, `CardCurso`,
 `ListaAulas`, fórum) ficam no app enquanto não existirem na biblioteca.
 
@@ -2378,7 +2612,7 @@ tabelas e feedback. Os componentes próprios da área do aluno (`PlayerVideo` co
 Capítulo 33.
 
 - [x] `web/` com `aluno` e `adm` (Vite + React + TypeScript, Node 24); um pacote só, sem workspaces; `site` entra na Fase 14
-- [x] `@celke/kole-react` do GitHub com commit fixo
+- [x] `@celke/kole-react` instalada do npm
 - [x] Cliente HTTP: token em memória, refresh silencioso, fila de requisições durante o refresh
 - [x] Rotas protegidas por papel; tratamento de termo pendente
 - [x] Aluno: login, cadastro, confirmação de e-mail, recuperar senha
@@ -2413,7 +2647,7 @@ Capítulo 35.
 Capítulo 36.
 
 - [x] Layout novo com os tokens da `@celke/kole-react` (HTML estático, sem JavaScript de layout)
-- [x] Pré-renderização estática (uma página HTML por rota) em `cursos.celke.uno`: o container `site` gera ao subir e a cada `SITE_INTERVALO` (padrão 5 min) a partir da API do próprio ambiente, com troca atômica da versão; a mesma imagem serve homologação e produção
+- [x] Pré-renderização estática (uma página HTML por rota) em `<sub-site>.<dominio>`: o container `site` gera ao subir e a cada `SITE_INTERVALO` (padrão 5 min) a partir da API do próprio ambiente, com troca atômica da versão; a mesma imagem serve homologação e produção
 - [x] Home, catálogo, página do curso, validar certificado, termos, privacidade, 404
 - [x] SEO: meta tags, canônico, Open Graph, dados estruturados (Course), sitemap, `robots.txt` (homologação fora dos buscadores)
 - [x] Meta de Lighthouse no CI (desktop): desempenho ≥ 90, acessibilidade ≥ 95, boas práticas ≥ 95, SEO ≥ 90 em todas as páginas
@@ -2587,11 +2821,11 @@ porta 3000.
 
 | Host | Ambiente | Acesso |
 |---|---|---|
-| `aluno.celke.uno` | produção | público |
-| `adm.celke.uno` | produção | só `ADM_IPS` |
-| `cursos.celke.uno` | produção | público (site renderizado a partir da API) |
-| `media.celke.uno` | produção | público (URLs assinadas) |
-| `homolog-aluno.celke.uno`, `homolog-adm.celke.uno`, `homolog-media.celke.uno` | homologação | só `HOMOLOG_IPS`, `noindex`, com Swagger |
+| `<sub-aluno>.<dominio>` | produção | público |
+| `<sub-adm>.<dominio>` | produção | só `ADM_IPS` |
+| `<sub-site>.<dominio>` | produção | público (site renderizado a partir da API) |
+| `<sub-media>.<dominio>` | produção | público (URLs assinadas) |
+| `homolog-<sub-aluno>.<dominio>`, `homolog-<sub-adm>.<dominio>`, `homolog-<sub-media>.<dominio>` | homologação | só `HOMOLOG_IPS`, `noindex`, com Swagger |
 
 ## 1. Contratar a VPS na Hostinger
 
@@ -2604,7 +2838,7 @@ porta 3000.
    painel é a segunda camada.
 4. Ative o backup/snapshot semanal do painel (não substitui o backup fora da VPS da fase de operação).
 
-## 2. DNS de celke.uno
+## 2. DNS de <dominio>
 
 Crie registros **A** apontando para o IP da VPS (só subdomínios; o domínio principal continua com as
 outras aplicações):
@@ -2620,7 +2854,7 @@ homolog-adm     A   <ip-da-vps>
 homolog-media   A   <ip-da-vps>
 ```
 
-Confira antes de seguir: `dig +short aluno.celke.uno` responde o IP da VPS.
+Confira antes de seguir: `dig +short <sub-aluno>.<dominio>` responde o IP da VPS.
 
 ## 3. Chaves SSH
 
@@ -2758,7 +2992,8 @@ cp caddy/.env.example caddy/.env && chmod 600 caddy/.env
 
 Preencha:
 
-- `producao/.env` e `homolog/.env`: `SMTP_HOST`, `SMTP_USERNAME`, `SMTP_PASSWORD` (painel da Iagente).
+- `producao/.env` e `homolog/.env`: `SMTP_HOST`, `SMTP_USERNAME`, `SMTP_PASSWORD` (painel da Iagente; crie a conta pelo link https://celke.com.br/page/iagente, que dá
+  alguns e-mails gratuitos para enviar).
   Na homologação, use um remetente identificado ou restrinja os envios a e-mails de teste.
 - `caddy/.env`: `ACME_EMAIL`, `ADM_IPS` e `HOMOLOG_IPS` (seus IPs, separados por espaço).
 
@@ -2779,6 +3014,9 @@ Crie no GitHub um token clássico só com `read:packages` e, na VPS, como `deplo
 ```bash
 echo "<token>" | docker login ghcr.io -u <usuario-github> --password-stdin
 ```
+
+No `.env` de cada ambiente, preencha `REGISTRO=ghcr.io/<dono-do-repositorio>` (em minúsculas): é
+onde o pipeline publica as imagens e de onde o deploy baixa a API, o worker e os fronts.
 
 ## 8. Deploy automático no GitHub
 
@@ -2824,9 +3062,9 @@ aprovação.
 
    ```bash
    docker compose -p plataforma-cursos-producao -f producao/compose.prod.yml --env-file producao/.env \
-     --project-directory producao run --rm api criar-admin admin@celke.uno "Administrador"
+     --project-directory producao run --rm api criar-admin admin@<dominio> "Administrador"
    docker compose -p plataforma-cursos-homolog -f homolog/compose.prod.yml -f homolog/compose.homolog.yml \
-     --env-file homolog/.env --project-directory homolog run --rm api criar-admin admin@celke.uno "Administrador"
+     --env-file homolog/.env --project-directory homolog run --rm api criar-admin admin@<dominio> "Administrador"
    ```
 
 ## 10. Verificação
@@ -2834,11 +3072,11 @@ aprovação.
 Do seu computador:
 
 ```bash
-curl -s https://aluno.celke.uno/actuator/health            # {"groups":[...],"status":"UP"}
-curl -sI https://aluno.celke.uno/actuator/health | grep -i strict-transport
-curl -s https://aluno.celke.uno/ | grep -o '<title>.*</title>'   # a área do aluno
-curl -s https://aluno.celke.uno/v3/api-docs | head -c 15        # <!doctype html> (o front, não a API)
-curl -s -o /dev/null -w "%{http_code}\n" https://adm.celke.uno/actuator/health # 403 fora de ADM_IPS
+curl -s https://<sub-aluno>.<dominio>/actuator/health            # {"groups":[...],"status":"UP"}
+curl -sI https://<sub-aluno>.<dominio>/actuator/health | grep -i strict-transport
+curl -s https://<sub-aluno>.<dominio>/ | grep -o '<title>.*</title>'   # a área do aluno
+curl -s https://<sub-aluno>.<dominio>/v3/api-docs | head -c 15        # <!doctype html> (o front, não a API)
+curl -s -o /dev/null -w "%{http_code}\n" https://<sub-adm>.<dominio>/actuator/health # 403 fora de ADM_IPS
 nc -zv -w 3 <ip-da-vps> 5432 ; nc -zv -w 3 <ip-da-vps> 3900 ; nc -zv -w 3 <ip-da-vps> 8080   # recusadas
 ssh root@<ip-da-vps>                                        # recusado
 ```
@@ -2874,7 +3112,7 @@ ssh -t $VPS 'C=/opt/plataforma-cursos/caddy \
   && sudo cp -p $C/Caddyfile $C/Caddyfile.bak-$(date +%F-%H%M) \
   && sudo cp -r /tmp/caddy/. $C/ && sudo chown -R deploy:deploy $C && rm -rf /tmp/caddy \
   && sudo -u deploy docker compose -f $C/compose.yml --env-file $C/.env --project-directory $C up -d --force-recreate'
-curl -s https://aluno.celke.uno/actuator/health   # {"groups":[...],"status":"UP"}
+curl -s https://<sub-aluno>.<dominio>/actuator/health   # {"groups":[...],"status":"UP"}
 ```
 
 O `Caddyfile` anterior fica em `caddy/Caddyfile.bak-<data>`; para voltar, copie-o por cima do
@@ -2893,8 +3131,8 @@ público do site vem de `SITE_URL` no `.env` do ambiente; em branco, é derivado
 ambientes com esta versão, atualize o Caddy como acima: até lá, o Caddy antigo continua mandando
 `cursos.*` para o `web`, que já não responde nessa porta (502). Entre o deploy da homologação e o da
 produção, `homolog-cursos.*` fica em 502; atualize o Caddy logo depois do deploy da produção (antes
-dele, quem cairia seria `cursos.*` da produção). Confira `curl -sI https://cursos.celke.uno/` e
-`curl -sI https://homolog-cursos.celke.uno/` (do IP liberado): `HTTP/2 200`.
+dele, quem cairia seria `cursos.*` da produção). Confira `curl -sI https://<sub-site>.<dominio>/` e
+`curl -sI https://homolog-<sub-site>.<dominio>/` (do IP liberado): `HTTP/2 200`.
 
 **Restrição por IP de verdade:** até esta versão, o `handle` dos sites rodava antes do `respond` e a
 restrição por IP (`ADM_IPS` no `adm.` da produção, `HOMOLOG_IPS` na homologação) só valia no host de
@@ -2921,7 +3159,7 @@ echo "PAGAMENTOS_CHAVE=$(openssl rand -base64 32)" >> /opt/plataforma-cursos/hom
 Trocar a chave depois exige informar de novo os segredos do meio de pagamento no painel. A
 reconciliação fica desligada até `PAGAMENTOS_RECONCILIACAO=true`. Atualize também o Caddy (acima): a
 homologação continua restrita por IP, mas deixa passar `/api/pagamentos/webhooks/*`, para a Hotmart de
-teste notificar `https://homolog-aluno.celke.uno/api/pagamentos/webhooks/<token>` (o endereço completo
+teste notificar `https://homolog-<sub-aluno>.<dominio>/api/pagamentos/webhooks/<token>` (o endereço completo
 aparece no painel). Configuração da Hotmart: `docs/pagamentos.md`.
 
 **Logs persistentes e auditoria (Fase 17):** nada a configurar. O deploy cria o volume `logs` de cada
@@ -2941,7 +3179,7 @@ administrador, `sudo install -o root -g root -m 755 deploy.sh /usr/local/bin/pla
 # sozinho; com "http://..." atende sem TLS (e2e).
 {
 	admin off
-	email {$ACME_EMAIL:nao-configurado@celke.uno}
+	email {$ACME_EMAIL:nao-configurado@<dominio>}
 	# Sem isso, o handle dos sites roda antes do respond e a restrição por IP (somente_ips_adm,
 	# homolog) só valeria na mídia
 	order respond before handle
@@ -3185,7 +3423,7 @@ services:
   # (criado na primeira vez). Roda a cada deploy e termina; a API só sobe depois dele
   migracao:
     logging: *logging
-    image: ${IMAGEM_API:-ghcr.io/celkecursos/plataforma-cursos-api}:${TAG:?defina TAG}
+    image: ${REGISTRO:?defina REGISTRO}/plataforma-cursos-api:${TAG:?defina TAG}
     command: ["migrar"]
     restart: "no"
     environment:
@@ -3202,7 +3440,7 @@ services:
 
   api:
     logging: *logging
-    image: ${IMAGEM_API:-ghcr.io/celkecursos/plataforma-cursos-api}:${TAG:?defina TAG}
+    image: ${REGISTRO:?defina REGISTRO}/plataforma-cursos-api:${TAG:?defina TAG}
     restart: unless-stopped
     environment:
       <<: *app
@@ -3234,7 +3472,7 @@ services:
 
   worker:
     logging: *logging
-    image: ${IMAGEM_WORKER:-ghcr.io/celkecursos/plataforma-cursos-worker}:${TAG:?defina TAG}
+    image: ${REGISTRO:?defina REGISTRO}/plataforma-cursos-worker:${TAG:?defina TAG}
     restart: unless-stopped
     # No deploy, o job em andamento tem 30 s para terminar; uma conversão interrompida volta para a fila
     # quando o lease vence (o worker o renova a cada minuto enquanto converte)
@@ -3267,7 +3505,7 @@ services:
   # Área do aluno (porta 8081) e ADM (8082), estáticos; a API é chamada no mesmo domínio (/api)
   web:
     logging: *logging
-    image: ${IMAGEM_WEB:-ghcr.io/celkecursos/plataforma-cursos-web}:${TAG:?defina TAG}
+    image: ${REGISTRO:?defina REGISTRO}/plataforma-cursos-web:${TAG:?defina TAG}
     restart: unless-stopped
     environment:
       # Origem dos vídeos e arquivos na Content-Security-Policy dos fronts
@@ -3285,12 +3523,12 @@ services:
   # pela rede interna (com cache curto em memória)
   site:
     logging: *logging
-    image: ${IMAGEM_SITE:-ghcr.io/celkecursos/plataforma-cursos-site}:${TAG:?defina TAG}
+    image: ${REGISTRO:?defina REGISTRO}/plataforma-cursos-site:${TAG:?defina TAG}
     restart: unless-stopped
     environment:
       API_URL: http://api:8080
       FRONT_ALUNO_URL: ${FRONT_ALUNO_URL:?defina FRONT_ALUNO_URL}
-      # Em branco, deriva do FRONT_ALUNO_URL (aluno.celke.uno → cursos.celke.uno)
+      # Em branco, deriva do FRONT_ALUNO_URL (<sub-aluno>.<dominio> → <sub-site>.<dominio>)
       SITE_URL: ${SITE_URL:-}
       SITE_INDEXAVEL: ${SITE_INDEXAVEL:-true}
       # Origem das capas (URLs pré-assinadas do Garage), liberada na Content-Security-Policy
@@ -3419,10 +3657,6 @@ volumes:
 # O Caddy da VPS manda /api para a API, cursos.* para o site e o resto para o container web.
 
 FROM node:24.11-bookworm-slim AS build
-RUN apt-get update -q && apt-get install -y -q --no-install-recommends git ca-certificates \
-    && rm -rf /var/lib/apt/lists/*
-# O lock guarda o kole-react como git+ssh; o repositório é público e é baixado por HTTPS
-RUN git config --global url."https://github.com/".insteadOf "ssh://git@github.com/"
 WORKDIR /web
 COPY package.json package-lock.json ./
 RUN npm ci --no-audit --no-fund
@@ -3452,6 +3686,8 @@ HEALTHCHECK --interval=5s --timeout=3s --start-period=20s --retries=20 \
 CMD ["node", "../node_modules/@react-router/serve/bin.cjs", "../dist/site/server/index.js"]
 
 FROM caddy:2.11.7-alpine AS web
+# Correções do sistema publicadas depois da imagem base
+RUN apk upgrade --no-cache
 COPY Caddyfile /etc/caddy/Caddyfile
 COPY --from=build /web/dist/aluno /srv/aluno
 COPY --from=build /web/dist/adm /srv/adm
@@ -3620,8 +3856,8 @@ requisições por IP.
 
 ## Contas e sessão
 
-- **Seed da stack** (criado pela API no perfil `e2e`): `admin@celke.com.br` e
-  `aluno@celke.com.br`, senha `123456A#b123`. São **só leitura**: nenhum teste troca a senha,
+- **Seed da stack** (criado pela API no perfil `e2e`): `admin@<dominio>` e
+  `aluno@<dominio>`, senha `123456A#b123`. São **só leitura**: nenhum teste troca a senha,
   sai ou mexe no perfil delas.
 - **Segundo fator do admin**: o admin do seed já tem o aplicativo autenticador cadastrado com o segredo
   de `SEED_E2E_TOTP`; `support/totp.ts` calcula o código como o celular, e as fixtures e o
@@ -3638,7 +3874,7 @@ requisições por IP.
 ## Dado de teste e limpeza
 
 - Cursos, contas e ofertas levam um carimbo único (`pw<tempo><sequência>`, e-mails
-  `pw...@teste.celke.uno`): execuções seguidas não colidem, mesmo sem limpar a stack.
+  `pw...@teste.<dominio>`): execuções seguidas não colidem, mesmo sem limpar a stack.
 - Os testes **não apagam** o que criam; o lixo some com o `down -v` da stack. Para começar do zero:
   `down -v` e `up` de novo.
 - O pagamento não sai para a internet: a ida ao `pay.hotmart.com` é interceptada (`page.route`) e a
@@ -3967,7 +4203,7 @@ export default tseslint.config(
     "start:site": "cd site && react-router-serve ../dist/site/server/index.js"
   },
   "dependencies": {
-    "@celke/kole-react": "github:celkecursos/kole-react#fc87d5c4409e1e65e8c571321c08d56871d2a4d3",
+    "@celke/kole-react": "^0.1.0",
     "@react-router/node": "^8.5.0",
     "@react-router/serve": "^8.5.0",
     "hls.js": "^1.7.3",
@@ -4138,7 +4374,7 @@ describe('capa', () => {
  * o site e a área do aluno com conteúdo. Pede o e-mail, a senha e o código do aplicativo autenticador
  * de um administrador. Pode rodar de novo: curso que já existe (mesmo endereço) é pulado.
  *
- *   npm run cursos-exemplo -- https://homolog-adm.celke.uno
+ *   npm run cursos-exemplo -- https://homolog-<sub-adm>.<dominio>
  *   npm run cursos-exemplo -- http://adm.localhost:8088   (stack de e2e)
  */
 import { stdin, stdout } from 'node:process';
@@ -4461,7 +4697,7 @@ async function principal(): Promise<void> {
   const base = (process.argv[2] ?? '').replace(/\/$/, '');
   if (!/^https?:\/\//.test(base)) {
     console.error(
-      'Uso: npm run cursos-exemplo -- <endereço do ADM, ex.: https://homolog-adm.celke.uno>',
+      'Uso: npm run cursos-exemplo -- <endereço do ADM, ex.: https://homolog-<sub-adm>.<dominio>>',
     );
     process.exit(1);
   }
@@ -4695,7 +4931,7 @@ export const API_URL = sem(process.env['API_URL'] ?? 'http://localhost:8080');
 
 const ALUNO_URL = sem(process.env['FRONT_ALUNO_URL'] ?? 'http://localhost:5173');
 
-/** Endereços e regras do ambiente. Sem SITE_URL, deriva do aluno (aluno.celke.uno → cursos.celke.uno). */
+/** Endereços e regras do ambiente. Sem SITE_URL, deriva do aluno (<sub-aluno>.<dominio> → <sub-site>.<dominio>). */
 export function contexto(): Contexto {
   return {
     siteUrl: sem(process.env['SITE_URL'] || ALUNO_URL.replace('aluno.', 'cursos.')),
@@ -6836,8 +7072,8 @@ import {
 } from './seo.ts';
 
 const ctx: Contexto = {
-  siteUrl: 'https://cursos.celke.uno',
-  alunoUrl: 'https://aluno.celke.uno',
+  siteUrl: 'https://<sub-site>.<dominio>',
+  alunoUrl: 'https://<sub-aluno>.<dominio>',
   indexavel: true,
   ano: 2026,
 };
@@ -6864,11 +7100,11 @@ describe('metaTags', () => {
     expect(tags).toContainEqual({
       tagName: 'link',
       rel: 'canonical',
-      href: 'https://cursos.celke.uno/cursos/java-do-zero/',
+      href: 'https://<sub-site>.<dominio>/cursos/java-do-zero/',
     });
     expect(tags).toContainEqual({
       property: 'og:image',
-      content: 'https://cursos.celke.uno/api/cursos/java-do-zero/capa',
+      content: 'https://<sub-site>.<dominio>/api/cursos/java-do-zero/capa',
     });
     expect(tags).toContainEqual({ name: 'twitter:card', content: 'summary_large_image' });
     expect(tags).not.toContainEqual({ name: 'robots', content: 'noindex, nofollow' });
@@ -6903,7 +7139,7 @@ describe('dadosCurso', () => {
           '@type': 'Offer',
           price: '197.00',
           priceCurrency: 'BRL',
-          url: 'https://aluno.celke.uno/comprar/7',
+          url: 'https://<sub-aluno>.<dominio>/comprar/7',
         },
       ],
     });
@@ -6944,12 +7180,12 @@ describe('textos', () => {
 describe('sitemap e robots', () => {
   it('sitemap com as páginas e os cursos', () => {
     const mapa = sitemap(ctx, [curso]);
-    expect(mapa).toContain('<loc>https://cursos.celke.uno/cursos/java-do-zero/</loc>');
-    expect(mapa).toContain('<loc>https://cursos.celke.uno/certificados/validar/</loc>');
+    expect(mapa).toContain('<loc>https://<sub-site>.<dominio>/cursos/java-do-zero/</loc>');
+    expect(mapa).toContain('<loc>https://<sub-site>.<dominio>/certificados/validar/</loc>');
   });
 
   it('robots aponta o sitemap; fora dos buscadores bloqueia tudo', () => {
-    expect(robots(ctx)).toContain('Sitemap: https://cursos.celke.uno/sitemap.xml');
+    expect(robots(ctx)).toContain('Sitemap: https://<sub-site>.<dominio>/sitemap.xml');
     expect(robots({ ...ctx, indexavel: false })).toBe('User-agent: *\nDisallow: /\n');
   });
 });
@@ -7005,7 +7241,7 @@ export interface Certificado {
 
 /** Endereços e regras do ambiente, vindos do servidor (root loader). */
 export interface Contexto {
-  /** Endereço público do site, sem barra no fim (ex.: https://cursos.celke.uno). */
+  /** Endereço público do site, sem barra no fim (ex.: https://<sub-site>.<dominio>). */
   siteUrl: string;
   /** Área do aluno (entrar, criar conta, comprar). */
   alunoUrl: string;
@@ -7208,15 +7444,15 @@ produção —, no SEU COMPUTADOR (não na VPS), na raiz do repositório, com a 
     && sudo cp -p $C/Caddyfile $C/Caddyfile.bak-$(date +%F-%H%M) \
     && sudo cp -r /tmp/caddy/. $C/ && sudo chown -R deploy:deploy $C && rm -rf /tmp/caddy \
     && sudo -u deploy docker compose -f $C/compose.yml --env-file $C/.env --project-directory $C up -d --force-recreate'
-  curl -s https://aluno.celke.uno/actuator/health   # {"groups":[...],"status":"UP"}
+  curl -s https://<sub-aluno>.<dominio>/actuator/health   # {"groups":[...],"status":"UP"}
 
-Confira: curl -sI https://cursos.celke.uno/ | head -1 responde HTTP/2 200 (e o mesmo em
-homolog-cursos.celke.uno, do IP liberado). Até lá, cursos.* do ambiente já atualizado responde 502. Sem SSH do seu computador: veja
+Confira: curl -sI https://<sub-site>.<dominio>/ | head -1 responde HTTP/2 200 (e o mesmo em
+homolog-<sub-site>.<dominio>, do IP liberado). Até lá, cursos.* do ambiente já atualizado responde 502. Sem SSH do seu computador: veja
 docs/vps.md, seção 11, "Atualizar o Caddy".
 
 Para ver o site com conteúdo, crie cursos de exemplo no ambiente (no seu computador, dentro de web/):
 
-  npm run cursos-exemplo -- https://homolog-adm.celke.uno
+  npm run cursos-exemplo -- https://homolog-<sub-adm>.<dominio>
 ```
 
 ## Verificação
@@ -7226,11 +7462,13 @@ Para ver o site com conteúdo, crie cursos de exemplo no ambiente (no seu comput
 - `npm run cursos-exemplo -- http://adm.localhost:8088` com o admin do seed: os seis cursos aparecem em
   `http://cursos.localhost:8088` com capa; rodar de novo pula todos.
 - `curl -s http://cursos.localhost:8088/cursos/ | grep '<h1'`: o HTML já vem renderizado.
+- Com tudo verde, as tasks de `.sdd/tasks/site-publico-v1.1/` passam para `Status: Concluída` e os critérios de aceite
+  são marcados (`- [x]`).
 
 ## Depois de executar
 
 ```bash
-git add web/ infra/ docs/ .github/ .claude/ .gitignore README.md
+git add web/ infra/ docs/ .github/ .claude/ .gitignore README.md .sdd/
 git commit -m "feat(site): renderizar o site no servidor com React e renovar o layout"
 git push -u origin feature/site-layout
 ```

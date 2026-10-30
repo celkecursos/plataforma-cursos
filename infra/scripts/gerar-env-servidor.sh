@@ -33,6 +33,8 @@ cat > "$DESTINO" <<ENV
 AMBIENTE=$AMBIENTE
 # Tag (SHA do commit) das imagens; o deploy grava a tag de cada versão
 TAG=
+# Onde o pipeline publica as imagens: ghcr.io/<dono do repositório no GitHub, em minúsculas>
+REGISTRO=
 
 POSTGRES_DB=plataforma_cursos
 POSTGRES_USER=plataforma_cursos
@@ -74,4 +76,4 @@ ALERTA_EMAIL=
 ENV
 
 chmod 600 "$DESTINO"
-echo "$DESTINO criado. Preencha SMTP_HOST, SMTP_USERNAME e SMTP_PASSWORD."
+echo "$DESTINO criado. Preencha REGISTRO, SMTP_HOST, SMTP_USERNAME e SMTP_PASSWORD."

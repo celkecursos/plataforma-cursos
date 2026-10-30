@@ -3,7 +3,222 @@
 **Fase:** 17
 **Branch:** `feature/auditoria`
 
+> **Configuração do projeto:** troque os marcadores `<dominio>`, `<sub-site>`, `<sub-aluno>`,
+> `<sub-adm>`, `<sub-media>` e `<dono-github>` pelos valores de `docs/configuracao.md` (criado no
+> primeiro prompt) em todo o conteúdo deste prompt, inclusive nos testes. Se o arquivo não existir,
+> pergunte esses valores ao usuário antes de começar.
+
 ## Prompt
+
+### Especificação e tasks (SDD)
+
+Antes do código, registre a funcionalidade no SDD: crie a spec e as tasks abaixo com **exatamente** este conteúdo (troque os marcadores pelos valores de `docs/configuracao.md`). As tasks nascem com `Status: Pronta`; ao fim da **Verificação**, passam para `Concluída`.
+
+`.sdd/specs/auditoria.spec.md`:
+
+`````markdown
+---
+feature: auditoria
+versao: 1.0
+status: aprovada
+autor: pm-spec-architect
+---
+
+# Auditoria
+
+## 1. Resumo Executivo
+
+Toda alteração de dados fica registrada — quem mudou, o quê, antes e depois, de onde e quando — numa
+trilha que não pode ser editada nem apagada, e o administrador a consulta pelo painel. Os registros
+técnicos da API e do worker também ficam guardados em arquivo.
+
+## 2. Atores e Papéis
+
+| Ator | Pode |
+|---|---|
+| Administrador | Consultar a trilha com filtros e ver o antes e depois lado a lado |
+| Sistema | Registrar cada alteração e apagar o que passou do prazo |
+
+## 3. Requisitos Funcionais
+
+- **RF-01** — O sistema DEVE registrar, na mesma transação da mudança, o usuário, a operação, a entidade
+  e o identificador, o antes e o depois (só o que mudou), a origem (rota ou tarefa), o IP, o navegador,
+  o identificador da requisição e a data.
+- **RF-02** — O sistema DEVE mascarar os dados sensíveis e deixar fora da trilha as entidades de registro
+  e de sessão.
+- **RF-03** — O sistema DEVE impedir no banco a alteração e a exclusão dos registros, só permitindo
+  inclusão.
+- **RF-04** — O sistema DEVE apagar os registros com mais de 5 anos.
+- **RF-05** — O sistema DEVE oferecer a consulta com filtros (usuário, entidade, operação, período) e o
+  antes e depois lado a lado.
+- **RF-06** — O sistema DEVE guardar os registros técnicos da API e do worker em arquivo, um por dia, por
+  180 dias ou 2 GB por serviço.
+
+## 4. Modelo de Domínio
+
+- **Registro de auditoria:** usuário, operação, entidade, identificador, antes, depois, origem, IP,
+  navegador, requisição, data.
+
+## 5. Estados e Fluxos
+
+- **Mudança:** operação → registro na mesma transação → consulta no painel.
+
+## 6. Contratos de Interface
+
+| Operação | Entrada | Saída |
+|---|---|---|
+| Consultar | filtros, página | registros |
+| Detalhe | registro | antes e depois |
+
+## 7. Casos de Borda
+
+- Mudança desfeita (transação revertida): nenhum registro.
+- Senha e segredos: aparecem como `***`.
+- Tentativa de apagar registro direto no banco: recusada.
+
+## 8. Premissas Validadas
+
+- O prazo de 5 anos atende às obrigações de guarda dos registros financeiros e de matrícula.
+
+## 9. Riscos
+
+- **Crescimento da trilha:** só o que mudou e retenção de 5 anos.
+- **Dado pessoal na trilha:** mascaramento dos campos sensíveis.
+`````
+
+`.sdd/tasks/auditoria-v1.0/README.md`:
+
+`````markdown
+# Tasks — Auditoria (v1.0)
+
+Spec: [`.sdd/specs/auditoria.spec.md`](../../specs/auditoria.spec.md) · versão 1.0 · prompt do tutorial `docs/prompts-iniciais/f17-01-auditoria-e-logs.md`.
+
+| Ordem | ID | Título | Nível | Depende de |
+|---|---|---|---|---|
+| 1 | [AUD-001](AUD-001-trilha.md) | Trilha pelos eventos do Hibernate | Sênior | — |
+| 2 | [AUD-002](AUD-002-consulta-e-retencao.md) | Consulta no painel e retenção | Pleno | AUD-001 |
+| 3 | [AUD-003](AUD-003-fiacao.md) | Fiação da auditoria e dos logs | Pleno | AUD-001, AUD-002 |
+
+## Grafo
+
+```
+AUD-001 (início)
+AUD-001 → AUD-002
+AUD-001 + AUD-002 → AUD-003
+```
+
+## RF → tasks
+
+| RF | Tasks |
+|---|---|
+| RF-01 | AUD-001 |
+| RF-02 | AUD-001 |
+| RF-03 | AUD-001, AUD-003 |
+| RF-04 | AUD-002 |
+| RF-05 | AUD-002 |
+| RF-06 | AUD-003 |
+
+## Resumo por nível
+
+- Pleno: 2
+- Sênior: 1
+`````
+
+`.sdd/tasks/auditoria-v1.0/AUD-001-trilha.md`:
+
+`````markdown
+# AUD-001 — Trilha pelos eventos do Hibernate
+
+- **Spec:** .sdd/specs/auditoria.spec.md (v1.0) · atende RF-01, RF-02, RF-03
+- **Nível:** Sênior
+- **Agente:** dev-senior
+- **Status:** Pronta
+- **Depende de:** —
+
+## Arquivos a criar/alterar
+
+- `backend/src/main/java/br/com/celke/cursos/shared/auditoria/OuvinteAuditoria.java`
+- `backend/src/main/java/br/com/celke/cursos/shared/auditoria/TrilhaAuditoria.java`
+- `backend/src/main/java/br/com/celke/cursos/shared/auditoria/ContextoAuditoria.java`
+- `backend/src/main/java/br/com/celke/cursos/shared/auditoria/DadoSensivel.java`
+- `backend/src/main/java/br/com/celke/cursos/shared/auditoria/SemAuditoria.java`
+- `backend/src/main/java/br/com/celke/cursos/shared/auditoria/ValoresAuditoria.java`
+- `backend/src/main/java/br/com/celke/cursos/auditoria/domain/RegistroAuditoria.java`
+
+## Descrição técnica
+
+Grava na transação da mudança só o que mudou; `@DadoSensivel` vira `***`.
+
+## Critérios de aceite
+
+- [ ] `ContextoAuditoriaTest`, `ValoresAuditoriaTest` verdes
+- [ ] `AuditoriaIT` verde
+
+## Armadilhas
+
+Gravar fora da transação registra mudanças revertidas.
+`````
+
+`.sdd/tasks/auditoria-v1.0/AUD-002-consulta-e-retencao.md`:
+
+`````markdown
+# AUD-002 — Consulta no painel e retenção
+
+- **Spec:** .sdd/specs/auditoria.spec.md (v1.0) · atende RF-04, RF-05
+- **Nível:** Pleno
+- **Agente:** dev-pleno
+- **Status:** Pronta
+- **Depende de:** AUD-001
+
+## Arquivos a criar/alterar
+
+- `backend/src/main/java/br/com/celke/cursos/auditoria/api/AuditoriaController.java`
+- `backend/src/main/java/br/com/celke/cursos/auditoria/application/AuditoriaService.java`
+- `backend/src/main/java/br/com/celke/cursos/auditoria/application/LimpezaAuditoria.java`
+- `backend/src/main/java/br/com/celke/cursos/auditoria/infra/RetencaoAuditoriaJdbc.java`
+- `web/adm/src/paginas/auditoria/AuditoriaPagina.tsx`
+
+## Descrição técnica
+
+Filtros por usuário, e-mail, entidade, operação e período; antes e depois lado a lado.
+
+## Critérios de aceite
+
+- [ ] `web/e2e/adm/auditoria.spec.ts` verde
+`````
+
+`.sdd/tasks/auditoria-v1.0/AUD-003-fiacao.md`:
+
+`````markdown
+# AUD-003 — Fiação da auditoria e dos logs
+
+- **Spec:** .sdd/specs/auditoria.spec.md (v1.0) · atende RF-03, RF-06
+- **Nível:** Pleno
+- **Agente:** dev-pleno
+- **Status:** Pronta
+- **Depende de:** AUD-001, AUD-002
+
+## Arquivos a criar/alterar
+
+- `backend/src/main/resources/db/migration/V16__criar_auditoria.sql` — gatilho só de inclusão
+- `backend/src/main/resources/application.yaml`
+- `infra/compose.prod.yml` — volume `logs`
+
+## Descrição técnica
+
+Logs em arquivo, um por dia, 180 dias ou 2 GB por serviço.
+
+## Critérios de aceite
+
+- [ ] `./mvnw verify` verde
+- [ ] Task só de fiação: não tem teste próprio; a verificação é a suíte inteira passando.
+`````
+
+Acrescente ao fim da tabela do índice `.sdd/README.md` a linha:
+
+```text
+| [auditoria](specs/auditoria.spec.md) | 1.0 | [v1.0](tasks/auditoria-v1.0/README.md) | `f17-01-auditoria-e-logs.md` |
+```
 
 Vamos registrar quem fez o quê nos dados da plataforma e guardar o log técnico por meses. Siga o
 `backend/CLAUDE.md` e os padrões do `web/`. Não faça commit.
@@ -124,7 +339,7 @@ de exemplo já criadas. Os valores de `infra/e2e.env` são só para uso local.
 **1. Clonar o repositório**
 
 ```bash
-git clone https://github.com/celkecursos/plataforma-cursos.git
+git clone https://github.com/<dono-github>/plataforma-cursos.git
 cd plataforma-cursos
 ```
 
@@ -156,8 +371,8 @@ Os navegadores atuais resolvem `*.localhost` sozinhos; não é preciso mexer no 
 
 | Conta | E-mail | Senha |
 |---|---|---|
-| Administrador | `admin@celke.com.br` | `123456A#b123` |
-| Aluno | `aluno@celke.com.br` | `123456A#b123` |
+| Administrador | `admin@<dominio>` | `123456A#b123` |
+| Aluno | `aluno@<dominio>` | `123456A#b123` |
 
 Para ver um curso no site e na área do aluno: entre no ADM, crie o curso, uma turma (ative-a), um módulo
 e uma aula, publique o curso e matricule o aluno na aba **Matrículas** da turma.
@@ -1559,7 +1774,7 @@ produção mais recente.
 
 | O quê | Como |
 |---|---|
-| Site fora do ar | Monitor externo (UptimeRobot ou Better Stack, plano gratuito) a cada 5 minutos em `https://aluno.celke.uno/actuator/health` e `https://cursos.celke.uno`, com aviso por e-mail e celular |
+| Site fora do ar | Monitor externo (UptimeRobot ou Better Stack, plano gratuito) a cada 5 minutos em `https://<sub-aluno>.<dominio>/actuator/health` e `https://<sub-site>.<dominio>`, com aviso por e-mail e celular |
 | Job que desistiu (conversão de vídeo, por exemplo) | O worker verifica a cada 15 minutos os jobs que foram para `ERRO` e envia um e-mail para `ALERTA_EMAIL` com o resumo |
 | Pagamento contestado ou notificação com erro | Chargeback, disputa aberta e notificação de pagamento que foi para `ERRO` geram um e-mail para `ALERTA_EMAIL` na hora (veja `docs/pagamentos.md`) |
 | Disco quase cheio | O mesmo verificador do worker mede o disco da VPS (o sistema de arquivos do container é o do host) e alerta abaixo de 15% livre, repetindo a cada 6 horas enquanto não melhorar |
@@ -1636,10 +1851,10 @@ ADM mostra para cada vídeo: medir com os vídeos reais e atualizar esta tabela.
 Quando o HLS passar de ~40 GB, ou se a banda da VPS virar gargalo, os vídeos vão para o Cloudflare R2
 (sem taxa de saída) ou o Backblaze B2. Como a aplicação só fala S3 pelo AWS SDK:
 
-1. Criar o bucket no R2, a chave da aplicação e o CORS para `aluno.celke.uno` e `adm.celke.uno`.
+1. Criar o bucket no R2, a chave da aplicação e o CORS para `<sub-aluno>.<dominio>` e `<sub-adm>.<dominio>`.
 2. Copiar o conteúdo: `rclone sync garage:midia r2:midia` (com as duas origens no `rclone.conf`).
 3. No `.env` da produção, trocar `S3_ENDPOINT` e `S3_ENDPOINT_PUBLICO` (endpoint do R2 ou domínio
-   próprio `media.celke.uno` apontado para o bucket), `S3_BUCKET`, `S3_ACCESS_KEY` e `S3_SECRET_KEY`.
+   próprio `<sub-media>.<dominio>` apontado para o bucket), `S3_BUCKET`, `S3_ACCESS_KEY` e `S3_SECRET_KEY`.
 4. Rodar o `rclone sync` de novo (o que entrou durante a cópia) e reiniciar a API e o worker.
 5. Depois de uma semana sem problema, tirar o Garage da produção e o host de mídia do Caddy.
 
@@ -1668,7 +1883,7 @@ Quando o HLS passar de ~40 GB, ou se a banda da VPS virar gargalo, os vídeos v�
   (`same-site`). "Non-Storable Content" é esperado: a API responde sem cache.
 
   ```bash
-  docker run --rm ghcr.io/zaproxy/zaproxy:stable zap-baseline.py -t https://homolog-aluno.celke.uno/api/cursos -I
+  docker run --rm ghcr.io/zaproxy/zaproxy:stable zap-baseline.py -t https://homolog-<sub-aluno>.<dominio>/api/cursos -I
   ```
 `````
 
@@ -1716,11 +1931,11 @@ container `site` gera a partir da API ao subir e a cada 5 minutos (`SITE_INTERVA
 
 | Host | Ambiente | Acesso |
 |---|---|---|
-| `aluno.celke.uno` | produção | público |
-| `adm.celke.uno` | produção | só `ADM_IPS` |
-| `cursos.celke.uno` | produção | público (site gerado a partir da API) |
-| `media.celke.uno` | produção | público (URLs assinadas) |
-| `homolog-aluno.celke.uno`, `homolog-adm.celke.uno`, `homolog-media.celke.uno` | homologação | só `HOMOLOG_IPS`, `noindex`, com Swagger |
+| `<sub-aluno>.<dominio>` | produção | público |
+| `<sub-adm>.<dominio>` | produção | só `ADM_IPS` |
+| `<sub-site>.<dominio>` | produção | público (site gerado a partir da API) |
+| `<sub-media>.<dominio>` | produção | público (URLs assinadas) |
+| `homolog-<sub-aluno>.<dominio>`, `homolog-<sub-adm>.<dominio>`, `homolog-<sub-media>.<dominio>` | homologação | só `HOMOLOG_IPS`, `noindex`, com Swagger |
 
 ## 1. Contratar a VPS na Hostinger
 
@@ -1733,7 +1948,7 @@ container `site` gera a partir da API ao subir e a cada 5 minutos (`SITE_INTERVA
    painel é a segunda camada.
 4. Ative o backup/snapshot semanal do painel (não substitui o backup fora da VPS da fase de operação).
 
-## 2. DNS de celke.uno
+## 2. DNS de <dominio>
 
 Crie registros **A** apontando para o IP da VPS (só subdomínios; o domínio principal continua com as
 outras aplicações):
@@ -1749,7 +1964,7 @@ homolog-adm     A   <ip-da-vps>
 homolog-media   A   <ip-da-vps>
 ```
 
-Confira antes de seguir: `dig +short aluno.celke.uno` responde o IP da VPS.
+Confira antes de seguir: `dig +short <sub-aluno>.<dominio>` responde o IP da VPS.
 
 ## 3. Chaves SSH
 
@@ -1887,7 +2102,8 @@ cp caddy/.env.example caddy/.env && chmod 600 caddy/.env
 
 Preencha:
 
-- `producao/.env` e `homolog/.env`: `SMTP_HOST`, `SMTP_USERNAME`, `SMTP_PASSWORD` (painel da Iagente).
+- `producao/.env` e `homolog/.env`: `SMTP_HOST`, `SMTP_USERNAME`, `SMTP_PASSWORD` (painel da Iagente; crie a conta pelo link https://celke.com.br/page/iagente, que dá
+  alguns e-mails gratuitos para enviar).
   Na homologação, use um remetente identificado ou restrinja os envios a e-mails de teste.
 - `caddy/.env`: `ACME_EMAIL`, `ADM_IPS` e `HOMOLOG_IPS` (seus IPs, separados por espaço).
 
@@ -1901,6 +2117,9 @@ Crie no GitHub um token clássico só com `read:packages` e, na VPS, como `deplo
 ```bash
 echo "<token>" | docker login ghcr.io -u <usuario-github> --password-stdin
 ```
+
+No `.env` de cada ambiente, preencha `REGISTRO=ghcr.io/<dono-do-repositorio>` (em minúsculas): é
+onde o pipeline publica as imagens e de onde o deploy baixa a API, o worker e os fronts.
 
 ## 8. Deploy automático no GitHub
 
@@ -1946,9 +2165,9 @@ aprovação.
 
    ```bash
    docker compose -p plataforma-cursos-producao -f producao/compose.prod.yml --env-file producao/.env \
-     --project-directory producao run --rm api criar-admin admin@celke.uno "Administrador"
+     --project-directory producao run --rm api criar-admin admin@<dominio> "Administrador"
    docker compose -p plataforma-cursos-homolog -f homolog/compose.prod.yml -f homolog/compose.homolog.yml \
-     --env-file homolog/.env --project-directory homolog run --rm api criar-admin admin@celke.uno "Administrador"
+     --env-file homolog/.env --project-directory homolog run --rm api criar-admin admin@<dominio> "Administrador"
    ```
 
 ## 10. Verificação
@@ -1956,11 +2175,11 @@ aprovação.
 Do seu computador:
 
 ```bash
-curl -s https://aluno.celke.uno/actuator/health            # {"groups":[...],"status":"UP"}
-curl -sI https://aluno.celke.uno/actuator/health | grep -i strict-transport
-curl -s https://aluno.celke.uno/ | grep -o '<title>.*</title>'   # a área do aluno
-curl -s https://aluno.celke.uno/v3/api-docs | head -c 15        # <!doctype html> (o front, não a API)
-curl -s -o /dev/null -w "%{http_code}\n" https://adm.celke.uno/actuator/health # 403 fora de ADM_IPS
+curl -s https://<sub-aluno>.<dominio>/actuator/health            # {"groups":[...],"status":"UP"}
+curl -sI https://<sub-aluno>.<dominio>/actuator/health | grep -i strict-transport
+curl -s https://<sub-aluno>.<dominio>/ | grep -o '<title>.*</title>'   # a área do aluno
+curl -s https://<sub-aluno>.<dominio>/v3/api-docs | head -c 15        # <!doctype html> (o front, não a API)
+curl -s -o /dev/null -w "%{http_code}\n" https://<sub-adm>.<dominio>/actuator/health # 403 fora de ADM_IPS
 nc -zv -w 3 <ip-da-vps> 5432 ; nc -zv -w 3 <ip-da-vps> 3900 ; nc -zv -w 3 <ip-da-vps> 8080   # recusadas
 ssh root@<ip-da-vps>                                        # recusado
 ```
@@ -1996,7 +2215,7 @@ ssh -t $VPS 'C=/opt/plataforma-cursos/caddy \
   && sudo cp -p $C/Caddyfile $C/Caddyfile.bak-$(date +%F-%H%M) \
   && sudo cp -r /tmp/caddy/. $C/ && sudo chown -R deploy:deploy $C && rm -rf /tmp/caddy \
   && sudo -u deploy docker compose -f $C/compose.yml --env-file $C/.env --project-directory $C up -d --force-recreate'
-curl -s https://aluno.celke.uno/actuator/health   # {"groups":[...],"status":"UP"}
+curl -s https://<sub-aluno>.<dominio>/actuator/health   # {"groups":[...],"status":"UP"}
 ```
 
 O `Caddyfile` anterior fica em `caddy/Caddyfile.bak-<data>`; para voltar, copie-o por cima do
@@ -2026,7 +2245,7 @@ echo "PAGAMENTOS_CHAVE=$(openssl rand -base64 32)" >> /opt/plataforma-cursos/hom
 Trocar a chave depois exige informar de novo os segredos do meio de pagamento no painel. A
 reconciliação fica desligada até `PAGAMENTOS_RECONCILIACAO=true`. Atualize também o Caddy (acima): a
 homologação continua restrita por IP, mas deixa passar `/api/pagamentos/webhooks/*`, para a Hotmart de
-teste notificar `https://homolog-aluno.celke.uno/api/pagamentos/webhooks/<token>` (o endereço completo
+teste notificar `https://homolog-<sub-aluno>.<dominio>/api/pagamentos/webhooks/<token>` (o endereço completo
 aparece no painel). Configuração da Hotmart: `docs/pagamentos.md`.
 
 **Logs persistentes e auditoria (Fase 17):** nada a configurar. O deploy cria o volume `logs` de cada
@@ -2089,7 +2308,7 @@ x-logging: &logging
 services:
   api:
     logging: *logging
-    image: ${IMAGEM_API:-ghcr.io/celkecursos/plataforma-cursos-api}:${TAG:?defina TAG}
+    image: ${REGISTRO:?defina REGISTRO}/plataforma-cursos-api:${TAG:?defina TAG}
     restart: unless-stopped
     environment:
       <<: *app
@@ -2119,7 +2338,7 @@ services:
 
   worker:
     logging: *logging
-    image: ${IMAGEM_WORKER:-ghcr.io/celkecursos/plataforma-cursos-worker}:${TAG:?defina TAG}
+    image: ${REGISTRO:?defina REGISTRO}/plataforma-cursos-worker:${TAG:?defina TAG}
     restart: unless-stopped
     # No deploy, o job em andamento tem 30 s para terminar; uma conversão interrompida volta para a fila
     # quando o lease vence (o worker o renova a cada minuto enquanto converte)
@@ -2152,7 +2371,7 @@ services:
   # Área do aluno (porta 8081) e ADM (8082), estáticos; a API é chamada no mesmo domínio (/api)
   web:
     logging: *logging
-    image: ${IMAGEM_WEB:-ghcr.io/celkecursos/plataforma-cursos-web}:${TAG:?defina TAG}
+    image: ${REGISTRO:?defina REGISTRO}/plataforma-cursos-web:${TAG:?defina TAG}
     restart: unless-stopped
     environment:
       # Origem dos vídeos e arquivos na Content-Security-Policy dos fronts
@@ -2171,12 +2390,12 @@ services:
   # Gera o site público (cursos.*) a partir da API ao subir e a cada SITE_INTERVALO segundos
   site:
     logging: *logging
-    image: ${IMAGEM_SITE:-ghcr.io/celkecursos/plataforma-cursos-site}:${TAG:?defina TAG}
+    image: ${REGISTRO:?defina REGISTRO}/plataforma-cursos-site:${TAG:?defina TAG}
     restart: unless-stopped
     environment:
       API_URL: http://api:8080
       FRONT_ALUNO_URL: ${FRONT_ALUNO_URL:?defina FRONT_ALUNO_URL}
-      # Em branco, deriva do FRONT_ALUNO_URL (aluno.celke.uno → cursos.celke.uno)
+      # Em branco, deriva do FRONT_ALUNO_URL (<sub-aluno>.<dominio> → <sub-site>.<dominio>)
       SITE_URL: ${SITE_URL:-}
       SITE_INDEXAVEL: ${SITE_INDEXAVEL:-true}
       SITE_INTERVALO: ${SITE_INTERVALO:-300}
@@ -2814,7 +3033,7 @@ export function opcoes<V extends string>(mapa: Record<V, Rotulo | string>) {
     "lighthouse": "node e2e/lighthouse.ts"
   },
   "dependencies": {
-    "@celke/kole-react": "github:celkecursos/kole-react#fc87d5c4409e1e65e8c571321c08d56871d2a4d3",
+    "@celke/kole-react": "^0.1.0",
     "hls.js": "^1.7.3",
     "lucide-react": "^1.61.0",
     "react": "^19.3.1",
@@ -3919,7 +4138,7 @@ class AuditoriaIT extends IntegrationTest {
         assertThat(trilha(
                         "email=" + UsuariosSeed.ADMIN_EMAIL + "&operacao=INCLUSAO&entidade=Curso&entidadeId=" + curso))
                 .hasSize(1);
-        assertThat(trilha("email=ninguem-" + stamp() + "@teste.celke.uno")).isEmpty();
+        assertThat(trilha("email=ninguem-" + stamp() + "@teste.<dominio>")).isEmpty();
         assertThat(trilha("entidade=Curso&entidadeId=" + curso + "&de="
                         + Instant.now().plusSeconds(3600)))
                 .isEmpty();
@@ -3980,7 +4199,7 @@ class AuditoriaIT extends IntegrationTest {
         var gateway = pagamentos.hotmart("hottok-" + stamp(), true);
         String produto = stamp();
         pagamentos.oferta(estrutura.turma(), produto, "k2", null);
-        String email = stamp() + "@teste.celke.uno";
+        String email = stamp() + "@teste.<dominio>";
         pagamentos.enviar(
                 gateway,
                 pagamentos
@@ -4562,8 +4781,8 @@ requisições por IP.
 
 ## Contas e sessão
 
-- **Seed da stack** (criado pela API no perfil `e2e`): `admin@celke.com.br` e
-  `aluno@celke.com.br`, senha `123456A#b123`. São **só leitura**: nenhum teste troca a senha,
+- **Seed da stack** (criado pela API no perfil `e2e`): `admin@<dominio>` e
+  `aluno@<dominio>`, senha `123456A#b123`. São **só leitura**: nenhum teste troca a senha,
   sai ou mexe no perfil delas.
 - **Sessão nova por teste**: as fixtures `comoAdmin` e `comoAluno` (`support/sessoes.ts`) entram pela API
   no contexto do navegador; ao abrir a página, o app renova a sessão pelo cookie `HttpOnly`. Não há
@@ -4576,7 +4795,7 @@ requisições por IP.
 ## Dado de teste e limpeza
 
 - Cursos, contas e ofertas levam um carimbo único (`pw<tempo><sequência>`, e-mails
-  `pw...@teste.celke.uno`): execuções seguidas não colidem, mesmo sem limpar a stack.
+  `pw...@teste.<dominio>`): execuções seguidas não colidem, mesmo sem limpar a stack.
 - Os testes **não apagam** o que criam; o lixo some com o `down -v` da stack. Para começar do zero:
   `down -v` e `up` de novo.
 - O pagamento não sai para a internet: a ida ao `pay.hotmart.com` é interceptada (`page.route`) e a
@@ -4708,11 +4927,13 @@ git switch -c feature/auditoria
 - Na stack de e2e: alterar um curso pelo ADM e ver o registro em Segurança → Auditoria; `docker compose
   ... exec api ls /var/log/plataforma-cursos` mostra o `api.log`.
 - `UPDATE auditoria ...` direto no banco é recusado.
+- Com tudo verde, as tasks de `.sdd/tasks/auditoria-v1.0/` passam para `Status: Concluída` e os critérios de aceite
+  são marcados (`- [x]`).
 
 ## Depois de executar
 
 ```bash
-git add backend/ web/ infra/ docs/ .github/ README.md
+git add backend/ web/ infra/ docs/ .github/ README.md .sdd/
 git commit -m "feat(auditoria): auditar as ações e guardar os logs em arquivo"
 git push -u origin feature/auditoria
 ```

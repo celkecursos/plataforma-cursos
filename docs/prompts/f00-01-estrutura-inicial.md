@@ -14,6 +14,39 @@ numa VPS.
 Nesta etapa, crie apenas os arquivos iniciais na raiz do repositório (com a licença). Não crie código,
 pastas de backend/frontend nem faça commit.
 
+### 0. Configuração do projeto
+
+Antes de criar qualquer arquivo, **pergunte ao usuário** e espere as respostas. Domínio, subdomínios e
+repositório são de quem cria o projeto: não use valores de exemplo.
+
+1. "Qual é o seu domínio? (ex.: meudominio.com.br) Os endereços do projeto serão subdomínios dele."
+2. "Quais subdomínios usar? Enter aceita o padrão: site `cursos`, área do aluno `aluno`, ADM `adm` e
+   mídia `media`. A homologação usa os mesmos com o prefixo `homolog-`."
+3. "Qual usuário ou organização do GitHub é dono do repositório?" (sugira o dono do `origin`, se
+   houver)
+
+Confira com o usuário que nenhum desses subdomínios já está em uso. Crie `docs/configuracao.md` com
+as respostas (troque os valores da segunda coluna):
+
+`````markdown
+# Configuração do projeto
+
+Valores deste projeto. Os prompts usam os marcadores da primeira coluna no lugar deles.
+
+| Marcador | Valor | Uso |
+|---|---|---|
+| `<dominio>` | meudominio.com.br | domínio dos endereços e dos e-mails |
+| `<sub-site>` | cursos | site público |
+| `<sub-aluno>` | aluno | área do aluno e API |
+| `<sub-adm>` | adm | painel administrativo e API (restrito por IP) |
+| `<sub-media>` | media | vídeos e arquivos (Garage) |
+| `<dono-github>` | meu-usuario | dono do repositório e das imagens no GHCR |
+
+Na homologação, os subdomínios ganham o prefixo `homolog-` (ex.: `homolog-aluno.meudominio.com.br`).
+`````
+
+A partir daqui, troque esses marcadores pelos valores informados em todo o conteúdo deste prompt.
+
 ### 1. `README.md`
 
 Crie com exatamente este conteúdo:
@@ -113,10 +146,12 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 O repositório já existe no GitHub e está clonado (ou iniciado com `git init -b main` e o `origin`
 configurado). Os arquivos `docs/plano-implementacao.md`, `docs/capitulos.md` e a pasta `docs/prompts/`
-vêm com o material do tutorial: copie-os para o repositório como estão.
+vêm com o material do tutorial: copie-os para o repositório e, neles, troque os endereços e e-mails de
+exemplo pelo domínio e pelos subdomínios de `docs/configuracao.md`.
 
 ## Verificação
 
+- `docs/configuracao.md` existe com o domínio, os subdomínios e o dono do repositório informados.
 - `README.md`, `.gitignore` e `LICENSE.txt` (com o titular e o ano informados) existem na raiz.
 - `git status` mostra os arquivos como não rastreados (nenhum commit foi feito).
 

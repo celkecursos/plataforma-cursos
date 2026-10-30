@@ -3,6 +3,11 @@
 **Fase:** 1 — etapa 1.1
 **Branch:** `feature/base-projeto`
 
+> **Configuração do projeto:** troque os marcadores `<dominio>`, `<sub-site>`, `<sub-aluno>`,
+> `<sub-adm>`, `<sub-media>` e `<dono-github>` pelos valores de `docs/configuracao.md` (criado no
+> primeiro prompt) em todo o conteúdo deste prompt, inclusive nos testes. Se o arquivo não existir,
+> pergunte esses valores ao usuário antes de começar.
+
 ## Prompt
 
 Vamos criar o projeto Java do backend da Plataforma de Cursos em `backend/` e registrar as
@@ -523,7 +528,7 @@ não revelar que existe.
 
 ## Dado de teste
 
-- Identificador **único em runtime** com `stamp()` (prefixo `it-`): `<stamp>@teste.celke.uno`,
+- Identificador **único em runtime** com `stamp()` (prefixo `it-`): `<stamp>@teste.<dominio>`,
   curso `IT Curso <stamp>`, slug `<stamp>`.
 - **Nunca** conte valores absolutos de tabelas compartilhadas (total da listagem sem
   filtro, contadores): outras classes criam dados no mesmo banco. Use **delta** (lê antes,
@@ -719,7 +724,7 @@ src/e2e/resources/
   fica num teste só, com passos comentados.
 - Os usuários do seed são **só leitura**: logout, troca de senha e sessões são feitos com um
   usuário criado pela própria classe.
-- Identificador único com prefixo `e2e-`: `e2e-<stamp>@teste.celke.uno`.
+- Identificador único com prefixo `e2e-`: `e2e-<stamp>@teste.<dominio>`.
 
 ## Espera assíncrona
 

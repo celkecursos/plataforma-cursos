@@ -3,7 +3,235 @@
 **Fase:** 8
 **Branch:** `feature/certificado`
 
+> **Configuração do projeto:** troque os marcadores `<dominio>`, `<sub-site>`, `<sub-aluno>`,
+> `<sub-adm>`, `<sub-media>` e `<dono-github>` pelos valores de `docs/configuracao.md` (criado no
+> primeiro prompt) em todo o conteúdo deste prompt, inclusive nos testes. Se o arquivo não existir,
+> pergunte esses valores ao usuário antes de começar.
+
 ## Prompt
+
+### Especificação e tasks (SDD)
+
+Antes do código, registre a funcionalidade no SDD: crie a spec e as tasks abaixo com **exatamente** este conteúdo (troque os marcadores pelos valores de `docs/configuracao.md`). As tasks nascem com `Status: Pronta`; ao fim da **Verificação**, passam para `Concluída`.
+
+`.sdd/specs/certificado.spec.md`:
+
+`````markdown
+---
+feature: certificado
+versao: 1.0
+status: aprovada
+autor: pm-spec-architect
+---
+
+# Certificado
+
+## 1. Resumo Executivo
+
+O aluno que concluiu a turma emite o certificado em PDF com o próprio nome, e qualquer pessoa confere a
+autenticidade pelo código impresso, na página de validação do site `<sub-site>.<dominio>`, sem login.
+
+## 2. Atores e Papéis
+
+| Ator | Pode |
+|---|---|
+| Administrador | Definir a regra de conclusão e a carga horária da turma |
+| Aluno com matrícula vigente | Ver a situação, emitir, baixar e listar os próprios certificados |
+| Qualquer pessoa | Validar um certificado pelo código |
+
+## 3. Requisitos Funcionais
+
+- **RF-01** — O sistema DEVE definir por turma o percentual de conclusão (1 a 100, padrão 100) e a carga
+  horária opcional.
+- **RF-02** — O sistema DEVE mostrar ao aluno o percentual visto, o exigido, se concluiu e o certificado
+  já emitido.
+- **RF-03** — O sistema DEVE emitir o certificado só para quem concluiu, com o nome completo confirmado
+  pelo aluno; turma sem aulas nunca é concluída.
+- **RF-04** — O sistema DEVE congelar na emissão o nome, o curso, a turma e a carga horária; emitir de
+  novo devolve o mesmo certificado.
+- **RF-05** — O sistema DEVE gerar o PDF uma vez, guardá-lo e entregá-lo ao próprio aluno por endereço
+  válido por 5 minutos.
+- **RF-06** — O sistema DEVE gerar um código de validação de 12 caracteres sem letras ambíguas, com 60
+  bits aleatórios.
+- **RF-07** — O sistema DEVE validar publicamente pelo código, sem expor e-mail nem identificadores
+  internos.
+
+## 4. Modelo de Domínio
+
+- **Regra de conclusão:** turma, percentual exigido, carga horária.
+- **Certificado:** aluno, turma, código, nome impresso, curso, turma, carga horária, emitido em,
+  chave do PDF.
+
+## 5. Estados e Fluxos
+
+- Para o aluno: `em andamento` → `concluído` → `emitido`.
+- **Fluxo:** assistir até o percentual → confirmar o nome → emitir → baixar → validar pelo código.
+
+## 6. Contratos de Interface
+
+| Operação | Entrada | Saída |
+|---|---|---|
+| Definir regra | `percentualConclusao`, `cargaHorariaHoras` | regra |
+| Situação | turma | percentuais, concluiu, certificado |
+| Emitir | `nomeCompleto` | certificado |
+| Baixar | certificado | endereço temporário do PDF |
+| Validar | código | nome, curso, turma, carga horária, data |
+
+## 7. Casos de Borda
+
+- Certificado de outro aluno: "não encontrado".
+- Código inexistente ou malformado: "não encontrado".
+- Mudança da regra depois da emissão: o certificado emitido não muda.
+
+## 8. Premissas Validadas
+
+- O certificado é por turma, não por curso.
+
+## 9. Riscos
+
+- **Falsificação:** código aleatório de 60 bits e validação pública.
+`````
+
+`.sdd/tasks/certificado-v1.0/README.md`:
+
+`````markdown
+# Tasks — Certificado (v1.0)
+
+Spec: [`.sdd/specs/certificado.spec.md`](../../specs/certificado.spec.md) · versão 1.0 · prompt do tutorial `docs/prompts-iniciais/f08-01-certificado.md`.
+
+| Ordem | ID | Título | Nível | Depende de |
+|---|---|---|---|---|
+| 1 | [CERT-001](CERT-001-dominio.md) | Regra de conclusão e código | Sênior | — |
+| 2 | [CERT-002](CERT-002-emissao.md) | Situação, emissão e PDF | Sênior | CERT-001 |
+| 3 | [CERT-003](CERT-003-fiacao.md) | Fiação do certificado | Pleno | CERT-002 |
+
+## Grafo
+
+```
+CERT-001 (início)
+CERT-001 → CERT-002
+CERT-002 → CERT-003
+```
+
+## RF → tasks
+
+| RF | Tasks |
+|---|---|
+| RF-01 | CERT-001, CERT-003 |
+| RF-02 | CERT-002 |
+| RF-03 | CERT-001 |
+| RF-04 | CERT-002 |
+| RF-05 | CERT-002 |
+| RF-06 | CERT-001 |
+| RF-07 | CERT-002 |
+
+## Resumo por nível
+
+- Pleno: 1
+- Sênior: 2
+`````
+
+`.sdd/tasks/certificado-v1.0/CERT-001-dominio.md`:
+
+`````markdown
+# CERT-001 — Regra de conclusão e código
+
+- **Spec:** .sdd/specs/certificado.spec.md (v1.0) · atende RF-01, RF-03, RF-06
+- **Nível:** Sênior
+- **Agente:** dev-senior
+- **Status:** Pronta
+- **Depende de:** —
+
+## Arquivos a criar/alterar
+
+- `backend/src/main/java/br/com/celke/cursos/certificado/domain/RegraConclusao.java`
+- `backend/src/main/java/br/com/celke/cursos/certificado/domain/CodigoValidacao.java`
+- `backend/src/main/java/br/com/celke/cursos/certificado/domain/NomeCertificado.java`
+- `backend/src/main/java/br/com/celke/cursos/certificado/domain/Certificado.java`
+- `backend/src/main/java/br/com/celke/cursos/certificado/infra/CertificadoRepository.java`
+
+## Descrição técnica
+
+Código de 12 caracteres sem letras ambíguas (60 bits); turma sem aulas nunca é concluída.
+
+## Critérios de aceite
+
+- [ ] `CertificadoDominioTest` verde
+
+## Armadilhas
+
+Gerador não criptográfico para o código.
+`````
+
+`.sdd/tasks/certificado-v1.0/CERT-002-emissao.md`:
+
+`````markdown
+# CERT-002 — Situação, emissão e PDF
+
+- **Spec:** .sdd/specs/certificado.spec.md (v1.0) · atende RF-02, RF-04, RF-05, RF-07
+- **Nível:** Sênior
+- **Agente:** dev-senior
+- **Status:** Pronta
+- **Depende de:** CERT-001
+
+## Arquivos a criar/alterar
+
+- `backend/src/main/java/br/com/celke/cursos/certificado/api/CertificadoController.java`
+- `backend/src/main/java/br/com/celke/cursos/certificado/api/CertificadoResponses.java`
+- `backend/src/main/java/br/com/celke/cursos/certificado/application/CertificadoService.java`
+- `backend/src/main/java/br/com/celke/cursos/certificado/infra/GeradorPdf.java`
+- `backend/src/main/resources/templates/certificado/certificado.html`
+
+## Descrição técnica
+
+PDF gerado uma vez em `certificados/<turma>/<codigo>.pdf`; emitir de novo devolve o mesmo; validação pública sem e-mail nem ids.
+
+## Restrições
+
+Download só do próprio aluno.
+
+## Critérios de aceite
+
+- [ ] `CertificadoServiceTest` verde
+- [ ] `CertificadoIT` e `CertificadoE2E` verdes
+
+## Armadilhas
+
+Gerar o PDF a cada download muda o documento.
+`````
+
+`.sdd/tasks/certificado-v1.0/CERT-003-fiacao.md`:
+
+`````markdown
+# CERT-003 — Fiação do certificado
+
+- **Spec:** .sdd/specs/certificado.spec.md (v1.0) · atende RF-01
+- **Nível:** Pleno
+- **Agente:** dev-pleno
+- **Status:** Pronta
+- **Depende de:** CERT-002
+
+## Arquivos a criar/alterar
+
+- `backend/src/main/resources/db/migration/V13__criar_certificados.sql`
+- `backend/src/main/java/br/com/celke/cursos/shared/security/SecurityConfig.java`
+- `backend/src/main/java/br/com/celke/cursos/curso/api/TurmaAdmController.java` — `PUT /api/adm/turmas/{id}/certificado`
+
+## Descrição técnica
+
+Validação pública só em GET.
+
+## Critérios de aceite
+
+- [ ] `./mvnw verify` verde
+- [ ] Task só de fiação: não tem teste próprio; a verificação é a suíte inteira passando.
+`````
+
+Acrescente ao fim da tabela do índice `.sdd/README.md` a linha:
+
+```text
+| [certificado](specs/certificado.spec.md) | 1.0 | [v1.0](tasks/certificado-v1.0/README.md) | `f08-01-certificado.md` |
+```
 
 Vamos criar o módulo `certificado` do backend: regra de conclusão por turma, emissão do certificado em
 PDF com o nome confirmado pelo aluno e validação pública pelo código. Siga o `backend/CLAUDE.md` e o
@@ -2676,11 +2904,13 @@ No ambiente local, pelo Swagger, com um aluno matriculado numa turma:
   emita em `POST /api/aluno/turmas/{id}/certificado` com o nome completo.
 - Baixe o PDF pela URL de `GET /api/aluno/certificados/{id}/download`.
 - Sem token, `GET /api/certificados/{codigo}` confirma os dados impressos.
+- Com tudo verde, as tasks de `.sdd/tasks/certificado-v1.0/` passam para `Status: Concluída` e os critérios de aceite
+  são marcados (`- [x]`).
 
 ## Depois de executar
 
 ```bash
-git add backend/ infra/ docs/
+git add backend/ infra/ docs/ .sdd/
 git commit -m "feat(certificado): emitir certificado em PDF"
 git push -u origin feature/certificado
 ```

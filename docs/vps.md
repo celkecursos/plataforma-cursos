@@ -232,6 +232,9 @@ Crie no GitHub um token clássico só com `read:packages` e, na VPS, como `deplo
 echo "<token>" | docker login ghcr.io -u <usuario-github> --password-stdin
 ```
 
+No `.env` de cada ambiente, preencha `REGISTRO=ghcr.io/<dono-do-repositorio>` (em minúsculas): é
+onde o pipeline publica as imagens e de onde o deploy baixa a API, o worker e os fronts.
+
 ## 8. Deploy automático no GitHub
 
 Feito com a conta dona do repositório (colaboradores não veem as configurações). Em **Settings →

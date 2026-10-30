@@ -3,9 +3,221 @@
 **Fase:** 14
 **Branch:** `feature/site`
 
+> **Configuração do projeto:** troque os marcadores `<dominio>`, `<sub-site>`, `<sub-aluno>`,
+> `<sub-adm>`, `<sub-media>` e `<dono-github>` pelos valores de `docs/configuracao.md` (criado no
+> primeiro prompt) em todo o conteúdo deste prompt, inclusive nos testes. Se o arquivo não existir,
+> pergunte esses valores ao usuário antes de começar.
+
 ## Prompt
 
-Vamos publicar a vitrine em `cursos.celke.uno`: páginas HTML geradas a partir da API, rápidas e bem
+### Especificação e tasks (SDD)
+
+Antes do código, registre a funcionalidade no SDD: crie a spec e as tasks abaixo com **exatamente** este conteúdo (troque os marcadores pelos valores de `docs/configuracao.md`). As tasks nascem com `Status: Pronta`; ao fim da **Verificação**, passam para `Concluída`.
+
+`.sdd/specs/site-publico.spec.md`:
+
+`````markdown
+---
+feature: site-publico
+versao: 1.0
+status: aprovada
+autor: pm-spec-architect
+---
+
+# Site público
+
+## 1. Resumo Executivo
+
+O site `<sub-site>.<dominio>` apresenta a plataforma e o catálogo aos visitantes e aos buscadores: cada
+curso publicado no painel aparece no site sozinho, com página própria, dados para os buscadores e boa
+nota de desempenho e acessibilidade.
+
+## 2. Atores e Papéis
+
+| Ator | Pode |
+|---|---|
+| Visitante | Navegar, ver os cursos, validar certificados, ler termos e privacidade |
+| Buscador | Indexar a produção; a homologação fica fora |
+
+## 3. Requisitos Funcionais
+
+- **RF-01** — O sistema DEVE oferecer as páginas início, catálogo, curso, validar certificado, termos,
+  privacidade e "não encontrada".
+- **RF-02** — O sistema DEVE montar as páginas a partir da API do próprio ambiente e atualizá-las a cada
+  5 minutos, trocando a versão inteira de uma vez.
+- **RF-03** — O sistema DEVE publicar título, descrição, endereço canônico, dados de compartilhamento e
+  dados estruturados de curso em cada página.
+- **RF-04** — O sistema DEVE publicar o mapa do site e as regras para buscadores, mantendo a homologação
+  (`homolog-<sub-site>.<dominio>`) fora dos buscadores.
+- **RF-05** — O sistema DEVE atingir no Lighthouse (desktop) desempenho ≥ 90, acessibilidade ≥ 95, boas
+  práticas ≥ 95 e SEO ≥ 90 em todas as páginas.
+- **RF-06** — O sistema DEVE usar os tokens visuais da biblioteca de componentes da Celke.
+
+## 4. Modelo de Domínio
+
+Usa os cursos publicados (spec `catalogo-de-cursos`), a validação de certificado (spec `certificado`) e
+os termos vigentes (spec `perfil-e-termos`).
+
+## 5. Estados e Fluxos
+
+- **Publicação:** curso publicado no painel → próxima atualização do site → página no ar e no mapa.
+
+## 6. Contratos de Interface
+
+| Página | Caminho |
+|---|---|
+| Início | `/` |
+| Catálogo | `/cursos` |
+| Curso | `/cursos/<slug>` |
+| Validar certificado | `/certificados/validar` |
+| Termos / privacidade | `/termos`, `/privacidade` |
+| Mapa do site / buscadores | `/sitemap.xml`, `/robots.txt` |
+
+Endereço canônico: `https://<sub-site>.<dominio>`.
+
+## 7. Casos de Borda
+
+- Curso despublicado: sai do site na próxima atualização.
+- API fora do ar na atualização: a versão anterior continua no ar.
+
+## 8. Premissas Validadas
+
+- A mesma imagem serve homologação e produção; o ambiente define os endereços.
+
+## 9. Riscos
+
+- **Conteúdo desatualizado:** atualização a cada 5 minutos.
+`````
+
+`.sdd/tasks/site-publico-v1.0/README.md`:
+
+`````markdown
+# Tasks — Site público (v1.0)
+
+Spec: [`.sdd/specs/site-publico.spec.md`](../../specs/site-publico.spec.md) · versão 1.0 · prompt do tutorial `docs/prompts-iniciais/f14-01-site-publico.md`.
+
+| Ordem | ID | Título | Nível | Depende de |
+|---|---|---|---|---|
+| 1 | [SITE-001](SITE-001-paginas-e-seo.md) | Páginas e SEO | Pleno | — |
+| 2 | [SITE-002](SITE-002-geracao.md) | Geração periódica com troca atômica | Sênior | SITE-001 |
+| 3 | [SITE-003](SITE-003-fiacao.md) | Fiação do site | Pleno | SITE-002 |
+
+## Grafo
+
+```
+SITE-001 (início)
+SITE-001 → SITE-002
+SITE-002 → SITE-003
+```
+
+## RF → tasks
+
+| RF | Tasks |
+|---|---|
+| RF-01 | SITE-001 |
+| RF-02 | SITE-002 |
+| RF-03 | SITE-001 |
+| RF-04 | SITE-001 |
+| RF-05 | SITE-003 |
+| RF-06 | SITE-001 |
+
+## Resumo por nível
+
+- Pleno: 2
+- Sênior: 1
+`````
+
+`.sdd/tasks/site-publico-v1.0/SITE-001-paginas-e-seo.md`:
+
+`````markdown
+# SITE-001 — Páginas e SEO
+
+- **Spec:** .sdd/specs/site-publico.spec.md (v1.0) · atende RF-01, RF-03, RF-04, RF-06
+- **Nível:** Pleno
+- **Agente:** dev-pleno
+- **Status:** Pronta
+- **Depende de:** —
+
+## Arquivos a criar/alterar
+
+- `web/site/` — páginas, meta tags, dados estruturados, sitemap e robots
+
+## Descrição técnica
+
+Tokens visuais da `@celke/kole-react`; homologação com `noindex`.
+
+## Restrições
+
+Canônico em `https://<sub-site>.<dominio>`.
+
+## Critérios de aceite
+
+- [ ] testes unitários do SEO verdes
+`````
+
+`.sdd/tasks/site-publico-v1.0/SITE-002-geracao.md`:
+
+`````markdown
+# SITE-002 — Geração periódica com troca atômica
+
+- **Spec:** .sdd/specs/site-publico.spec.md (v1.0) · atende RF-02
+- **Nível:** Sênior
+- **Agente:** dev-senior
+- **Status:** Pronta
+- **Depende de:** SITE-001
+
+## Arquivos a criar/alterar
+
+- `web/site/` — gerador a partir da API do ambiente
+- `infra/compose.prod.yml` — serviço `site`
+
+## Descrição técnica
+
+Gera ao subir e a cada `SITE_INTERVALO` (5 min), trocando a versão inteira.
+
+## Critérios de aceite
+
+- [ ] site gerado na stack de e2e
+
+## Armadilhas
+
+Trocar arquivo por arquivo serve páginas misturadas.
+`````
+
+`.sdd/tasks/site-publico-v1.0/SITE-003-fiacao.md`:
+
+`````markdown
+# SITE-003 — Fiação do site
+
+- **Spec:** .sdd/specs/site-publico.spec.md (v1.0) · atende RF-05
+- **Nível:** Pleno
+- **Agente:** dev-pleno
+- **Status:** Pronta
+- **Depende de:** SITE-002
+
+## Arquivos a criar/alterar
+
+- `infra/caddy/sites/producao.caddy`
+- `infra/caddy/sites/homolog.caddy`
+- `.github/workflows/pipeline.yml` — Lighthouse
+
+## Descrição técnica
+
+Metas do Lighthouse no CI.
+
+## Critérios de aceite
+
+- [ ] Lighthouse verde
+- [ ] Task só de fiação: não tem teste próprio; a verificação é a suíte inteira passando.
+`````
+
+Acrescente ao fim da tabela do índice `.sdd/README.md` a linha:
+
+```text
+| [site-publico](specs/site-publico.spec.md) | 1.0 | [v1.0](tasks/site-publico-v1.0/README.md) | `f14-01-site-publico.md` |
+```
+
+Vamos publicar a vitrine em `<sub-site>.<dominio>`: páginas HTML geradas a partir da API, rápidas e bem
 indexadas. Não faça commit.
 
 O que esta etapa entrega:
@@ -110,10 +322,8 @@ jobs:
           cache: npm
           cache-dependency-path: web/package-lock.json
 
-      # O lock guarda o kole-react como git+ssh; o repositório é público e vem por HTTPS
       - name: Dependências
         run: |
-          git config --global url."https://github.com/".insteadOf "ssh://git@github.com/"
           npm ci --no-audit --no-fund
 
       - run: npm run format:check
@@ -237,7 +447,6 @@ jobs:
       - name: Jornadas e2e dos fronts (Playwright)
         working-directory: web
         run: |
-          git config --global url."https://github.com/".insteadOf "ssh://git@github.com/"
           npm ci --no-audit --no-fund
           npx playwright install --with-deps chromium
           npm run e2e
@@ -341,11 +550,11 @@ container `site` gera a partir da API ao subir e a cada 5 minutos (`SITE_INTERVA
 
 | Host | Ambiente | Acesso |
 |---|---|---|
-| `aluno.celke.uno` | produção | público |
-| `adm.celke.uno` | produção | só `ADM_IPS` |
-| `cursos.celke.uno` | produção | público (site gerado a partir da API) |
-| `media.celke.uno` | produção | público (URLs assinadas) |
-| `homolog-aluno.celke.uno`, `homolog-adm.celke.uno`, `homolog-media.celke.uno` | homologação | só `HOMOLOG_IPS`, `noindex`, com Swagger |
+| `<sub-aluno>.<dominio>` | produção | público |
+| `<sub-adm>.<dominio>` | produção | só `ADM_IPS` |
+| `<sub-site>.<dominio>` | produção | público (site gerado a partir da API) |
+| `<sub-media>.<dominio>` | produção | público (URLs assinadas) |
+| `homolog-<sub-aluno>.<dominio>`, `homolog-<sub-adm>.<dominio>`, `homolog-<sub-media>.<dominio>` | homologação | só `HOMOLOG_IPS`, `noindex`, com Swagger |
 
 ## 1. Contratar a VPS na Hostinger
 
@@ -358,7 +567,7 @@ container `site` gera a partir da API ao subir e a cada 5 minutos (`SITE_INTERVA
    painel é a segunda camada.
 4. Ative o backup/snapshot semanal do painel (não substitui o backup fora da VPS da fase de operação).
 
-## 2. DNS de celke.uno
+## 2. DNS de <dominio>
 
 Crie registros **A** apontando para o IP da VPS (só subdomínios; o domínio principal continua com as
 outras aplicações):
@@ -374,7 +583,7 @@ homolog-adm     A   <ip-da-vps>
 homolog-media   A   <ip-da-vps>
 ```
 
-Confira antes de seguir: `dig +short aluno.celke.uno` responde o IP da VPS.
+Confira antes de seguir: `dig +short <sub-aluno>.<dominio>` responde o IP da VPS.
 
 ## 3. Chaves SSH
 
@@ -512,7 +721,8 @@ cp caddy/.env.example caddy/.env && chmod 600 caddy/.env
 
 Preencha:
 
-- `producao/.env` e `homolog/.env`: `SMTP_HOST`, `SMTP_USERNAME`, `SMTP_PASSWORD` (painel da Iagente).
+- `producao/.env` e `homolog/.env`: `SMTP_HOST`, `SMTP_USERNAME`, `SMTP_PASSWORD` (painel da Iagente; crie a conta pelo link https://celke.com.br/page/iagente, que dá
+  alguns e-mails gratuitos para enviar).
   Na homologação, use um remetente identificado ou restrinja os envios a e-mails de teste.
 - `caddy/.env`: `ACME_EMAIL`, `ADM_IPS` e `HOMOLOG_IPS` (seus IPs, separados por espaço).
 
@@ -526,6 +736,9 @@ Crie no GitHub um token clássico só com `read:packages` e, na VPS, como `deplo
 ```bash
 echo "<token>" | docker login ghcr.io -u <usuario-github> --password-stdin
 ```
+
+No `.env` de cada ambiente, preencha `REGISTRO=ghcr.io/<dono-do-repositorio>` (em minúsculas): é
+onde o pipeline publica as imagens e de onde o deploy baixa a API, o worker e os fronts.
 
 ## 8. Deploy automático no GitHub
 
@@ -571,9 +784,9 @@ aprovação.
 
    ```bash
    docker compose -p plataforma-cursos-producao -f producao/compose.prod.yml --env-file producao/.env \
-     --project-directory producao run --rm api criar-admin admin@celke.uno "Administrador"
+     --project-directory producao run --rm api criar-admin admin@<dominio> "Administrador"
    docker compose -p plataforma-cursos-homolog -f homolog/compose.prod.yml -f homolog/compose.homolog.yml \
-     --env-file homolog/.env --project-directory homolog run --rm api criar-admin admin@celke.uno "Administrador"
+     --env-file homolog/.env --project-directory homolog run --rm api criar-admin admin@<dominio> "Administrador"
    ```
 
 ## 10. Verificação
@@ -581,11 +794,11 @@ aprovação.
 Do seu computador:
 
 ```bash
-curl -s https://aluno.celke.uno/actuator/health            # {"groups":[...],"status":"UP"}
-curl -sI https://aluno.celke.uno/actuator/health | grep -i strict-transport
-curl -s https://aluno.celke.uno/ | grep -o '<title>.*</title>'   # a área do aluno
-curl -s https://aluno.celke.uno/v3/api-docs | head -c 15        # <!doctype html> (o front, não a API)
-curl -s -o /dev/null -w "%{http_code}\n" https://adm.celke.uno/actuator/health # 403 fora de ADM_IPS
+curl -s https://<sub-aluno>.<dominio>/actuator/health            # {"groups":[...],"status":"UP"}
+curl -sI https://<sub-aluno>.<dominio>/actuator/health | grep -i strict-transport
+curl -s https://<sub-aluno>.<dominio>/ | grep -o '<title>.*</title>'   # a área do aluno
+curl -s https://<sub-aluno>.<dominio>/v3/api-docs | head -c 15        # <!doctype html> (o front, não a API)
+curl -s -o /dev/null -w "%{http_code}\n" https://<sub-adm>.<dominio>/actuator/health # 403 fora de ADM_IPS
 nc -zv -w 3 <ip-da-vps> 5432 ; nc -zv -w 3 <ip-da-vps> 3900 ; nc -zv -w 3 <ip-da-vps> 8080   # recusadas
 ssh root@<ip-da-vps>                                        # recusado
 ```
@@ -621,7 +834,7 @@ ssh -t $VPS 'C=/opt/plataforma-cursos/caddy \
   && sudo cp -p $C/Caddyfile $C/Caddyfile.bak-$(date +%F-%H%M) \
   && sudo cp -r /tmp/caddy/. $C/ && sudo chown -R deploy:deploy $C && rm -rf /tmp/caddy \
   && sudo -u deploy docker compose -f $C/compose.yml --env-file $C/.env --project-directory $C up -d --force-recreate'
-curl -s https://aluno.celke.uno/actuator/health   # {"groups":[...],"status":"UP"}
+curl -s https://<sub-aluno>.<dominio>/actuator/health   # {"groups":[...],"status":"UP"}
 ```
 
 O `Caddyfile` anterior fica em `caddy/Caddyfile.bak-<data>`; para voltar, copie-o por cima do
@@ -652,15 +865,15 @@ administrador, `sudo install -o root -g root -m 755 deploy.sh /usr/local/bin/pla
 # E-mail da conta no Let's Encrypt (avisos de certificado)
 ACME_EMAIL=
 
-# Hosts (só subdomínios de celke.uno; o domínio principal é de outras aplicações)
-PRODUCAO_HOST_ALUNO=https://aluno.celke.uno
-PRODUCAO_HOST_ADM=https://adm.celke.uno
-PRODUCAO_HOST_MEDIA=https://media.celke.uno
-PRODUCAO_HOST_SITE=https://cursos.celke.uno
-HOMOLOG_HOST_ALUNO=https://homolog-aluno.celke.uno
-HOMOLOG_HOST_ADM=https://homolog-adm.celke.uno
-HOMOLOG_HOST_MEDIA=https://homolog-media.celke.uno
-HOMOLOG_HOST_SITE=https://homolog-cursos.celke.uno
+# Hosts (só subdomínios de <dominio>; o domínio principal é de outras aplicações)
+PRODUCAO_HOST_ALUNO=https://<sub-aluno>.<dominio>
+PRODUCAO_HOST_ADM=https://<sub-adm>.<dominio>
+PRODUCAO_HOST_MEDIA=https://<sub-media>.<dominio>
+PRODUCAO_HOST_SITE=https://<sub-site>.<dominio>
+HOMOLOG_HOST_ALUNO=https://homolog-<sub-aluno>.<dominio>
+HOMOLOG_HOST_ADM=https://homolog-<sub-adm>.<dominio>
+HOMOLOG_HOST_MEDIA=https://homolog-<sub-media>.<dominio>
+HOMOLOG_HOST_SITE=https://homolog-<sub-site>.<dominio>
 
 # IPs liberados, separados por espaço (IPv4/IPv6, com ou sem máscara: 203.0.113.7 198.51.100.0/24)
 ADM_IPS=
@@ -676,7 +889,7 @@ HOMOLOG_IPS=
 # sozinho; com "http://..." atende sem TLS (e2e).
 {
 	admin off
-	email {$ACME_EMAIL:nao-configurado@celke.uno}
+	email {$ACME_EMAIL:nao-configurado@<dominio>}
 	# Sem isso, o handle dos sites roda antes do respond e a restrição por IP (somente_ips_adm,
 	# homolog) só valeria na mídia
 	order respond before handle
@@ -850,7 +1063,7 @@ http://cursos.localhost {
 http://media.localhost {
 	# Os mesmos headers do (seguranca), menos o Cross-Origin-Resource-Policy same-site: para o
 	# navegador, cada *.localhost é um site diferente (o TLD desconhecido conta como sufixo público) e
-	# as imagens da mídia não carregariam no aluno, no ADM e no site. Nos servidores, *.celke.uno é um
+	# as imagens da mídia não carregariam no aluno, no ADM e no site. Nos servidores, *.<dominio> é um
 	# site só e vale o (seguranca) completo.
 	header {
 		X-Content-Type-Options nosniff
@@ -1085,7 +1298,7 @@ x-logging: &logging
 services:
   api:
     logging: *logging
-    image: ${IMAGEM_API:-ghcr.io/celkecursos/plataforma-cursos-api}:${TAG:?defina TAG}
+    image: ${REGISTRO:?defina REGISTRO}/plataforma-cursos-api:${TAG:?defina TAG}
     restart: unless-stopped
     environment:
       <<: *app
@@ -1112,7 +1325,7 @@ services:
 
   worker:
     logging: *logging
-    image: ${IMAGEM_WORKER:-ghcr.io/celkecursos/plataforma-cursos-worker}:${TAG:?defina TAG}
+    image: ${REGISTRO:?defina REGISTRO}/plataforma-cursos-worker:${TAG:?defina TAG}
     restart: unless-stopped
     # No deploy, o job em andamento tem 30 s para terminar; uma conversão interrompida volta para a fila
     # quando o lease vence (o worker o renova a cada minuto enquanto converte)
@@ -1142,7 +1355,7 @@ services:
   # Área do aluno (porta 8081) e ADM (8082), estáticos; a API é chamada no mesmo domínio (/api)
   web:
     logging: *logging
-    image: ${IMAGEM_WEB:-ghcr.io/celkecursos/plataforma-cursos-web}:${TAG:?defina TAG}
+    image: ${REGISTRO:?defina REGISTRO}/plataforma-cursos-web:${TAG:?defina TAG}
     restart: unless-stopped
     environment:
       # Origem dos vídeos e arquivos na Content-Security-Policy dos fronts
@@ -1161,12 +1374,12 @@ services:
   # Gera o site público (cursos.*) a partir da API ao subir e a cada SITE_INTERVALO segundos
   site:
     logging: *logging
-    image: ${IMAGEM_SITE:-ghcr.io/celkecursos/plataforma-cursos-site}:${TAG:?defina TAG}
+    image: ${REGISTRO:?defina REGISTRO}/plataforma-cursos-site:${TAG:?defina TAG}
     restart: unless-stopped
     environment:
       API_URL: http://api:8080
       FRONT_ALUNO_URL: ${FRONT_ALUNO_URL:?defina FRONT_ALUNO_URL}
-      # Em branco, deriva do FRONT_ALUNO_URL (aluno.celke.uno → cursos.celke.uno)
+      # Em branco, deriva do FRONT_ALUNO_URL (<sub-aluno>.<dominio> → <sub-site>.<dominio>)
       SITE_URL: ${SITE_URL:-}
       SITE_INDEXAVEL: ${SITE_INDEXAVEL:-true}
       SITE_INTERVALO: ${SITE_INTERVALO:-300}
@@ -1319,10 +1532,6 @@ volumes:
 # O Caddy da VPS manda /api para a API e o resto para o container web.
 
 FROM node:24.11-bookworm-slim AS build
-RUN apt-get update -q && apt-get install -y -q --no-install-recommends git ca-certificates \
-    && rm -rf /var/lib/apt/lists/*
-# O lock guarda o kole-react como git+ssh; o repositório é público e é baixado por HTTPS
-RUN git config --global url."https://github.com/".insteadOf "ssh://git@github.com/"
 WORKDIR /web
 COPY package.json package-lock.json ./
 RUN npm ci --no-audit --no-fund
@@ -1348,6 +1557,8 @@ HEALTHCHECK --interval=5s --timeout=3s --start-period=60s --retries=20 \
 CMD ["node", "site/gerar.ts"]
 
 FROM caddy:2.11.7-alpine AS web
+# Correções do sistema publicadas depois da imagem base
+RUN apk upgrade --no-cache
 COPY Caddyfile /etc/caddy/Caddyfile
 COPY --from=build /web/dist/aluno /srv/aluno
 COPY --from=build /web/dist/adm /srv/adm
@@ -1577,8 +1788,8 @@ export const SITE_URL = process.env['E2E_SITE_URL'] ?? 'http://cursos.localhost:
 export const MAILPIT_URL = process.env['E2E_MAILPIT_URL'] ?? 'http://localhost:8026';
 
 export const SENHA_SEED = process.env['E2E_SENHA_SEED'] ?? '123456A#b123';
-export const ADMIN_SEED = 'admin@celke.com.br';
-export const ALUNO_SEED = 'aluno@celke.com.br';
+export const ADMIN_SEED = 'admin@<dominio>';
+export const ALUNO_SEED = 'aluno@<dominio>';
 
 // Trava: os testes criam contas e trocam senhas; só rodam contra a stack local (*.localhost)
 for (const url of [ALUNO_URL, ADM_URL, SITE_URL]) {
@@ -1652,7 +1863,7 @@ export default tseslint.config(
     "lighthouse": "node e2e/lighthouse.ts"
   },
   "dependencies": {
-    "@celke/kole-react": "github:celkecursos/kole-react#fc87d5c4409e1e65e8c571321c08d56871d2a4d3",
+    "@celke/kole-react": "^0.1.0",
     "hls.js": "^1.7.3",
     "lucide-react": "^1.61.0",
     "react": "^19.3.1",
@@ -2517,7 +2728,7 @@ h3 {
 
 `````ts
 /**
- * Gerador do site público (cursos.celke.uno): busca o catálogo na API do próprio ambiente e grava
+ * Gerador do site público (<sub-site>.<dominio>): busca o catálogo na API do próprio ambiente e grava
  * uma página HTML por rota. Roda no container `site` ao subir e de novo a cada SITE_INTERVALO
  * segundos; o Caddy do container `web` serve a versão mais recente.
  *
@@ -2547,7 +2758,7 @@ import {
 
 const API_URL = (process.env['API_URL'] ?? 'http://localhost:8080').replace(/\/$/, '');
 const ALUNO_URL = (process.env['FRONT_ALUNO_URL'] ?? 'http://localhost:5173').replace(/\/$/, '');
-/** Sem SITE_URL, deriva do endereço do aluno (aluno.celke.uno → cursos.celke.uno). */
+/** Sem SITE_URL, deriva do endereço do aluno (<sub-aluno>.<dominio> → <sub-site>.<dominio>). */
 const SITE_URL = (process.env['SITE_URL'] || ALUNO_URL.replace('aluno.', 'cursos.')).replace(
   /\/$/,
   '',
@@ -2749,8 +2960,8 @@ import {
 } from './paginas.ts';
 
 const ctx: Contexto = {
-  siteUrl: 'https://cursos.celke.uno',
-  alunoUrl: 'https://aluno.celke.uno',
+  siteUrl: 'https://<sub-site>.<dominio>',
+  alunoUrl: 'https://<sub-aluno>.<dominio>',
   indexavel: true,
   ano: 2026,
 };
@@ -2794,9 +3005,9 @@ describe('páginas', () => {
       '<meta name="description" content="Aprenda &quot;Java&quot; &amp; Spring" />',
     );
     expect(pagina).toContain(
-      '<link rel="canonical" href="https://cursos.celke.uno/cursos/java-do-zero/" />',
+      '<link rel="canonical" href="https://<sub-site>.<dominio>/cursos/java-do-zero/" />',
     );
-    expect(pagina).toContain('content="https://cursos.celke.uno/api/cursos/java-do-zero/capa"');
+    expect(pagina).toContain('content="https://<sub-site>.<dominio>/api/cursos/java-do-zero/capa"');
     expect(pagina).toContain('"@type":"Course"');
     expect(pagina).toContain('Aula gratuita');
     expect(pagina).toContain('<p>Segundo parágrafo.</p>');
@@ -2807,14 +3018,14 @@ describe('páginas', () => {
     const fora = { ...ctx, indexavel: false };
     expect(paginaInicial(fora, [])).toContain('<meta name="robots" content="noindex, nofollow" />');
     expect(robots(fora)).toBe('User-agent: *\nDisallow: /\n');
-    expect(robots(ctx)).toContain('Sitemap: https://cursos.celke.uno/sitemap.xml');
+    expect(robots(ctx)).toContain('Sitemap: https://<sub-site>.<dominio>/sitemap.xml');
   });
 
   it('home sem cursos e sitemap com cada curso', () => {
     expect(paginaInicial(ctx, [])).toContain('Novos cursos em breve');
     const mapa = sitemap(ctx, [curso]);
-    expect(mapa).toContain('<loc>https://cursos.celke.uno/cursos/java-do-zero/</loc>');
-    expect(mapa).toContain('<loc>https://cursos.celke.uno/certificados/validar/</loc>');
+    expect(mapa).toContain('<loc>https://<sub-site>.<dominio>/cursos/java-do-zero/</loc>');
+    expect(mapa).toContain('<loc>https://<sub-site>.<dominio>/certificados/validar/</loc>');
   });
 });
 `````
@@ -2845,7 +3056,7 @@ export interface Termo {
 }
 
 export interface Contexto {
-  /** Endereço público do site, sem barra no fim (ex.: https://cursos.celke.uno). */
+  /** Endereço público do site, sem barra no fim (ex.: https://<sub-site>.<dominio>). */
   siteUrl: string;
   /** Área do aluno (entrar, criar conta). */
   alunoUrl: string;
@@ -3180,7 +3391,7 @@ No painel do seu domínio, crie mais dois registros do tipo A apontando para o I
   cursos            A      <ip-da-vps>
   homolog-cursos    A      <ip-da-vps>
 
-Para conferir (deve responder o IP da VPS): dig +short cursos.celke.uno
+Para conferir (deve responder o IP da VPS): dig +short <sub-site>.<dominio>
 Me avise quando estiverem criados: eu confiro com o dig antes de seguir.
 ```
 
@@ -3191,8 +3402,8 @@ Me avise quando estiverem criados: eu confiro com o dig antes de seguir.
 
 1. Na VPS, em /opt/plataforma-cursos/caddy/.env, acrescente:
 
-     PRODUCAO_HOST_SITE=https://cursos.celke.uno
-     HOMOLOG_HOST_SITE=https://homolog-cursos.celke.uno
+     PRODUCAO_HOST_SITE=https://<sub-site>.<dominio>
+     HOMOLOG_HOST_SITE=https://homolog-<sub-site>.<dominio>
 
 2. Depois do deploy desta etapa nos dois ambientes, no SEU COMPUTADOR (não na VPS), na raiz do
    repositório, com a main atualizada (git switch main && git pull):
@@ -3205,7 +3416,7 @@ Me avise quando estiverem criados: eu confiro com o dig antes de seguir.
        && sudo cp -p $C/Caddyfile $C/Caddyfile.bak-$(date +%F-%H%M) \
        && sudo cp -r /tmp/caddy/. $C/ && sudo chown -R deploy:deploy $C && rm -rf /tmp/caddy \
        && sudo -u deploy docker compose -f $C/compose.yml --env-file $C/.env --project-directory $C up -d --force-recreate'
-     curl -s https://aluno.celke.uno/actuator/health   # {"groups":[...],"status":"UP"}
+     curl -s https://<sub-aluno>.<dominio>/actuator/health   # {"groups":[...],"status":"UP"}
 ```
 
 ## Verificação
@@ -3230,11 +3441,13 @@ docker compose -f infra/compose.prod.yml -f infra/compose.e2e.yml --env-file inf
 ```
 
 - Tudo passa; confira as telas da fase em `http://aluno.localhost:8088` e `http://adm.localhost:8088` (contas do seed em `infra/e2e.env`).
+- Com tudo verde, as tasks de `.sdd/tasks/site-publico-v1.0/` passam para `Status: Concluída` e os critérios de aceite
+  são marcados (`- [x]`).
 
 ## Depois de executar
 
 ```bash
-git add backend/ web/ infra/ docs/ .github/ README.md
+git add backend/ web/ infra/ docs/ .github/ README.md .sdd/
 git commit -m "feat(site): gerar o site público a partir da API"
 git push -u origin feature/site
 ```

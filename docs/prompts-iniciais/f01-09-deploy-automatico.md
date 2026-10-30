@@ -3,7 +3,16 @@
 **Fase:** 1 — etapa 1.9
 **Branch:** `feature/base-projeto`
 
+> **Configuração do projeto:** troque os marcadores `<dominio>`, `<sub-site>`, `<sub-aluno>`,
+> `<sub-adm>`, `<sub-media>` e `<dono-github>` pelos valores de `docs/configuracao.md` (criado no
+> primeiro prompt) em todo o conteúdo deste prompt, inclusive nos testes. Se o arquivo não existir,
+> pergunte esses valores ao usuário antes de começar.
+
 ## Prompt
+
+### Especificação e tasks (SDD)
+
+Esta etapa implementa a task `ENTREGA-003` de `.sdd/tasks/ambientes-e-entrega-v1.0/` (spec `.sdd/specs/ambientes-e-entrega.spec.md`, criada no prompt `f01-07-e2e-e-pipeline.md`).
 
 Vamos fazer cada merge virar versão no ar: o pipeline publica as imagens que passaram no e2e e implanta
 na VPS por SSH, com rollback automático. Não faça commit.
@@ -366,10 +375,10 @@ apelidos `producao-api`, `producao-garage`, `homolog-api` e `homolog-garage`.
 
 | Host | Ambiente | Acesso |
 |---|---|---|
-| `aluno.celke.uno` | produção | público |
-| `adm.celke.uno` | produção | só `ADM_IPS` |
-| `media.celke.uno` | produção | público (URLs assinadas) |
-| `homolog-aluno.celke.uno`, `homolog-adm.celke.uno`, `homolog-media.celke.uno` | homologação | só `HOMOLOG_IPS`, `noindex`, com Swagger |
+| `<sub-aluno>.<dominio>` | produção | público |
+| `<sub-adm>.<dominio>` | produção | só `ADM_IPS` |
+| `<sub-media>.<dominio>` | produção | público (URLs assinadas) |
+| `homolog-<sub-aluno>.<dominio>`, `homolog-<sub-adm>.<dominio>`, `homolog-<sub-media>.<dominio>` | homologação | só `HOMOLOG_IPS`, `noindex`, com Swagger |
 
 ## 1. Contratar a VPS na Hostinger
 
@@ -382,7 +391,7 @@ apelidos `producao-api`, `producao-garage`, `homolog-api` e `homolog-garage`.
    painel é a segunda camada.
 4. Ative o backup/snapshot semanal do painel (não substitui o backup fora da VPS da fase de operação).
 
-## 2. DNS de celke.uno
+## 2. DNS de <dominio>
 
 Crie registros **A** apontando para o IP da VPS (só subdomínios; o domínio principal continua com as
 outras aplicações):
@@ -396,7 +405,7 @@ homolog-adm     A   <ip-da-vps>
 homolog-media   A   <ip-da-vps>
 ```
 
-Confira antes de seguir: `dig +short aluno.celke.uno` responde o IP da VPS.
+Confira antes de seguir: `dig +short <sub-aluno>.<dominio>` responde o IP da VPS.
 
 ## 3. Chaves SSH
 
@@ -534,7 +543,8 @@ cp caddy/.env.example caddy/.env && chmod 600 caddy/.env
 
 Preencha:
 
-- `producao/.env` e `homolog/.env`: `SMTP_HOST`, `SMTP_USERNAME`, `SMTP_PASSWORD` (painel da Iagente).
+- `producao/.env` e `homolog/.env`: `SMTP_HOST`, `SMTP_USERNAME`, `SMTP_PASSWORD` (painel da Iagente; crie a conta pelo link https://celke.com.br/page/iagente, que dá
+  alguns e-mails gratuitos para enviar).
   Na homologação, use um remetente identificado ou restrinja os envios a e-mails de teste.
 - `caddy/.env`: `ACME_EMAIL`, `ADM_IPS` e `HOMOLOG_IPS` (seus IPs, separados por espaço).
 
@@ -548,6 +558,9 @@ Crie no GitHub um token clássico só com `read:packages` e, na VPS, como `deplo
 ```bash
 echo "<token>" | docker login ghcr.io -u <usuario-github> --password-stdin
 ```
+
+No `.env` de cada ambiente, preencha `REGISTRO=ghcr.io/<dono-do-repositorio>` (em minúsculas): é
+onde o pipeline publica as imagens e de onde o deploy baixa a API, o worker e os fronts.
 
 ## 8. Deploy automático no GitHub
 
@@ -593,9 +606,9 @@ aprovação.
 
    ```bash
    docker compose -p plataforma-cursos-producao -f producao/compose.prod.yml --env-file producao/.env \
-     --project-directory producao run --rm api criar-admin admin@celke.uno "Administrador"
+     --project-directory producao run --rm api criar-admin admin@<dominio> "Administrador"
    docker compose -p plataforma-cursos-homolog -f homolog/compose.prod.yml -f homolog/compose.homolog.yml \
-     --env-file homolog/.env --project-directory homolog run --rm api criar-admin admin@celke.uno "Administrador"
+     --env-file homolog/.env --project-directory homolog run --rm api criar-admin admin@<dominio> "Administrador"
    ```
 
 ## 10. Verificação
@@ -603,10 +616,10 @@ aprovação.
 Do seu computador:
 
 ```bash
-curl -s https://aluno.celke.uno/actuator/health            # {"groups":[...],"status":"UP"}
-curl -sI https://aluno.celke.uno/actuator/health | grep -i strict-transport
-curl -s -o /dev/null -w "%{http_code}\n" https://aluno.celke.uno/v3/api-docs   # 404
-curl -s -o /dev/null -w "%{http_code}\n" https://adm.celke.uno/actuator/health # 403 fora de ADM_IPS
+curl -s https://<sub-aluno>.<dominio>/actuator/health            # {"groups":[...],"status":"UP"}
+curl -sI https://<sub-aluno>.<dominio>/actuator/health | grep -i strict-transport
+curl -s -o /dev/null -w "%{http_code}\n" https://<sub-aluno>.<dominio>/v3/api-docs   # 404
+curl -s -o /dev/null -w "%{http_code}\n" https://<sub-adm>.<dominio>/actuator/health # 403 fora de ADM_IPS
 nc -zv -w 3 <ip-da-vps> 5432 ; nc -zv -w 3 <ip-da-vps> 3900 ; nc -zv -w 3 <ip-da-vps> 8080   # recusadas
 ssh root@<ip-da-vps>                                        # recusado
 ```
@@ -642,7 +655,7 @@ ssh -t $VPS 'C=/opt/plataforma-cursos/caddy \
   && sudo cp -p $C/Caddyfile $C/Caddyfile.bak-$(date +%F-%H%M) \
   && sudo cp -r /tmp/caddy/. $C/ && sudo chown -R deploy:deploy $C && rm -rf /tmp/caddy \
   && sudo -u deploy docker compose -f $C/compose.yml --env-file $C/.env --project-directory $C up -d --force-recreate'
-curl -s https://aluno.celke.uno/actuator/health   # {"groups":[...],"status":"UP"}
+curl -s https://<sub-aluno>.<dominio>/actuator/health   # {"groups":[...],"status":"UP"}
 ```
 
 O `Caddyfile` anterior fica em `caddy/Caddyfile.bak-<data>`; para voltar, copie-o por cima do
@@ -782,7 +795,7 @@ fi
 
 # 4. Falhou: volta para a anterior
 log "FALHOU: algum container não ficou saudável"
-compose ps -a | tee -a deploy.log
+compose ps -a 2>&1 | tee -a deploy.log || true
 if [[ -z "$ANTERIOR" ]]; then
   falhar "não há versão anterior para voltar"
 fi
@@ -875,6 +888,10 @@ Esta etapa tem passos que só o usuário faz, fora do código (no navegador, no 
    Personal access tokens) e, na VPS, como deploy (sudo -iu deploy):
 
      echo "<token>" | docker login ghcr.io -u <usuario-github> --password-stdin
+
+3. No .env de cada ambiente (/opt/plataforma-cursos/producao/.env e homolog/.env), preencha
+   REGISTRO=ghcr.io/<dono-do-repositorio> (em minúsculas): é onde o pipeline publica as imagens
+   e de onde o deploy baixa a API, o worker e os fronts.
 ```
 
 ### 2. Secrets e variável no GitHub
@@ -921,8 +938,8 @@ produção esperar a sua aprovação.
 
 - `shellcheck infra/scripts/*.sh` e `actionlint` sem avisos.
 - Simulação local do deploy (com as imagens do e2e já construídas): crie uma pasta com `homolog/.env`
-  (valores do `infra/e2e.env`, `AMBIENTE=homolog`, `TAG=` vazio, `IMAGEM_API=plataforma-cursos-api`,
-  `IMAGEM_WORKER=plataforma-cursos-worker`), marque `plataforma-cursos-{api,worker}:e2e` com um SHA de teste e
+  (valores do `infra/e2e.env`, `AMBIENTE=homolog`, `TAG=` vazio, `REGISTRO=local`), marque
+  `plataforma-cursos-{api,worker}:e2e` como `local/plataforma-cursos-{api,worker}:<sha de teste>` e
   rode `tar -C infra -cz compose.prod.yml compose.homolog.yml garage/garage.toml | DEPLOY_BASE=<pasta> infra/scripts/deploy.sh homolog <sha>`:
   a versão sobe saudável. Com uma imagem da API que sai na hora (`ENTRYPOINT ["false"]`) e outro SHA, o
   script registra a falha, volta para a versão anterior e termina com código 1.
@@ -930,10 +947,11 @@ produção esperar a sua aprovação.
   segundo deploy simultâneo são recusados.
 - Na VPS e no GitHub, siga os passos 5 (script de deploy), 8 e 9 do `docs/vps.md`; o merge na `homolog`
   implanta a homologação.
+- Com tudo verde, a task `ENTREGA-003` passa para `Status: Concluída`.
 
 ## Depois de executar
 
 ```bash
-git add .github/ docs/ infra/
+git add .github/ docs/ infra/ .sdd/
 git commit -m "ci: adicionar deploy automático com rollback"
 ```

@@ -3,7 +3,246 @@
 **Fase:** 13
 **Branch:** `feature/web-aluno`
 
+> **Configuração do projeto:** troque os marcadores `<dominio>`, `<sub-site>`, `<sub-aluno>`,
+> `<sub-adm>`, `<sub-media>` e `<dono-github>` pelos valores de `docs/configuracao.md` (criado no
+> primeiro prompt) em todo o conteúdo deste prompt, inclusive nos testes. Se o arquivo não existir,
+> pergunte esses valores ao usuário antes de começar.
+
 ## Prompt
+
+### Especificação e tasks (SDD)
+
+Antes do código, registre a funcionalidade no SDD: crie a spec e as tasks abaixo com **exatamente** este conteúdo (troque os marcadores pelos valores de `docs/configuracao.md`). As tasks nascem com `Status: Pronta`; ao fim da **Verificação**, passam para `Concluída`.
+
+`.sdd/specs/area-do-aluno.spec.md`:
+
+`````markdown
+---
+feature: area-do-aluno
+versao: 1.0
+status: aprovada
+autor: pm-spec-architect
+---
+
+# Área do aluno
+
+## 1. Resumo Executivo
+
+O aluno estuda pelas telas de `<sub-aluno>.<dominio>`: vê os cursos, abre a turma, assiste às aulas
+retomando de onde parou, baixa arquivos, pergunta no fórum, emite o certificado e cuida do perfil.
+
+## 2. Atores e Papéis
+
+| Ator | Pode |
+|---|---|
+| Aluno | Todas as telas da área do aluno, dentro do acesso de cada matrícula |
+
+## 3. Requisitos Funcionais
+
+- **RF-01** — O sistema DEVE mostrar os cursos em abas (ativos, arquivados, expirados) e permitir
+  arquivar e desarquivar.
+- **RF-02** — O sistema DEVE mostrar a turma com módulos, aulas, arquivos do módulo e o progresso, com as
+  marcações de vista e revisar.
+- **RF-03** — O sistema DEVE reproduzir o vídeo da aula por streaming adaptativo, retomando da última
+  posição e enviando a posição periodicamente.
+- **RF-04** — O sistema DEVE navegar para a aula anterior e a próxima e marcar a aula como vista ou para
+  revisar.
+- **RF-05** — O sistema DEVE mostrar os arquivos e o fórum da aula, com pergunta e resposta.
+- **RF-06** — O sistema DEVE mostrar a situação do certificado, emitir com o nome completo, baixar o PDF
+  e listar os certificados.
+- **RF-07** — O sistema DEVE permitir trocar nome, foto e senha no perfil.
+- **RF-08** — O sistema DEVE mostrar estados de carregando, vazio e erro, e bloquear com mensagem clara
+  o conteúdo sem acesso.
+
+## 4. Modelo de Domínio
+
+Usa as entidades das specs `matricula-e-acesso`, `reproducao-e-progresso`, `arquivos-de-apoio`,
+`forum`, `certificado` e `perfil-e-termos`.
+
+## 5. Estados e Fluxos
+
+- **Estudo:** entrar → meus cursos → turma → aula → vídeo até o fim → vista → progresso da turma →
+  certificado.
+
+## 6. Contratos de Interface
+
+| Tela | Faz |
+|---|---|
+| Meus cursos | abas e arquivar |
+| Turma | módulos, aulas, arquivos, progresso |
+| Aula | vídeo, navegação, vista/revisar, arquivos, fórum |
+| Certificados | situação, emissão, PDF, lista |
+| Perfil | nome, foto, senha |
+
+## 7. Casos de Borda
+
+- Matrícula futura: curso visível, aulas bloqueadas até o início.
+- Sem matrícula: só aulas gratuitas.
+- Vídeo ainda em processamento: aviso no lugar do player.
+
+## 8. Premissas Validadas
+
+- A credencial de acesso é enviada só às listas de reprodução da API, nunca ao armazenamento.
+
+## 9. Riscos
+
+- **Posição perdida ao fechar a aba:** envio periódico e ao sair da página.
+`````
+
+`.sdd/tasks/area-do-aluno-v1.0/README.md`:
+
+`````markdown
+# Tasks — Área do aluno (v1.0)
+
+Spec: [`.sdd/specs/area-do-aluno.spec.md`](../../specs/area-do-aluno.spec.md) · versão 1.0 · prompt do tutorial `docs/prompts-iniciais/f13-01-area-do-aluno.md`.
+
+| Ordem | ID | Título | Nível | Depende de |
+|---|---|---|---|---|
+| 1 | [ALUNO-001](ALUNO-001-cursos-e-turma.md) | Meus cursos e turma | Pleno | — |
+| 2 | [ALUNO-002](ALUNO-002-aula-e-player.md) | Aula e player | Sênior | — |
+| 3 | [ALUNO-003](ALUNO-003-certificado-e-perfil.md) | Certificados e perfil | Pleno | — |
+| 4 | [ALUNO-004](ALUNO-004-fiacao.md) | Fiação da área do aluno | Pleno | ALUNO-001, ALUNO-002, ALUNO-003 |
+
+## Grafo
+
+```
+ALUNO-001 (início)
+ALUNO-002 (início)
+ALUNO-003 (início)
+ALUNO-001 + ALUNO-002 + ALUNO-003 → ALUNO-004
+```
+
+## RF → tasks
+
+| RF | Tasks |
+|---|---|
+| RF-01 | ALUNO-001 |
+| RF-02 | ALUNO-001 |
+| RF-03 | ALUNO-002 |
+| RF-04 | ALUNO-002 |
+| RF-05 | ALUNO-002 |
+| RF-06 | ALUNO-003 |
+| RF-07 | ALUNO-003 |
+| RF-08 | ALUNO-001, ALUNO-004 |
+
+## Resumo por nível
+
+- Pleno: 3
+- Sênior: 1
+`````
+
+`.sdd/tasks/area-do-aluno-v1.0/ALUNO-001-cursos-e-turma.md`:
+
+`````markdown
+# ALUNO-001 — Meus cursos e turma
+
+- **Spec:** .sdd/specs/area-do-aluno.spec.md (v1.0) · atende RF-01, RF-02, RF-08
+- **Nível:** Pleno
+- **Agente:** dev-pleno
+- **Status:** Pronta
+- **Depende de:** —
+
+## Arquivos a criar/alterar
+
+- `web/aluno/src/paginas/MeusCursosPagina.tsx`
+- `web/aluno/src/paginas/turma/TurmaPagina.tsx`
+- `web/aluno/src/paginas/turma/ConteudoTurma.tsx`
+- `web/aluno/src/paginas/turma/ArquivosModulo.tsx`
+
+## Critérios de aceite
+
+- [ ] `web/e2e/aluno/estudo.spec.ts` verde
+`````
+
+`.sdd/tasks/area-do-aluno-v1.0/ALUNO-002-aula-e-player.md`:
+
+`````markdown
+# ALUNO-002 — Aula e player
+
+- **Spec:** .sdd/specs/area-do-aluno.spec.md (v1.0) · atende RF-03, RF-04, RF-05
+- **Nível:** Sênior
+- **Agente:** dev-senior
+- **Status:** Pronta
+- **Depende de:** —
+
+## Arquivos a criar/alterar
+
+- `web/aluno/src/paginas/aula/AulaPagina.tsx`
+- `web/aluno/src/paginas/aula/PlayerVideo.tsx` — hls.js
+- `web/aluno/src/paginas/aula/ListaArquivos.tsx`
+- `web/aluno/src/paginas/forum/ForumLista.tsx`
+- `web/aluno/src/paginas/forum/TopicoPagina.tsx`
+- `web/aluno/src/paginas/turma/ForumTurma.tsx`
+
+## Descrição técnica
+
+Token só nas playlists da API; retomada e envio periódico da posição.
+
+## Restrições
+
+Nunca enviar o token ao armazenamento.
+
+## Critérios de aceite
+
+- [ ] `web/e2e/aluno/estudo.spec.ts` (vídeo até o fim) verde
+
+## Armadilhas
+
+Enviar o `Authorization` aos trechos assinados quebra a assinatura.
+`````
+
+`.sdd/tasks/area-do-aluno-v1.0/ALUNO-003-certificado-e-perfil.md`:
+
+`````markdown
+# ALUNO-003 — Certificados e perfil
+
+- **Spec:** .sdd/specs/area-do-aluno.spec.md (v1.0) · atende RF-06, RF-07
+- **Nível:** Pleno
+- **Agente:** dev-pleno
+- **Status:** Pronta
+- **Depende de:** —
+
+## Arquivos a criar/alterar
+
+- `web/aluno/src/paginas/CertificadosPagina.tsx`
+- `web/aluno/src/paginas/turma/CertificadoAba.tsx`
+- `web/aluno/src/paginas/perfil/PerfilPagina.tsx`
+
+## Critérios de aceite
+
+- [ ] `web/e2e/aluno/perfil.spec.ts` verde
+`````
+
+`.sdd/tasks/area-do-aluno-v1.0/ALUNO-004-fiacao.md`:
+
+`````markdown
+# ALUNO-004 — Fiação da área do aluno
+
+- **Spec:** .sdd/specs/area-do-aluno.spec.md (v1.0) · atende RF-08
+- **Nível:** Pleno
+- **Agente:** dev-pleno
+- **Status:** Pronta
+- **Depende de:** ALUNO-001, ALUNO-002, ALUNO-003
+
+## Arquivos a criar/alterar
+
+- `web/aluno/src/rotas.tsx`
+
+## Descrição técnica
+
+Rotas `turmas/:turmaId`, aulas, fórum, `certificados` e `perfil`.
+
+## Critérios de aceite
+
+- [ ] `npm test` e Playwright verdes
+- [ ] Task só de fiação: não tem teste próprio; a verificação é a suíte inteira passando.
+`````
+
+Acrescente ao fim da tabela do índice `.sdd/README.md` a linha:
+
+```text
+| [area-do-aluno](specs/area-do-aluno.spec.md) | 1.0 | [v1.0](tasks/area-do-aluno-v1.0/README.md) | `f13-01-area-do-aluno.md` |
+```
 
 Vamos construir a experiência do aluno. Não faça commit.
 
@@ -2924,7 +3163,7 @@ export async function escolher(page: Page, rotulo: string, opcao: string): Promi
     "e2e:report": "playwright show-report"
   },
   "dependencies": {
-    "@celke/kole-react": "github:celkecursos/kole-react#fc87d5c4409e1e65e8c571321c08d56871d2a4d3",
+    "@celke/kole-react": "^0.1.0",
     "hls.js": "^1.7.3",
     "lucide-react": "^1.61.0",
     "react": "^19.3.1",
@@ -2967,17 +3206,17 @@ import { pontoDeRetomada, precisaDeToken } from './paginas/aula/PlayerVideo.tsx'
 import { localizarAula, type TurmaAluno } from './tipos.ts';
 
 describe('player', () => {
-  const origem = 'https://aluno.celke.uno';
+  const origem = 'https://<sub-aluno>.<dominio>';
 
   it('manda o token só para as playlists da API, nunca para o armazenamento', () => {
     expect(precisaDeToken('/api/aulas/7/video.m3u8', origem)).toBe(true);
-    expect(precisaDeToken('https://aluno.celke.uno/api/aulas/7/video/720p.m3u8', origem)).toBe(
+    expect(precisaDeToken('https://<sub-aluno>.<dominio>/api/aulas/7/video/720p.m3u8', origem)).toBe(
       true,
     );
     expect(
-      precisaDeToken('https://media.celke.uno/midia/hls/seg-001.ts?X-Amz-Signature=x', origem),
+      precisaDeToken('https://<sub-media>.<dominio>/midia/hls/seg-001.ts?X-Amz-Signature=x', origem),
     ).toBe(false);
-    expect(precisaDeToken('https://aluno.celke.uno/assets/app.js', origem)).toBe(false);
+    expect(precisaDeToken('https://<sub-aluno>.<dominio>/assets/app.js', origem)).toBe(false);
   });
 
   it('retoma de onde parou, mas recomeça se faltava pouco para o fim', () => {
@@ -4984,11 +5223,13 @@ docker compose -f infra/compose.prod.yml -f infra/compose.e2e.yml --env-file inf
 ```
 
 - Tudo passa; confira as telas da fase em `http://aluno.localhost:8088` e `http://adm.localhost:8088` (contas do seed em `infra/e2e.env`).
+- Com tudo verde, as tasks de `.sdd/tasks/area-do-aluno-v1.0/` passam para `Status: Concluída` e os critérios de aceite
+  são marcados (`- [x]`).
 
 ## Depois de executar
 
 ```bash
-git add backend/ web/ infra/ docs/ .github/ README.md
+git add backend/ web/ infra/ docs/ .github/ README.md .sdd/
 git commit -m "feat(aluno): adicionar a área do aluno"
 git push -u origin feature/web-aluno
 ```

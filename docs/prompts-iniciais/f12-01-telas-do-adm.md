@@ -3,7 +3,251 @@
 **Fase:** 12
 **Branch:** `feature/web-adm`
 
+> **Configuração do projeto:** troque os marcadores `<dominio>`, `<sub-site>`, `<sub-aluno>`,
+> `<sub-adm>`, `<sub-media>` e `<dono-github>` pelos valores de `docs/configuracao.md` (criado no
+> primeiro prompt) em todo o conteúdo deste prompt, inclusive nos testes. Se o arquivo não existir,
+> pergunte esses valores ao usuário antes de começar.
+
 ## Prompt
+
+### Especificação e tasks (SDD)
+
+Antes do código, registre a funcionalidade no SDD: crie a spec e as tasks abaixo com **exatamente** este conteúdo (troque os marcadores pelos valores de `docs/configuracao.md`). As tasks nascem com `Status: Pronta`; ao fim da **Verificação**, passam para `Concluída`.
+
+`.sdd/specs/painel-administrativo.spec.md`:
+
+`````markdown
+---
+feature: painel-administrativo
+versao: 1.0
+status: aprovada
+autor: pm-spec-architect
+---
+
+# Painel administrativo
+
+## 1. Resumo Executivo
+
+O administrador gerencia toda a plataforma pelas telas de `<sub-adm>.<dominio>`: cursos, turmas, módulos e
+aulas, vídeos, capas, arquivos, matrículas, fórum, certificados e termos, sem precisar chamar a API à
+mão.
+
+## 2. Atores e Papéis
+
+| Ator | Pode |
+|---|---|
+| Administrador | Todas as telas do painel |
+
+## 3. Requisitos Funcionais
+
+- **RF-01** — O sistema DEVE listar, criar, alterar e mudar o status de cursos, turmas, módulos e aulas,
+  com paginação e abas.
+- **RF-02** — O sistema DEVE reordenar módulos e aulas com botões subir e descer, acessíveis por teclado,
+  uma troca por clique.
+- **RF-03** — O sistema DEVE enviar o vídeo em partes direto ao armazenamento, com progresso e
+  cancelamento, e acompanhar o processamento a cada 3 segundos, com reprocessar e remover.
+- **RF-04** — O sistema DEVE enviar a capa do curso e os arquivos de apoio de aulas e módulos.
+- **RF-05** — O sistema DEVE gerenciar as matrículas da turma: matricular por e-mail, alterar o período e
+  cancelar.
+- **RF-06** — O sistema DEVE moderar o fórum: responder como instrutor, fixar e ocultar.
+- **RF-07** — O sistema DEVE definir a regra do certificado da turma e publicar novas versões dos termos.
+- **RF-08** — O sistema DEVE mostrar os erros da API na tela (endereço repetido, exclusão com filhos,
+  formato recusado, matrícula sem conta ou em turma encerrada).
+
+## 4. Modelo de Domínio
+
+Usa as entidades das specs `catalogo-de-cursos`, `envio-de-video`, `arquivos-de-apoio`,
+`matricula-e-acesso`, `forum`, `certificado` e `perfil-e-termos`.
+
+## 5. Estados e Fluxos
+
+- **Curso completo:** criar curso → turma → módulos → aulas → vídeo até "pronto" → capa → publicar.
+
+## 6. Contratos de Interface
+
+| Tela | Faz |
+|---|---|
+| Cursos | lista, filtro por status, formulário, capa |
+| Curso → turmas → módulos → aulas | conteúdo, ordem, status |
+| Aula | vídeo, arquivos |
+| Turma | matrículas, certificado, fórum |
+| Termos | versões e publicação |
+
+## 7. Casos de Borda
+
+- Envio de vídeo cancelado: as partes são descartadas.
+- Navegar para fora durante o envio: o envio é interrompido.
+- Erro de validação: mostrado junto ao campo.
+
+## 8. Premissas Validadas
+
+- O painel é usado por poucas pessoas e fica restrito por IP em produção.
+
+## 9. Riscos
+
+- **Envio grande interrompido:** progresso visível e possibilidade de reenviar.
+`````
+
+`.sdd/tasks/painel-administrativo-v1.0/README.md`:
+
+`````markdown
+# Tasks — Painel administrativo (v1.0)
+
+Spec: [`.sdd/specs/painel-administrativo.spec.md`](../../specs/painel-administrativo.spec.md) · versão 1.0 · prompt do tutorial `docs/prompts-iniciais/f12-01-telas-do-adm.md`.
+
+| Ordem | ID | Título | Nível | Depende de |
+|---|---|---|---|---|
+| 1 | [ADM-001](ADM-001-conteudo.md) | Cursos, turmas, módulos e aulas | Pleno | — |
+| 2 | [ADM-002](ADM-002-video-e-arquivos.md) | Vídeo, capa e arquivos | Sênior | — |
+| 3 | [ADM-003](ADM-003-turma.md) | Matrículas, fórum, certificado e termos | Pleno | — |
+| 4 | [ADM-004](ADM-004-fiacao.md) | Fiação do painel | Pleno | ADM-001, ADM-002, ADM-003 |
+
+## Grafo
+
+```
+ADM-001 (início)
+ADM-002 (início)
+ADM-003 (início)
+ADM-001 + ADM-002 + ADM-003 → ADM-004
+```
+
+## RF → tasks
+
+| RF | Tasks |
+|---|---|
+| RF-01 | ADM-001, ADM-004 |
+| RF-02 | ADM-001 |
+| RF-03 | ADM-002 |
+| RF-04 | ADM-002 |
+| RF-05 | ADM-003 |
+| RF-06 | ADM-003 |
+| RF-07 | ADM-003 |
+| RF-08 | ADM-001 |
+
+## Resumo por nível
+
+- Pleno: 3
+- Sênior: 1
+`````
+
+`.sdd/tasks/painel-administrativo-v1.0/ADM-001-conteudo.md`:
+
+`````markdown
+# ADM-001 — Cursos, turmas, módulos e aulas
+
+- **Spec:** .sdd/specs/painel-administrativo.spec.md (v1.0) · atende RF-01, RF-02, RF-08
+- **Nível:** Pleno
+- **Agente:** dev-pleno
+- **Status:** Pronta
+- **Depende de:** —
+
+## Arquivos a criar/alterar
+
+- `web/adm/src/paginas/cursos/CursosPagina.tsx`
+- `web/adm/src/paginas/cursos/FormCurso.tsx`
+- `web/adm/src/paginas/curso/CursoPagina.tsx`
+- `web/adm/src/paginas/curso/DadosCursoAba.tsx`
+- `web/adm/src/paginas/curso/TurmasAba.tsx`
+- `web/adm/src/paginas/turma/ConteudoAba.tsx`
+
+## Descrição técnica
+
+`Tabela`, `Form`, `Paginacao`, `Abas`; subir/descer acessível por teclado.
+
+## Critérios de aceite
+
+- [ ] `web/e2e/adm/conteudo.spec.ts` verde
+
+## Armadilhas
+
+Mostrar erro da API só no console.
+`````
+
+`.sdd/tasks/painel-administrativo-v1.0/ADM-002-video-e-arquivos.md`:
+
+`````markdown
+# ADM-002 — Vídeo, capa e arquivos
+
+- **Spec:** .sdd/specs/painel-administrativo.spec.md (v1.0) · atende RF-03, RF-04
+- **Nível:** Sênior
+- **Agente:** dev-senior
+- **Status:** Pronta
+- **Depende de:** —
+
+## Arquivos a criar/alterar
+
+- `web/adm/src/paginas/aula/AulaPagina.tsx`
+- `web/adm/src/paginas/aula/VideoAula.tsx`
+- `web/compartilhado/src/api/envio.ts` — envio multipart com progresso e cancelamento
+- `web/compartilhado/src/ui/EscolherArquivo.tsx`
+
+## Descrição técnica
+
+Partes direto ao Garage com progresso; consulta do status a cada 3 s.
+
+## Critérios de aceite
+
+- [ ] `web/e2e/adm/curso-completo.spec.ts` (vídeo curto até pronto) verde
+
+## Armadilhas
+
+Não cancelar o envio ao sair da página.
+`````
+
+`.sdd/tasks/painel-administrativo-v1.0/ADM-003-turma.md`:
+
+`````markdown
+# ADM-003 — Matrículas, fórum, certificado e termos
+
+- **Spec:** .sdd/specs/painel-administrativo.spec.md (v1.0) · atende RF-05, RF-06, RF-07
+- **Nível:** Pleno
+- **Agente:** dev-pleno
+- **Status:** Pronta
+- **Depende de:** —
+
+## Arquivos a criar/alterar
+
+- `web/adm/src/paginas/turma/TurmaPagina.tsx`
+- `web/adm/src/paginas/turma/MatriculasAba.tsx`
+- `web/adm/src/paginas/turma/ForumAba.tsx`
+- `web/adm/src/paginas/turma/ConfiguracaoTurmaAba.tsx`
+- `web/adm/src/paginas/termos/TermosPagina.tsx`
+
+## Critérios de aceite
+
+- [ ] `web/e2e/adm/turma.spec.ts` e `termos.spec.ts` verdes
+`````
+
+`.sdd/tasks/painel-administrativo-v1.0/ADM-004-fiacao.md`:
+
+`````markdown
+# ADM-004 — Fiação do painel
+
+- **Spec:** .sdd/specs/painel-administrativo.spec.md (v1.0) · atende RF-01
+- **Nível:** Pleno
+- **Agente:** dev-pleno
+- **Status:** Pronta
+- **Depende de:** ADM-001, ADM-002, ADM-003
+
+## Arquivos a criar/alterar
+
+- `web/adm/src/rotas.tsx`
+
+## Descrição técnica
+
+Rotas `cursos`, `cursos/:cursoId`, turmas, aulas e `termos`.
+
+## Critérios de aceite
+
+- [ ] `npm test` e Playwright verdes
+- [ ] Task só de fiação: não tem teste próprio; a verificação é a suíte inteira passando.
+`````
+
+Acrescente ao fim da tabela do índice `.sdd/README.md` a linha:
+
+```text
+| [painel-administrativo](specs/painel-administrativo.spec.md) | 1.0 | [v1.0](tasks/painel-administrativo-v1.0/README.md) | `f12-01-telas-do-adm.md` |
+```
 
 Vamos construir as telas de gestão do ADM sobre a base dos fronts. Não faça commit.
 
@@ -4157,11 +4401,13 @@ docker compose -f infra/compose.prod.yml -f infra/compose.e2e.yml --env-file inf
 ```
 
 - Tudo passa; confira as telas da fase em `http://aluno.localhost:8088` e `http://adm.localhost:8088` (contas do seed em `infra/e2e.env`).
+- Com tudo verde, as tasks de `.sdd/tasks/painel-administrativo-v1.0/` passam para `Status: Concluída` e os critérios de aceite
+  são marcados (`- [x]`).
 
 ## Depois de executar
 
 ```bash
-git add backend/ web/ infra/ docs/ .github/ README.md
+git add backend/ web/ infra/ docs/ .github/ README.md .sdd/
 git commit -m "feat(adm): adicionar as telas de gestão do ADM"
 git push -u origin feature/web-adm
 ```

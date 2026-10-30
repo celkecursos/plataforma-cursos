@@ -3,10 +3,345 @@
 **Fase:** 16
 **Branch:** `feature/pagamentos`
 
+> **Configuração do projeto:** troque os marcadores `<dominio>`, `<sub-site>`, `<sub-aluno>`,
+> `<sub-adm>`, `<sub-media>` e `<dono-github>` pelos valores de `docs/configuracao.md` (criado no
+> primeiro prompt) em todo o conteúdo deste prompt, inclusive nos testes. Se o arquivo não existir,
+> pergunte esses valores ao usuário antes de começar.
+
 > A especificação abaixo explica as decisões; o código exato está na seção **Arquivos**. Antes de
 > gravar, confira a seção **0. Confirmar a documentação da Hotmart**.
 
 ## Prompt
+
+### Especificação e tasks (SDD)
+
+Antes do código, registre a funcionalidade no SDD: crie a spec e as tasks abaixo com **exatamente** este conteúdo (troque os marcadores pelos valores de `docs/configuracao.md`). As tasks nascem com `Status: Pronta`; ao fim da **Verificação**, passam para `Concluída`.
+
+`.sdd/specs/pagamentos.spec.md`:
+
+`````markdown
+---
+feature: pagamentos
+versao: 1.0
+status: aprovada
+autor: pm-spec-architect
+---
+
+# Pagamentos
+
+## 1. Resumo Executivo
+
+O aluno compra um curso pela plataforma: clica em "Comprar", paga no checkout do meio de pagamento e a
+plataforma recebe a confirmação e cada mudança de status da compra, criando, mantendo ou cancelando a
+matrícula. O primeiro meio de pagamento é a Hotmart, mas o núcleo aceita outros sem mudança: o
+administrador escolhe e configura o meio de pagamento pelo painel.
+
+## 2. Atores e Papéis
+
+| Ator | Pode |
+|---|---|
+| Aluno | Comprar uma oferta, acompanhar o pedido na página de retorno |
+| Comprador sem conta | Comprar; recebe a conta criada e um link para criar a senha |
+| Meio de pagamento | Notificar eventos da compra |
+| Administrador | Configurar meios de pagamento, ofertas por turma, ver pedidos e eventos, reprocessar |
+| Worker | Processar as notificações da fila e reconciliar com a API do meio de pagamento |
+
+## 3. Requisitos Funcionais
+
+- **RF-01** — O sistema DEVE suportar vários meios de pagamento por uma porta comum, com um status de
+  pedido único para todos, e um meio ativo por vez.
+- **RF-02** — O sistema DEVE configurar o meio de pagamento pelo painel, a partir dos campos que ele
+  declara, guardando os segredos cifrados e nunca os devolvendo em texto.
+- **RF-03** — O sistema DEVE manter ofertas por turma, ligadas ao produto e à oferta do meio de
+  pagamento.
+- **RF-04** — O sistema DEVE abrir o pedido só com a confirmação do aluno e redirecioná-lo ao checkout
+  com o código do pedido; a página de retorno acompanha o status.
+- **RF-05** — O sistema DEVE receber as notificações autenticadas pelo segredo do meio de pagamento,
+  comparadas em tempo constante, gravar o corpo original e responder logo, processando depois pela
+  fila.
+- **RF-06** — O sistema DEVE processar cada evento uma vez só (idempotência pelo identificador do
+  evento) e tolerar eventos fora de ordem pelas transições permitidas.
+- **RF-07** — O sistema DEVE criar a matrícula em compra aprovada, mantê-la nas confirmações e cancelá-la
+  em reembolso, chargeback ou cancelamento.
+- **RF-08** — O sistema DEVE criar a conta do comprador sem senha e enviar o link de criar senha, nunca a
+  senha por e-mail.
+- **RF-09** — O sistema DEVE gravar como ignorado e responder com sucesso o evento válido que não se
+  aplica (curso não encontrado, evento não tratado), respondendo erro só quando não conseguiu gravar.
+- **RF-10** — O sistema DEVE reconciliar os pedidos pela API de vendas do meio de pagamento, ligado por
+  configuração.
+- **RF-11** — O sistema DEVE mostrar no painel os pedidos com histórico e os eventos recebidos, com a
+  opção de reprocessar.
+
+## 4. Modelo de Domínio
+
+- **Meio de pagamento:** tipo, campos de configuração, segredos cifrados, ativo, capacidades
+  (`CHECKOUT_REDIRECIONAMENTO`, `CHECKOUT_EMBUTIDO`, `CONSULTA_API`, `REEMBOLSO_API`, `RECORRENCIA`).
+- **Oferta:** turma, meio de pagamento, produto e oferta externos, ativa.
+- **Pedido:** código, aluno ou comprador, oferta, origem (`CHECKOUT`, `EXTERNO`), status, transação,
+  valor, forma de pagamento, histórico.
+- **Evento recebido:** identificador externo, tipo, corpo original, status (`RECEBIDO`, `PROCESSADO`,
+  `IGNORADO`, `ERRO`), motivo.
+
+## 5. Estados e Fluxos
+
+- Pedido: `CRIADO` → `AGUARDANDO_PAGAMENTO` → `APROVADO` → `CONCLUIDO`; desvios `EM_DISPUTA`,
+  `ATRASADO`, `CANCELADO`, `EXPIRADO`; `REEMBOLSADO` e `CHARGEBACK` valem a partir de quase todos.
+  Transição não permitida é ignorada e registrada.
+- **Compra:** comprar → confirmar → pedido `CRIADO` → checkout → notificação → fila → status →
+  matrícula.
+
+## 6. Contratos de Interface
+
+| Operação | Entrada | Saída |
+|---|---|---|
+| Comprar | oferta, confirmação | endereço do checkout |
+| Retorno | código do pedido | status |
+| Notificação | corpo do meio de pagamento + segredo no cabeçalho | 200 quando gravado |
+| Configurar meio | campos declarados | meio configurado (segredos mascarados) |
+| Ofertas, pedidos, eventos | filtros | listas paginadas; reprocessar evento |
+
+Na homologação (`homolog-<sub-aluno>.<dominio>`, restrita por IP), só o caminho da notificação aceita
+requisições de fora. A chave que cifra os segredos fica em `PAGAMENTOS_CHAVE`, só no `.env`.
+
+## 7. Casos de Borda
+
+- Mesmo evento entregue duas vezes: processado uma vez.
+- Reembolso chegando antes da aprovação: aplicado pelas transições permitidas.
+- Evento de afiliado sem comprador nem preço: aceito.
+- Status desconhecido do meio de pagamento: registrado sem quebrar o processamento.
+- Segredo errado: 401, sem gravar.
+
+## 8. Premissas Validadas
+
+- O meio de pagamento não assina o corpo: o segredo no cabeçalho é a única autenticação.
+- Falhas de entrega são reenviadas pelo meio de pagamento, que desativa a notificação se continuar
+  falhando.
+
+## 9. Riscos
+
+- **Notificação desativada pelo meio de pagamento:** só responder erro quando não gravou (RF-09).
+- **Vazamento das credenciais:** segredos cifrados e mascarados no painel.
+`````
+
+`.sdd/tasks/pagamentos-v1.0/README.md`:
+
+`````markdown
+# Tasks — Pagamentos (v1.0)
+
+Spec: [`.sdd/specs/pagamentos.spec.md`](../../specs/pagamentos.spec.md) · versão 1.0 · prompt do tutorial `docs/prompts-iniciais/f16-01-pagamentos-hotmart.md`.
+
+| Ordem | ID | Título | Nível | Depende de |
+|---|---|---|---|---|
+| 1 | [PAG-001](PAG-001-nucleo.md) | Porta de meio de pagamento e pedido | Sênior | — |
+| 2 | [PAG-002](PAG-002-configuracao.md) | Configuração pelo painel e ofertas | Sênior | PAG-001 |
+| 3 | [PAG-003](PAG-003-webhook.md) | Notificações e processamento | Sênior | PAG-001 |
+| 4 | [PAG-004](PAG-004-checkout-e-painel.md) | Checkout, reconciliação e painel | Pleno | PAG-002, PAG-003 |
+| 5 | [PAG-005](PAG-005-fiacao.md) | Fiação dos pagamentos | Pleno | PAG-004 |
+
+## Grafo
+
+```
+PAG-001 (início)
+PAG-001 → PAG-002
+PAG-001 → PAG-003
+PAG-002 + PAG-003 → PAG-004
+PAG-004 → PAG-005
+```
+
+## RF → tasks
+
+| RF | Tasks |
+|---|---|
+| RF-01 | PAG-001 |
+| RF-02 | PAG-002 |
+| RF-03 | PAG-002 |
+| RF-04 | PAG-004 |
+| RF-05 | PAG-003, PAG-005 |
+| RF-06 | PAG-001, PAG-003 |
+| RF-07 | PAG-003 |
+| RF-08 | PAG-003 |
+| RF-09 | PAG-003 |
+| RF-10 | PAG-004 |
+| RF-11 | PAG-004 |
+
+## Resumo por nível
+
+- Pleno: 2
+- Sênior: 3
+`````
+
+`.sdd/tasks/pagamentos-v1.0/PAG-001-nucleo.md`:
+
+`````markdown
+# PAG-001 — Porta de meio de pagamento e pedido
+
+- **Spec:** .sdd/specs/pagamentos.spec.md (v1.0) · atende RF-01, RF-06
+- **Nível:** Sênior
+- **Agente:** dev-senior
+- **Status:** Pronta
+- **Depende de:** —
+
+## Arquivos a criar/alterar
+
+- `backend/src/main/java/br/com/celke/cursos/pagamento/domain/GatewayPagamento.java`
+- `backend/src/main/java/br/com/celke/cursos/pagamento/domain/Pedido.java`
+- `backend/src/main/java/br/com/celke/cursos/pagamento/domain/StatusPedido.java`
+- `backend/src/main/java/br/com/celke/cursos/pagamento/domain/TransicoesPedido.java`
+- `backend/src/main/java/br/com/celke/cursos/pagamento/domain/EventoPagamento.java`
+- `backend/src/main/java/br/com/celke/cursos/pagamento/domain/Capacidade.java`
+- `backend/src/main/java/br/com/celke/cursos/pagamento/application/GatewaysRegistrados.java`
+
+## Descrição técnica
+
+Um bean por meio de pagamento; transições permitidas toleram fora de ordem.
+
+## Critérios de aceite
+
+- [ ] `TransicoesPedidoTest` verde
+
+## Armadilhas
+
+Status específico do meio vazando para o núcleo.
+`````
+
+`.sdd/tasks/pagamentos-v1.0/PAG-002-configuracao.md`:
+
+`````markdown
+# PAG-002 — Configuração pelo painel e ofertas
+
+- **Spec:** .sdd/specs/pagamentos.spec.md (v1.0) · atende RF-02, RF-03
+- **Nível:** Sênior
+- **Agente:** dev-senior
+- **Status:** Pronta
+- **Depende de:** PAG-001
+
+## Arquivos a criar/alterar
+
+- `backend/src/main/java/br/com/celke/cursos/pagamento/application/ConfiguracaoGatewayService.java`
+- `backend/src/main/java/br/com/celke/cursos/shared/cripto/CifraSegredos.java` — AES-GCM
+- `backend/src/main/java/br/com/celke/cursos/pagamento/api/GatewayAdmController.java`
+- `backend/src/main/java/br/com/celke/cursos/pagamento/api/OfertaAdmController.java`
+- `backend/src/main/java/br/com/celke/cursos/pagamento/application/OfertaAdmService.java`
+
+## Descrição técnica
+
+Formulário montado dos campos declarados; segredos cifrados com `PAGAMENTOS_CHAVE` e mascarados.
+
+## Critérios de aceite
+
+- [ ] `ConfiguracaoGatewayServiceTest`, `CifraSegredosTest` verdes
+- [ ] `GatewayAdmIT` verde
+
+## Armadilhas
+
+Devolver o segredo no GET de edição.
+`````
+
+`.sdd/tasks/pagamentos-v1.0/PAG-003-webhook.md`:
+
+`````markdown
+# PAG-003 — Notificações e processamento
+
+- **Spec:** .sdd/specs/pagamentos.spec.md (v1.0) · atende RF-05, RF-06, RF-07, RF-08, RF-09
+- **Nível:** Sênior
+- **Agente:** dev-senior
+- **Status:** Pronta
+- **Depende de:** PAG-001
+
+## Arquivos a criar/alterar
+
+- `backend/src/main/java/br/com/celke/cursos/pagamento/api/WebhookController.java`
+- `backend/src/main/java/br/com/celke/cursos/pagamento/api/LimiteWebhookFilter.java`
+- `backend/src/main/java/br/com/celke/cursos/pagamento/application/WebhookService.java`
+- `backend/src/main/java/br/com/celke/cursos/pagamento/application/ProcessarEventoManipulador.java`
+- `backend/src/main/java/br/com/celke/cursos/pagamento/application/ProcessamentoEventoService.java`
+- `backend/src/main/java/br/com/celke/cursos/matricula/application/MatriculaPagamentoService.java`
+- `backend/src/main/java/br/com/celke/cursos/pagamento/infra/hotmart/GatewayHotmart.java`
+- `backend/src/main/java/br/com/celke/cursos/pagamento/infra/hotmart/InterpretadorHotmart.java`
+
+## Descrição técnica
+
+Webhook 2.0.0 com `X-HOTMART-HOTTOK` comparado em tempo constante; grava o corpo e processa pela fila; conta do comprador sem senha com link de criar senha.
+
+## Restrições
+
+Só responde erro quando não gravou.
+
+## Critérios de aceite
+
+- [ ] `InterpretadorHotmartTest`, `ProcessamentoEventoServiceTest` verdes
+- [ ] `WebhookIT` e `PagamentoFluxoIT` verdes
+
+## Armadilhas
+
+Responder 4xx para curso não encontrado desativa o webhook.
+`````
+
+`.sdd/tasks/pagamentos-v1.0/PAG-004-checkout-e-painel.md`:
+
+`````markdown
+# PAG-004 — Checkout, reconciliação e painel
+
+- **Spec:** .sdd/specs/pagamentos.spec.md (v1.0) · atende RF-04, RF-10, RF-11
+- **Nível:** Pleno
+- **Agente:** dev-pleno
+- **Status:** Pronta
+- **Depende de:** PAG-002, PAG-003
+
+## Arquivos a criar/alterar
+
+- `backend/src/main/java/br/com/celke/cursos/pagamento/api/CheckoutController.java`
+- `backend/src/main/java/br/com/celke/cursos/pagamento/application/CheckoutService.java`
+- `backend/src/main/java/br/com/celke/cursos/pagamento/application/ReconciliacaoService.java`
+- `backend/src/main/java/br/com/celke/cursos/pagamento/infra/hotmart/ClienteApiHotmart.java`
+- `backend/src/main/java/br/com/celke/cursos/pagamento/api/PedidoAdmController.java`
+- `web/aluno/src/paginas/pagamento/ComprarPagina.tsx`
+- `web/aluno/src/paginas/pagamento/RetornoPagamentoPagina.tsx`
+- `web/adm/src/paginas/pagamentos/`
+
+## Descrição técnica
+
+Checkout por redirecionamento com `xcod`; reconciliação ligada por configuração.
+
+## Critérios de aceite
+
+- [ ] `ReconciliacaoServiceTest` verde
+- [ ] `PagamentoE2E`, `web/e2e/aluno/compra.spec.ts` e `adm/pagamentos.spec.ts` verdes
+`````
+
+`.sdd/tasks/pagamentos-v1.0/PAG-005-fiacao.md`:
+
+`````markdown
+# PAG-005 — Fiação dos pagamentos
+
+- **Spec:** .sdd/specs/pagamentos.spec.md (v1.0) · atende RF-05
+- **Nível:** Pleno
+- **Agente:** dev-pleno
+- **Status:** Pronta
+- **Depende de:** PAG-004
+
+## Arquivos a criar/alterar
+
+- `backend/src/main/resources/db/migration/V15__criar_pagamentos.sql`
+- `backend/src/main/java/br/com/celke/cursos/shared/security/SecurityConfig.java`
+- `backend/src/main/resources/application.yaml`
+- `infra/.env.example`
+- `infra/scripts/gerar-env-servidor.sh` — `PAGAMENTOS_CHAVE`
+- `infra/caddy/sites/homolog.caddy` — só o webhook aceita fora dos IPs
+- `web/aluno/src/rotas.tsx`
+- `web/adm/src/rotas.tsx`
+
+## Critérios de aceite
+
+- [ ] `./mvnw verify` e Playwright verdes
+- [ ] Task só de fiação: não tem teste próprio; a verificação é a suíte inteira passando.
+`````
+
+Acrescente ao fim da tabela do índice `.sdd/README.md` a linha:
+
+```text
+| [pagamentos](specs/pagamentos.spec.md) | 1.0 | [v1.0](tasks/pagamentos-v1.0/README.md) | `f16-01-pagamentos-hotmart.md` |
+```
 
 Vamos vender os cursos pela plataforma. O aluno clica em "Comprar", paga no checkout do meio de
 pagamento e a plataforma recebe do meio de pagamento a confirmação e cada mudança de status da compra
@@ -2169,7 +2504,7 @@ app:
   armazenamento:
     cors-origens: http://localhost:5173
   email:
-    remetente: nao-responda@teste.celke.uno
+    remetente: nao-responda@teste.<dominio>
   pagamentos:
     # Chave só dos testes (32 bytes em Base64)
     chave: dGVzdGUtZGEtY2hhdmUtZGUtcGFnYW1lbnRvcy0zMmI=
@@ -2263,7 +2598,7 @@ produção mais recente.
 
 | O quê | Como |
 |---|---|
-| Site fora do ar | Monitor externo (UptimeRobot ou Better Stack, plano gratuito) a cada 5 minutos em `https://aluno.celke.uno/actuator/health` e `https://cursos.celke.uno`, com aviso por e-mail e celular |
+| Site fora do ar | Monitor externo (UptimeRobot ou Better Stack, plano gratuito) a cada 5 minutos em `https://<sub-aluno>.<dominio>/actuator/health` e `https://<sub-site>.<dominio>`, com aviso por e-mail e celular |
 | Job que desistiu (conversão de vídeo, por exemplo) | O worker verifica a cada 15 minutos os jobs que foram para `ERRO` e envia um e-mail para `ALERTA_EMAIL` com o resumo |
 | Pagamento contestado ou notificação com erro | Chargeback, disputa aberta e notificação de pagamento que foi para `ERRO` geram um e-mail para `ALERTA_EMAIL` na hora (veja `docs/pagamentos.md`) |
 | Disco quase cheio | O mesmo verificador do worker mede o disco da VPS (o sistema de arquivos do container é o do host) e alerta abaixo de 15% livre, repetindo a cada 6 horas enquanto não melhorar |
@@ -2305,10 +2640,10 @@ ADM mostra para cada vídeo: medir com os vídeos reais e atualizar esta tabela.
 Quando o HLS passar de ~40 GB, ou se a banda da VPS virar gargalo, os vídeos vão para o Cloudflare R2
 (sem taxa de saída) ou o Backblaze B2. Como a aplicação só fala S3 pelo AWS SDK:
 
-1. Criar o bucket no R2, a chave da aplicação e o CORS para `aluno.celke.uno` e `adm.celke.uno`.
+1. Criar o bucket no R2, a chave da aplicação e o CORS para `<sub-aluno>.<dominio>` e `<sub-adm>.<dominio>`.
 2. Copiar o conteúdo: `rclone sync garage:midia r2:midia` (com as duas origens no `rclone.conf`).
 3. No `.env` da produção, trocar `S3_ENDPOINT` e `S3_ENDPOINT_PUBLICO` (endpoint do R2 ou domínio
-   próprio `media.celke.uno` apontado para o bucket), `S3_BUCKET`, `S3_ACCESS_KEY` e `S3_SECRET_KEY`.
+   próprio `<sub-media>.<dominio>` apontado para o bucket), `S3_BUCKET`, `S3_ACCESS_KEY` e `S3_SECRET_KEY`.
 4. Rodar o `rclone sync` de novo (o que entrou durante a cópia) e reiniciar a API e o worker.
 5. Depois de uma semana sem problema, tirar o Garage da produção e o host de mídia do Caddy.
 
@@ -2337,7 +2672,7 @@ Quando o HLS passar de ~40 GB, ou se a banda da VPS virar gargalo, os vídeos v�
   (`same-site`). "Non-Storable Content" é esperado: a API responde sem cache.
 
   ```bash
-  docker run --rm ghcr.io/zaproxy/zaproxy:stable zap-baseline.py -t https://homolog-aluno.celke.uno/api/cursos -I
+  docker run --rm ghcr.io/zaproxy/zaproxy:stable zap-baseline.py -t https://homolog-<sub-aluno>.<dominio>/api/cursos -I
   ```
 `````
 
@@ -2385,11 +2720,11 @@ container `site` gera a partir da API ao subir e a cada 5 minutos (`SITE_INTERVA
 
 | Host | Ambiente | Acesso |
 |---|---|---|
-| `aluno.celke.uno` | produção | público |
-| `adm.celke.uno` | produção | só `ADM_IPS` |
-| `cursos.celke.uno` | produção | público (site gerado a partir da API) |
-| `media.celke.uno` | produção | público (URLs assinadas) |
-| `homolog-aluno.celke.uno`, `homolog-adm.celke.uno`, `homolog-media.celke.uno` | homologação | só `HOMOLOG_IPS`, `noindex`, com Swagger |
+| `<sub-aluno>.<dominio>` | produção | público |
+| `<sub-adm>.<dominio>` | produção | só `ADM_IPS` |
+| `<sub-site>.<dominio>` | produção | público (site gerado a partir da API) |
+| `<sub-media>.<dominio>` | produção | público (URLs assinadas) |
+| `homolog-<sub-aluno>.<dominio>`, `homolog-<sub-adm>.<dominio>`, `homolog-<sub-media>.<dominio>` | homologação | só `HOMOLOG_IPS`, `noindex`, com Swagger |
 
 ## 1. Contratar a VPS na Hostinger
 
@@ -2402,7 +2737,7 @@ container `site` gera a partir da API ao subir e a cada 5 minutos (`SITE_INTERVA
    painel é a segunda camada.
 4. Ative o backup/snapshot semanal do painel (não substitui o backup fora da VPS da fase de operação).
 
-## 2. DNS de celke.uno
+## 2. DNS de <dominio>
 
 Crie registros **A** apontando para o IP da VPS (só subdomínios; o domínio principal continua com as
 outras aplicações):
@@ -2418,7 +2753,7 @@ homolog-adm     A   <ip-da-vps>
 homolog-media   A   <ip-da-vps>
 ```
 
-Confira antes de seguir: `dig +short aluno.celke.uno` responde o IP da VPS.
+Confira antes de seguir: `dig +short <sub-aluno>.<dominio>` responde o IP da VPS.
 
 ## 3. Chaves SSH
 
@@ -2556,7 +2891,8 @@ cp caddy/.env.example caddy/.env && chmod 600 caddy/.env
 
 Preencha:
 
-- `producao/.env` e `homolog/.env`: `SMTP_HOST`, `SMTP_USERNAME`, `SMTP_PASSWORD` (painel da Iagente).
+- `producao/.env` e `homolog/.env`: `SMTP_HOST`, `SMTP_USERNAME`, `SMTP_PASSWORD` (painel da Iagente; crie a conta pelo link https://celke.com.br/page/iagente, que dá
+  alguns e-mails gratuitos para enviar).
   Na homologação, use um remetente identificado ou restrinja os envios a e-mails de teste.
 - `caddy/.env`: `ACME_EMAIL`, `ADM_IPS` e `HOMOLOG_IPS` (seus IPs, separados por espaço).
 
@@ -2570,6 +2906,9 @@ Crie no GitHub um token clássico só com `read:packages` e, na VPS, como `deplo
 ```bash
 echo "<token>" | docker login ghcr.io -u <usuario-github> --password-stdin
 ```
+
+No `.env` de cada ambiente, preencha `REGISTRO=ghcr.io/<dono-do-repositorio>` (em minúsculas): é
+onde o pipeline publica as imagens e de onde o deploy baixa a API, o worker e os fronts.
 
 ## 8. Deploy automático no GitHub
 
@@ -2615,9 +2954,9 @@ aprovação.
 
    ```bash
    docker compose -p plataforma-cursos-producao -f producao/compose.prod.yml --env-file producao/.env \
-     --project-directory producao run --rm api criar-admin admin@celke.uno "Administrador"
+     --project-directory producao run --rm api criar-admin admin@<dominio> "Administrador"
    docker compose -p plataforma-cursos-homolog -f homolog/compose.prod.yml -f homolog/compose.homolog.yml \
-     --env-file homolog/.env --project-directory homolog run --rm api criar-admin admin@celke.uno "Administrador"
+     --env-file homolog/.env --project-directory homolog run --rm api criar-admin admin@<dominio> "Administrador"
    ```
 
 ## 10. Verificação
@@ -2625,11 +2964,11 @@ aprovação.
 Do seu computador:
 
 ```bash
-curl -s https://aluno.celke.uno/actuator/health            # {"groups":[...],"status":"UP"}
-curl -sI https://aluno.celke.uno/actuator/health | grep -i strict-transport
-curl -s https://aluno.celke.uno/ | grep -o '<title>.*</title>'   # a área do aluno
-curl -s https://aluno.celke.uno/v3/api-docs | head -c 15        # <!doctype html> (o front, não a API)
-curl -s -o /dev/null -w "%{http_code}\n" https://adm.celke.uno/actuator/health # 403 fora de ADM_IPS
+curl -s https://<sub-aluno>.<dominio>/actuator/health            # {"groups":[...],"status":"UP"}
+curl -sI https://<sub-aluno>.<dominio>/actuator/health | grep -i strict-transport
+curl -s https://<sub-aluno>.<dominio>/ | grep -o '<title>.*</title>'   # a área do aluno
+curl -s https://<sub-aluno>.<dominio>/v3/api-docs | head -c 15        # <!doctype html> (o front, não a API)
+curl -s -o /dev/null -w "%{http_code}\n" https://<sub-adm>.<dominio>/actuator/health # 403 fora de ADM_IPS
 nc -zv -w 3 <ip-da-vps> 5432 ; nc -zv -w 3 <ip-da-vps> 3900 ; nc -zv -w 3 <ip-da-vps> 8080   # recusadas
 ssh root@<ip-da-vps>                                        # recusado
 ```
@@ -2665,7 +3004,7 @@ ssh -t $VPS 'C=/opt/plataforma-cursos/caddy \
   && sudo cp -p $C/Caddyfile $C/Caddyfile.bak-$(date +%F-%H%M) \
   && sudo cp -r /tmp/caddy/. $C/ && sudo chown -R deploy:deploy $C && rm -rf /tmp/caddy \
   && sudo -u deploy docker compose -f $C/compose.yml --env-file $C/.env --project-directory $C up -d --force-recreate'
-curl -s https://aluno.celke.uno/actuator/health   # {"groups":[...],"status":"UP"}
+curl -s https://<sub-aluno>.<dominio>/actuator/health   # {"groups":[...],"status":"UP"}
 ```
 
 O `Caddyfile` anterior fica em `caddy/Caddyfile.bak-<data>`; para voltar, copie-o por cima do
@@ -2695,7 +3034,7 @@ echo "PAGAMENTOS_CHAVE=$(openssl rand -base64 32)" >> /opt/plataforma-cursos/hom
 Trocar a chave depois exige informar de novo os segredos do meio de pagamento no painel. A
 reconciliação fica desligada até `PAGAMENTOS_RECONCILIACAO=true`. Atualize também o Caddy (acima): a
 homologação continua restrita por IP, mas deixa passar `/api/pagamentos/webhooks/*`, para a Hotmart de
-teste notificar `https://homolog-aluno.celke.uno/api/pagamentos/webhooks/<token>` (o endereço completo
+teste notificar `https://homolog-<sub-aluno>.<dominio>/api/pagamentos/webhooks/<token>` (o endereço completo
 aparece no painel). Configuração da Hotmart: `docs/pagamentos.md`.
 
 **Atualizar o script de deploy**: copie o `infra/scripts/deploy.sh` novo para a VPS e, como
@@ -2734,7 +3073,7 @@ S3_SECRET_KEY=                     # openssl rand -hex 32
 S3_CORS_ORIGENS=http://localhost:5173
 
 # E-mail
-EMAIL_REMETENTE=nao-responda@celke.uno
+EMAIL_REMETENTE=nao-responda@<dominio>
 
 # Portas no host (opcional; só mude se a porta padrão já estiver em uso)
 # API_PORTA=8080
@@ -2752,7 +3091,7 @@ EMAIL_REMETENTE=nao-responda@celke.uno
 # sozinho; com "http://..." atende sem TLS (e2e).
 {
 	admin off
-	email {$ACME_EMAIL:nao-configurado@celke.uno}
+	email {$ACME_EMAIL:nao-configurado@<dominio>}
 	# Sem isso, o handle dos sites roda antes do respond e a restrição por IP (somente_ips_adm,
 	# homolog) só valeria na mídia
 	order respond before handle
@@ -2977,7 +3316,7 @@ x-logging: &logging
 services:
   api:
     logging: *logging
-    image: ${IMAGEM_API:-ghcr.io/celkecursos/plataforma-cursos-api}:${TAG:?defina TAG}
+    image: ${REGISTRO:?defina REGISTRO}/plataforma-cursos-api:${TAG:?defina TAG}
     restart: unless-stopped
     environment:
       <<: *app
@@ -3004,7 +3343,7 @@ services:
 
   worker:
     logging: *logging
-    image: ${IMAGEM_WORKER:-ghcr.io/celkecursos/plataforma-cursos-worker}:${TAG:?defina TAG}
+    image: ${REGISTRO:?defina REGISTRO}/plataforma-cursos-worker:${TAG:?defina TAG}
     restart: unless-stopped
     # No deploy, o job em andamento tem 30 s para terminar; uma conversão interrompida volta para a fila
     # quando o lease vence (o worker o renova a cada minuto enquanto converte)
@@ -3034,7 +3373,7 @@ services:
   # Área do aluno (porta 8081) e ADM (8082), estáticos; a API é chamada no mesmo domínio (/api)
   web:
     logging: *logging
-    image: ${IMAGEM_WEB:-ghcr.io/celkecursos/plataforma-cursos-web}:${TAG:?defina TAG}
+    image: ${REGISTRO:?defina REGISTRO}/plataforma-cursos-web:${TAG:?defina TAG}
     restart: unless-stopped
     environment:
       # Origem dos vídeos e arquivos na Content-Security-Policy dos fronts
@@ -3053,12 +3392,12 @@ services:
   # Gera o site público (cursos.*) a partir da API ao subir e a cada SITE_INTERVALO segundos
   site:
     logging: *logging
-    image: ${IMAGEM_SITE:-ghcr.io/celkecursos/plataforma-cursos-site}:${TAG:?defina TAG}
+    image: ${REGISTRO:?defina REGISTRO}/plataforma-cursos-site:${TAG:?defina TAG}
     restart: unless-stopped
     environment:
       API_URL: http://api:8080
       FRONT_ALUNO_URL: ${FRONT_ALUNO_URL:?defina FRONT_ALUNO_URL}
-      # Em branco, deriva do FRONT_ALUNO_URL (aluno.celke.uno → cursos.celke.uno)
+      # Em branco, deriva do FRONT_ALUNO_URL (<sub-aluno>.<dominio> → <sub-site>.<dominio>)
       SITE_URL: ${SITE_URL:-}
       SITE_INDEXAVEL: ${SITE_INDEXAVEL:-true}
       SITE_INTERVALO: ${SITE_INTERVALO:-300}
@@ -3271,6 +3610,8 @@ volumes:
 # Variáveis da stack de e2e. Valores só de teste (nenhum é usado em servidor): podem ficar no git.
 AMBIENTE=e2e
 TAG=e2e
+# Registro das imagens: no e2e elas são construídas na hora (compose.e2e.yml)
+REGISTRO=local
 E2E_PORTA=8088
 E2E_MAILPIT_PORTA=8026
 
@@ -3295,7 +3636,7 @@ SMTP_HOST=mailpit
 SMTP_PORT=1025
 SMTP_AUTH=false
 SMTP_STARTTLS=false
-EMAIL_REMETENTE=nao-responda@teste.celke.uno
+EMAIL_REMETENTE=nao-responda@teste.<dominio>
 
 SEED_E2E_SENHA='123456A#b123'
 
@@ -3307,7 +3648,7 @@ PAGAMENTOS_CHAVE=ZTJlLWNoYXZlLWRlLXBhZ2FtZW50b3MtMzItYnl0ZXM=
 `````bash
 #!/usr/bin/env bash
 # Gera o .env de um ambiente da VPS com segredos aleatórios. Hosts seguem os subdomínios de
-# celke.uno (homolog-* na homologação). SMTP e remetente ficam para preencher com os dados da Iagente.
+# <dominio> (homolog-* na homologação). SMTP e remetente ficam para preencher com os dados da Iagente.
 # Não sobrescreve um arquivo existente.
 #
 #   gerar-env-servidor.sh producao /opt/plataforma-cursos/producao/.env
@@ -3330,9 +3671,9 @@ fi
 
 hex() { openssl rand -hex "$1"; }
 
-ALUNO="https://${PREFIXO}aluno.celke.uno"
-ADM="https://${PREFIXO}adm.celke.uno"
-MEDIA="https://${PREFIXO}media.celke.uno"
+ALUNO="https://${PREFIXO}<sub-aluno>.<dominio>"
+ADM="https://${PREFIXO}<sub-adm>.<dominio>"
+MEDIA="https://${PREFIXO}<sub-media>.<dominio>"
 
 umask 077
 cat > "$DESTINO" <<ENV
@@ -3340,6 +3681,8 @@ cat > "$DESTINO" <<ENV
 AMBIENTE=$AMBIENTE
 # Tag (SHA do commit) das imagens; o deploy grava a tag de cada versão
 TAG=
+# Onde o pipeline publica as imagens: ghcr.io/<dono do repositório no GitHub, em minúsculas>
+REGISTRO=
 
 POSTGRES_DB=plataforma_cursos
 POSTGRES_USER=plataforma_cursos
@@ -3369,14 +3712,14 @@ SMTP_USERNAME=
 SMTP_PASSWORD=
 SMTP_AUTH=true
 SMTP_STARTTLS=true
-EMAIL_REMETENTE=nao-responda@celke.uno
+EMAIL_REMETENTE=nao-responda@<dominio>
 
 # Alertas do worker (jobs com erro, disco quase cheio); em branco, desligados
 ALERTA_EMAIL=
 ENV
 
 chmod 600 "$DESTINO"
-echo "$DESTINO criado. Preencha SMTP_HOST, SMTP_USERNAME e SMTP_PASSWORD."
+echo "$DESTINO criado. Preencha REGISTRO, SMTP_HOST, SMTP_USERNAME e SMTP_PASSWORD."
 `````
 
 `infra/scripts/gerar-env.sh`:
@@ -5356,7 +5699,7 @@ h3 {
 
 `````ts
 /**
- * Gerador do site público (cursos.celke.uno): busca o catálogo na API do próprio ambiente e grava
+ * Gerador do site público (<sub-site>.<dominio>): busca o catálogo na API do próprio ambiente e grava
  * uma página HTML por rota. Roda no container `site` ao subir e de novo a cada SITE_INTERVALO
  * segundos; o Caddy do container `web` serve a versão mais recente.
  *
@@ -5386,7 +5729,7 @@ import {
 
 const API_URL = (process.env['API_URL'] ?? 'http://localhost:8080').replace(/\/$/, '');
 const ALUNO_URL = (process.env['FRONT_ALUNO_URL'] ?? 'http://localhost:5173').replace(/\/$/, '');
-/** Sem SITE_URL, deriva do endereço do aluno (aluno.celke.uno → cursos.celke.uno). */
+/** Sem SITE_URL, deriva do endereço do aluno (<sub-aluno>.<dominio> → <sub-site>.<dominio>). */
 const SITE_URL = (process.env['SITE_URL'] || ALUNO_URL.replace('aluno.', 'cursos.')).replace(
   /\/$/,
   '',
@@ -5549,8 +5892,8 @@ import {
 } from './paginas.ts';
 
 const ctx: Contexto = {
-  siteUrl: 'https://cursos.celke.uno',
-  alunoUrl: 'https://aluno.celke.uno',
+  siteUrl: 'https://<sub-site>.<dominio>',
+  alunoUrl: 'https://<sub-aluno>.<dominio>',
   indexavel: true,
   ano: 2026,
 };
@@ -5595,9 +5938,9 @@ describe('páginas', () => {
       '<meta name="description" content="Aprenda &quot;Java&quot; &amp; Spring" />',
     );
     expect(pagina).toContain(
-      '<link rel="canonical" href="https://cursos.celke.uno/cursos/java-do-zero/" />',
+      '<link rel="canonical" href="https://<sub-site>.<dominio>/cursos/java-do-zero/" />',
     );
-    expect(pagina).toContain('content="https://cursos.celke.uno/api/cursos/java-do-zero/capa"');
+    expect(pagina).toContain('content="https://<sub-site>.<dominio>/api/cursos/java-do-zero/capa"');
     expect(pagina).toContain('"@type":"Course"');
     expect(pagina).toContain('Aula gratuita');
     expect(pagina).toContain('<p>Segundo parágrafo.</p>');
@@ -5612,7 +5955,7 @@ describe('páginas', () => {
     });
     expect(aVenda).not.toContain('Quero fazer este curso');
     expect(aVenda).toContain('R$\u00a0197,00');
-    expect(aVenda).toContain('href="https://aluno.celke.uno/comprar/7"');
+    expect(aVenda).toContain('href="https://<sub-aluno>.<dominio>/comprar/7"');
     expect(aVenda).toContain('"@type":"Offer"');
     expect(aVenda).toContain('"price":"197.00"');
   });
@@ -5621,14 +5964,14 @@ describe('páginas', () => {
     const fora = { ...ctx, indexavel: false };
     expect(paginaInicial(fora, [])).toContain('<meta name="robots" content="noindex, nofollow" />');
     expect(robots(fora)).toBe('User-agent: *\nDisallow: /\n');
-    expect(robots(ctx)).toContain('Sitemap: https://cursos.celke.uno/sitemap.xml');
+    expect(robots(ctx)).toContain('Sitemap: https://<sub-site>.<dominio>/sitemap.xml');
   });
 
   it('home sem cursos e sitemap com cada curso', () => {
     expect(paginaInicial(ctx, [])).toContain('Novos cursos em breve');
     const mapa = sitemap(ctx, [curso]);
-    expect(mapa).toContain('<loc>https://cursos.celke.uno/cursos/java-do-zero/</loc>');
-    expect(mapa).toContain('<loc>https://cursos.celke.uno/certificados/validar/</loc>');
+    expect(mapa).toContain('<loc>https://<sub-site>.<dominio>/cursos/java-do-zero/</loc>');
+    expect(mapa).toContain('<loc>https://<sub-site>.<dominio>/certificados/validar/</loc>');
   });
 });
 
@@ -5680,7 +6023,7 @@ export interface Termo {
 }
 
 export interface Contexto {
-  /** Endereço público do site, sem barra no fim (ex.: https://cursos.celke.uno). */
+  /** Endereço público do site, sem barra no fim (ex.: https://<sub-site>.<dominio>). */
   siteUrl: string;
   /** Área do aluno (entrar, criar conta). */
   alunoUrl: string;
@@ -12016,7 +12359,7 @@ class PagamentoFluxoIT extends IntegrationTest {
     @Test
     @DisplayName("venda sem xcod: cria a conta sem senha, matricula e manda o link de criar senha")
     void vendaExterna() {
-        String email = stamp() + "@teste.celke.uno";
+        String email = stamp() + "@teste.<dominio>";
 
         notificar(evento("PURCHASE_APPROVED", null, "HP-" + stamp()).comprador(email, "Compradora Externa"));
 
@@ -12138,7 +12481,7 @@ class PagamentoFluxoIT extends IntegrationTest {
     @DisplayName("venda de oferta ainda não cadastrada é ignorada; cadastrada a oferta, o reprocessamento matricula")
     void reprocessaDepoisDeCadastrarAOferta() {
         String outroProduto = stamp();
-        String email = stamp() + "@teste.celke.uno";
+        String email = stamp() + "@teste.<dominio>";
         String id = "evento-" + stamp();
         notificar(pagamentos
                 .notificacao("PURCHASE_APPROVED")
@@ -13085,7 +13428,7 @@ class ProcessamentoEventoServiceTest {
                 emailService,
                 avisos,
                 new TransicoesPedido(false),
-                new ContaProperties("https://aluno.celke.uno", Duration.ofHours(48), Duration.ofHours(1), 3),
+                new ContaProperties("https://<sub-aluno>.<dominio>", Duration.ofHours(48), Duration.ofHours(1), 3),
                 json,
                 Clock.fixed(AGORA, ZoneOffset.UTC));
         oferta = new Oferta(
@@ -13121,7 +13464,7 @@ class ProcessamentoEventoServiceTest {
     }
 
     private Pedido pedidoDoCheckout(StatusPedido status) {
-        Pedido pedido = Pedido.doCheckout(oferta, 7L, "ana@celke.uno", "Ana", AGORA.minusSeconds(3600));
+        Pedido pedido = Pedido.doCheckout(oferta, 7L, "ana@<dominio>", "Ana", AGORA.minusSeconds(3600));
         ReflectionTestUtils.setField(pedido, "id", 30L);
         ReflectionTestUtils.setField(pedido, "status", status);
         return pedido;
@@ -13155,7 +13498,7 @@ class ProcessamentoEventoServiceTest {
     @Test
     @DisplayName("venda sem pedido e de oferta não cadastrada: ignorada com o motivo")
     void ofertaNaoCadastrada() {
-        EventoRecebido evento = evento(dados(StatusPedido.APROVADO, null, "ana@celke.uno"), StatusEvento.RECEBIDO);
+        EventoRecebido evento = evento(dados(StatusPedido.APROVADO, null, "ana@<dominio>"), StatusEvento.RECEBIDO);
         when(pedidos.travarPorTransacao(GATEWAY, "HP1")).thenReturn(Optional.empty());
         when(ofertas.findByGatewayIdAndProdutoExternoAndOfertaExterna(GATEWAY, "4774438", "k2"))
                 .thenReturn(Optional.empty());
@@ -13183,7 +13526,7 @@ class ProcessamentoEventoServiceTest {
     @Test
     @DisplayName("venda externa aprovada: cria o pedido, a conta sem senha, a matrícula e manda o link de criar senha")
     void vendaExterna() {
-        EventoRecebido evento = evento(dados(StatusPedido.APROVADO, null, "nova@celke.uno"), StatusEvento.RECEBIDO);
+        EventoRecebido evento = evento(dados(StatusPedido.APROVADO, null, "nova@<dominio>"), StatusEvento.RECEBIDO);
         when(pedidos.travarPorTransacao(GATEWAY, "HP1")).thenReturn(Optional.empty());
         when(ofertas.findByGatewayIdAndProdutoExternoAndOfertaExterna(GATEWAY, "4774438", "k2"))
                 .thenReturn(Optional.of(oferta));
@@ -13193,15 +13536,15 @@ class ProcessamentoEventoServiceTest {
             return p;
         });
         when(ofertas.findById(20L)).thenReturn(Optional.of(oferta));
-        when(usuarioService.buscarPorEmail("nova@celke.uno")).thenReturn(Optional.empty());
-        Usuario nova = usuario(8, "nova@celke.uno", null, Papel.ALUNO);
-        when(usuarioService.criarAlunoSemSenha("Ana", "nova@celke.uno")).thenReturn(nova);
+        when(usuarioService.buscarPorEmail("nova@<dominio>")).thenReturn(Optional.empty());
+        Usuario nova = usuario(8, "nova@<dominio>", null, Papel.ALUNO);
+        when(usuarioService.criarAlunoSemSenha("Ana", "nova@<dominio>")).thenReturn(nova);
         when(matriculaPagamentoService.conceder(
                         new NovaConcessao(8L, 3L, OCORRIDO, 365, FormaPagamento.PIX, "HP1", 31L, null)))
                 .thenReturn(new Concessao(50L, true));
         when(conteudoTurmaService.turma(3L)).thenReturn(Optional.empty());
         when(recuperacaoSenhaService.linkCriarSenha(8L))
-                .thenReturn(Optional.of(new LinkSenha("https://aluno.celke.uno/redefinir-senha?token=t", "1 hora")));
+                .thenReturn(Optional.of(new LinkSenha("https://<sub-aluno>.<dominio>/redefinir-senha?token=t", "1 hora")));
 
         service.processar(100L);
 
@@ -13217,14 +13560,14 @@ class ProcessamentoEventoServiceTest {
         ArgumentCaptor<Map<String, String>> variaveis = ArgumentCaptor.forClass(Map.class);
         verify(emailService)
                 .enviar(
-                        eq("nova@celke.uno"),
+                        eq("nova@<dominio>"),
                         eq("Sua matrícula foi confirmada"),
                         eq("matricula-confirmada"),
                         variaveis.capture());
         assertThat(variaveis.getValue())
                 .containsEntry("curso", "seu curso")
-                .containsEntry("linkCurso", "https://aluno.celke.uno/turmas/3")
-                .containsEntry("linkSenha", "https://aluno.celke.uno/redefinir-senha?token=t")
+                .containsEntry("linkCurso", "https://<sub-aluno>.<dominio>/turmas/3")
+                .containsEntry("linkSenha", "https://<sub-aluno>.<dominio>/redefinir-senha?token=t")
                 .containsEntry("validade", "1 hora");
         verify(historico, times(2)).save(any(PedidoHistorico.class));
     }
@@ -13232,7 +13575,7 @@ class ProcessamentoEventoServiceTest {
     @Test
     @DisplayName("pedido do checkout reembolsado: cancela a matrícula, sem e-mail ao aluno")
     void reembolso() {
-        evento(dados(StatusPedido.REEMBOLSADO, "codigo", "ana@celke.uno"), StatusEvento.RECEBIDO);
+        evento(dados(StatusPedido.REEMBOLSADO, "codigo", "ana@<dominio>"), StatusEvento.RECEBIDO);
         Pedido pedido = pedidoDoCheckout(StatusPedido.APROVADO);
         pedido.vincularMatricula(50L, AGORA);
         when(pedidos.travarPorCodigo("codigo")).thenReturn(Optional.of(pedido));
@@ -13248,7 +13591,7 @@ class ProcessamentoEventoServiceTest {
     @Test
     @DisplayName("aprovado depois de reembolsado não reabre: evento ignorado com o motivo")
     void naoReabre() {
-        EventoRecebido evento = evento(dados(StatusPedido.APROVADO, "codigo", "ana@celke.uno"), StatusEvento.RECEBIDO);
+        EventoRecebido evento = evento(dados(StatusPedido.APROVADO, "codigo", "ana@<dominio>"), StatusEvento.RECEBIDO);
         when(pedidos.travarPorCodigo("codigo")).thenReturn(Optional.of(pedidoDoCheckout(StatusPedido.REEMBOLSADO)));
 
         service.processar(100L);
@@ -13261,7 +13604,7 @@ class ProcessamentoEventoServiceTest {
     @Test
     @DisplayName("xcod de um pedido de outra transação: segue pela transação conhecida")
     void xcodDeOutraTransacao() {
-        evento(dados(StatusPedido.CHARGEBACK, "codigo", "ana@celke.uno"), StatusEvento.RECEBIDO);
+        evento(dados(StatusPedido.CHARGEBACK, "codigo", "ana@<dominio>"), StatusEvento.RECEBIDO);
         Pedido outro = pedidoDoCheckout(StatusPedido.APROVADO);
         outro.vincularTransacao("HP-OUTRA", AGORA);
         Pedido certo = pedidoDoCheckout(StatusPedido.APROVADO);
@@ -13278,11 +13621,11 @@ class ProcessamentoEventoServiceTest {
     @Test
     @DisplayName("aluno com senha: confirmação sem link; acesso já concedido não manda de novo")
     void alunoComSenha() {
-        evento(dados(StatusPedido.APROVADO, "codigo", "ana@celke.uno"), StatusEvento.RECEBIDO);
+        evento(dados(StatusPedido.APROVADO, "codigo", "ana@<dominio>"), StatusEvento.RECEBIDO);
         Pedido pedido = pedidoDoCheckout(StatusPedido.CRIADO);
         when(pedidos.travarPorCodigo("codigo")).thenReturn(Optional.of(pedido));
         when(ofertas.findById(20L)).thenReturn(Optional.of(oferta));
-        when(usuarioService.buscarPorId(7L)).thenReturn(Optional.of(usuario(7, "ana@celke.uno", "hash", Papel.ALUNO)));
+        when(usuarioService.buscarPorId(7L)).thenReturn(Optional.of(usuario(7, "ana@<dominio>", "hash", Papel.ALUNO)));
         when(matriculaPagamentoService.conceder(any())).thenReturn(new Concessao(50L, true));
         when(conteudoTurmaService.turma(3L)).thenReturn(Optional.empty());
 
@@ -13291,7 +13634,7 @@ class ProcessamentoEventoServiceTest {
         verify(recuperacaoSenhaService, never()).linkCriarSenha(any());
         @SuppressWarnings("unchecked")
         ArgumentCaptor<Map<String, String>> variaveis = ArgumentCaptor.forClass(Map.class);
-        verify(emailService).enviar(eq("ana@celke.uno"), anyString(), anyString(), variaveis.capture());
+        verify(emailService).enviar(eq("ana@<dominio>"), anyString(), anyString(), variaveis.capture());
         assertThat(variaveis.getValue()).doesNotContainKey("linkSenha");
     }
 
@@ -13418,7 +13761,7 @@ class ReconciliacaoServiceTest {
     private static Pedido pedido(StatusPedido status, String transacao) {
         Oferta oferta = new Oferta(3L, 1L, new Oferta.DadosOferta("p", "o", null, "t", 1, "BRL", null), AGORA);
         ReflectionTestUtils.setField(oferta, "id", 20L);
-        Pedido pedido = Pedido.doCheckout(oferta, 7L, "ana@celke.uno", null, AGORA);
+        Pedido pedido = Pedido.doCheckout(oferta, 7L, "ana@<dominio>", null, AGORA);
         pedido.vincularTransacao(transacao, AGORA);
         ReflectionTestUtils.setField(pedido, "status", status);
         return pedido;
@@ -13956,14 +14299,14 @@ class GatewayHotmartTest {
         @DisplayName("redireciona para o checkout com oferta, e-mail, nome e o código do pedido codificados")
         void url() {
             Oferta oferta = oferta("X12345678Y");
-            Pedido pedido = Pedido.doCheckout(oferta, 7L, "ana+teste@celke.uno", "Ana Maria", AGORA);
+            Pedido pedido = Pedido.doCheckout(oferta, 7L, "ana+teste@<dominio>", "Ana Maria", AGORA);
 
             Checkout checkout = gateway.iniciarCheckout(
-                    pedido, oferta, new Comprador("ana+teste@celke.uno", "Ana & Maria"), config());
+                    pedido, oferta, new Comprador("ana+teste@<dominio>", "Ana & Maria"), config());
 
             assertThat(checkout)
                     .isEqualTo(new Checkout.Redirecionamento("https://pay.hotmart.com/X12345678Y?off=k2+pasun0"
-                            + "&email=ana%2Bteste%40celke.uno&name=Ana+%26+Maria&xcod=" + pedido.getCodigo()
+                            + "&email=ana%2Bteste%40<dominio>&name=Ana+%26+Maria&xcod=" + pedido.getCodigo()
                             + "&sck=plataforma"));
         }
 
@@ -13971,12 +14314,12 @@ class GatewayHotmartTest {
         @DisplayName("sem código de checkout usa o id do produto; endereço configurado sem a barra final; sem nome")
         void enderecoConfigurado() {
             Oferta oferta = oferta(null);
-            Pedido pedido = Pedido.doCheckout(oferta, 7L, "ana@celke.uno", null, AGORA);
+            Pedido pedido = Pedido.doCheckout(oferta, 7L, "ana@<dominio>", null, AGORA);
 
             Checkout checkout = gateway.iniciarCheckout(
                     pedido,
                     oferta,
-                    new Comprador("ana@celke.uno", null),
+                    new Comprador("ana@<dominio>", null),
                     config("urlCheckoutBase", "https://sandbox.hotmart.com/"));
 
             assertThat(((Checkout.Redirecionamento) checkout).url())
@@ -14049,7 +14392,7 @@ class GatewayHotmartTest {
         @DisplayName("venda aprovada vira evento sintético com o status interno")
         void aprovada() {
             when(api.venda(any(), eq("HP1"), isNull())).thenReturn(Optional.of(json.readTree("""
-                    {"product":{"id":4774438},"buyer":{"email":"ANA@celke.uno","name":"Ana"},
+                    {"product":{"id":4774438},"buyer":{"email":"ANA@<dominio>","name":"Ana"},
                      "purchase":{"transaction":"HP1","status":"APPROVED","offer":{"code":"k2"},
                        "price":{"value":197.0,"currency_code":"BRL"},"payment":{"type":"PIX"},
                        "tracking":{"external_code":"COD"}}}
@@ -14067,7 +14410,7 @@ class GatewayHotmartTest {
                             "COD",
                             "4774438",
                             "k2",
-                            new EventoPagamento.CompradorEvento("ana@celke.uno", "Ana", null),
+                            new EventoPagamento.CompradorEvento("ana@<dominio>", "Ana", null),
                             19_700L,
                             "BRL",
                             FormaPagamento.PIX,
@@ -15318,14 +15661,14 @@ Página de obrigado → /pagamento/retorno?pedido=<código> → consulta o pedid
 1. No ADM, **Pagamentos → Meios de pagamento → Novo meio de pagamento**: escolha Hotmart, dê um nome
    e informe o **hottok** (Hotmart → Ferramentas → Webhook). Salve, use **Testar credenciais** e
    **Ativar**.
-2. Copie o **endereço do webhook** mostrado no painel (`https://aluno.celke.uno/api/pagamentos/webhooks/<token>`).
+2. Copie o **endereço do webhook** mostrado no painel (`https://<sub-aluno>.<dominio>/api/pagamentos/webhooks/<token>`).
 3. Na Hotmart, **Ferramentas → Webhook**: crie uma configuração na **versão 2.0.0** com esse endereço e
    marque os eventos de compra:
    `PURCHASE_APPROVED`, `PURCHASE_COMPLETE`, `PURCHASE_CANCELED`, `PURCHASE_REFUNDED`,
    `PURCHASE_CHARGEBACK`, `PURCHASE_BILLET_PRINTED`, `PURCHASE_PROTEST`, `PURCHASE_DELAYED`,
    `PURCHASE_EXPIRED`. Os outros (assinatura, área de membros) podem ficar marcados: são gravados e
    ignorados.
-4. Em cada produto, aponte a **página de obrigado** para `https://aluno.celke.uno/pagamento/retorno`.
+4. Em cada produto, aponte a **página de obrigado** para `https://<sub-aluno>.<dominio>/pagamento/retorno`.
    A página lê o código do pedido em `?pedido=` ou em `?xcod=`; confira no "Enviar teste" se a Hotmart
    repassa o `xcod` na URL e, se não repassar, inclua-o pelas variáveis da página de obrigado do produto.
 5. Na turma, aba **Venda**, cadastre a oferta: **Id do produto** (o número que vem nas notificações em
@@ -15340,7 +15683,7 @@ Client Secret e Basic. Com elas, ligue `PAGAMENTOS_RECONCILIACAO=true` no `.env`
 
 Na **homologação** (restrita por IP), o Caddy deixa passar só `/api/pagamentos/webhooks/*`, para a
 Hotmart de teste conseguir notificar. Use uma conta/produto de teste da Hotmart apontando para
-`https://homolog-aluno.celke.uno/api/pagamentos/webhooks/<token>`.
+`https://homolog-<sub-aluno>.<dominio>/api/pagamentos/webhooks/<token>`.
 
 ## Status do pedido
 
@@ -17365,7 +17708,7 @@ Esta etapa tem passos que só o usuário faz, fora do código (no navegador, no 
        && sudo cp -p $C/Caddyfile $C/Caddyfile.bak-$(date +%F-%H%M) \
        && sudo cp -r /tmp/caddy/. $C/ && sudo chown -R deploy:deploy $C && rm -rf /tmp/caddy \
        && sudo -u deploy docker compose -f $C/compose.yml --env-file $C/.env --project-directory $C up -d --force-recreate'
-     curl -s https://aluno.celke.uno/actuator/health   # {"groups":[...],"status":"UP"}
+     curl -s https://<sub-aluno>.<dominio>/actuator/health   # {"groups":[...],"status":"UP"}
 ```
 
 ### 2. Hotmart
@@ -17391,11 +17734,13 @@ Esta etapa tem passos que só o usuário faz, fora do código (no navegador, no 
   tabela; o histórico de entregas na Hotmart mostra 200 em todos.
 - O mesmo evento reenviado pela Hotmart (botão de reenvio) não gera matrícula nem e-mail duplicados.
 - Nenhum segredo (hottok, client secret, basic) aparece em resposta da API, log ou no banco em texto puro.
+- Com tudo verde, as tasks de `.sdd/tasks/pagamentos-v1.0/` passam para `Status: Concluída` e os critérios de aceite
+  são marcados (`- [x]`).
 
 ## Depois de executar
 
 ```bash
-git add backend/ web/ infra/ docs/ .github/ README.md
+git add backend/ web/ infra/ docs/ .github/ README.md .sdd/
 git commit -m "feat(pagamento): adicionar pagamentos multi-gateway e a Hotmart"
 git push -u origin feature/pagamentos
 ```

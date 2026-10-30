@@ -3,7 +3,265 @@
 **Fase:** 11
 **Branch:** `feature/web-base`
 
+> **Configuração do projeto:** troque os marcadores `<dominio>`, `<sub-site>`, `<sub-aluno>`,
+> `<sub-adm>`, `<sub-media>` e `<dono-github>` pelos valores de `docs/configuracao.md` (criado no
+> primeiro prompt) em todo o conteúdo deste prompt, inclusive nos testes. Se o arquivo não existir,
+> pergunte esses valores ao usuário antes de começar.
+
 ## Prompt
+
+### Especificação e tasks (SDD)
+
+Antes do código, registre a funcionalidade no SDD: crie a spec e as tasks abaixo com **exatamente** este conteúdo (troque os marcadores pelos valores de `docs/configuracao.md`). As tasks nascem com `Status: Pronta`; ao fim da **Verificação**, passam para `Concluída`.
+
+`.sdd/specs/acesso-web.spec.md`:
+
+`````markdown
+---
+feature: acesso-web
+versao: 1.0
+status: aprovada
+autor: pm-spec-architect
+---
+
+# Acesso pelas telas
+
+## 1. Resumo Executivo
+
+O aluno, em `<sub-aluno>.<dominio>`, e o administrador, em `<sub-adm>.<dominio>`, entram pelo navegador e mantêm a
+sessão sem perceber as renovações. As telas de entrada, cadastro, confirmação e recuperação de senha
+usam o layout da biblioteca de componentes da Celke.
+
+## 2. Atores e Papéis
+
+| Ator | Pode |
+|---|---|
+| Visitante | Entrar, cadastrar-se, confirmar o e-mail e recuperar a senha na área do aluno |
+| Aluno | Usar a área do aluno; é barrado no painel |
+| Administrador | Entrar no painel |
+
+## 3. Requisitos Funcionais
+
+- **RF-01** — O sistema DEVE oferecer na área do aluno as telas de entrar, cadastrar-se, confirmar o
+  e-mail e recuperar e redefinir a senha, com validação na tela e mensagens em português.
+- **RF-02** — O sistema DEVE oferecer no painel a tela de entrar e a moldura de navegação.
+- **RF-03** — O sistema DEVE manter a credencial de acesso só em memória e renová-la em silêncio,
+  segurando as requisições feitas durante a renovação.
+- **RF-04** — O sistema DEVE proteger as rotas por papel, levando o usuário sem sessão para a entrada e
+  o aluno para fora do painel.
+- **RF-05** — O sistema DEVE levar o aluno com termos pendentes para a tela de aceite.
+- **RF-06** — O sistema DEVE servir cada tela pela mesma origem da API, com política de conteúdo que só
+  libera a mídia de `<sub-media>.<dominio>`.
+- **RF-07** — O sistema DEVE guardar os arquivos estáticos com cache longo e a página inicial sem cache.
+
+## 4. Modelo de Domínio
+
+- **Sessão na tela:** usuário, papéis, credencial em memória, renovação em andamento.
+
+## 5. Estados e Fluxos
+
+- Sessão: `anônima` → `autenticada` → `renovando` → `autenticada` | `encerrada`.
+- **Recarregar a página:** sem credencial em memória → renovação pelo cookie → autenticada ou entrada.
+
+## 6. Contratos de Interface
+
+| Tela | Rota | Usa |
+|---|---|---|
+| Entrar (aluno) | `/entrar` | sessão (spec `autenticacao`) |
+| Cadastro | `/cadastro` | spec `cadastro-e-recuperacao-de-senha` |
+| Confirmar e-mail | `/confirmar-email` | link do e-mail |
+| Recuperar / redefinir | `/recuperar-senha`, `/redefinir-senha` | link do e-mail |
+| Entrar (painel) | `/entrar` em `<sub-adm>.<dominio>` | sessão |
+
+## 7. Casos de Borda
+
+- Renovação reutilizada (duas abas): a sessão termina e a tela volta à entrada.
+- Link de e-mail inválido ou vencido: mensagem clara e caminho para pedir outro.
+- Aluno no painel: recusado com a mensagem de acesso negado.
+
+## 8. Premissas Validadas
+
+- O layout vem da biblioteca `@celke/kole-react`, a mesma nos três fronts.
+
+## 9. Riscos
+
+- **Credencial roubada por script:** fica só em memória; a renovação é cookie inacessível a scripts.
+`````
+
+`.sdd/tasks/acesso-web-v1.0/README.md`:
+
+`````markdown
+# Tasks — Acesso pelas telas (v1.0)
+
+Spec: [`.sdd/specs/acesso-web.spec.md`](../../specs/acesso-web.spec.md) · versão 1.0 · prompt do tutorial `docs/prompts-iniciais/f11-01-base-dos-fronts.md`.
+
+| Ordem | ID | Título | Nível | Depende de |
+|---|---|---|---|---|
+| 1 | [WEB-001](WEB-001-cliente-e-sessao.md) | Cliente HTTP e sessão | Sênior | — |
+| 2 | [WEB-002](WEB-002-telas-aluno.md) | Telas de conta do aluno | Pleno | WEB-001 |
+| 3 | [WEB-003](WEB-003-painel-base.md) | Entrada e moldura do painel | Pleno | WEB-001 |
+| 4 | [WEB-004](WEB-004-fiacao.md) | Fiação dos fronts | Pleno | WEB-002, WEB-003 |
+
+## Grafo
+
+```
+WEB-001 (início)
+WEB-001 → WEB-002
+WEB-001 → WEB-003
+WEB-002 + WEB-003 → WEB-004
+```
+
+## RF → tasks
+
+| RF | Tasks |
+|---|---|
+| RF-01 | WEB-002 |
+| RF-02 | WEB-003 |
+| RF-03 | WEB-001 |
+| RF-04 | WEB-001 |
+| RF-05 | WEB-001 |
+| RF-06 | WEB-004 |
+| RF-07 | WEB-004 |
+
+## Resumo por nível
+
+- Pleno: 3
+- Sênior: 1
+`````
+
+`.sdd/tasks/acesso-web-v1.0/WEB-001-cliente-e-sessao.md`:
+
+`````markdown
+# WEB-001 — Cliente HTTP e sessão
+
+- **Spec:** .sdd/specs/acesso-web.spec.md (v1.0) · atende RF-03, RF-04, RF-05
+- **Nível:** Sênior
+- **Agente:** dev-senior
+- **Status:** Pronta
+- **Depende de:** —
+
+## Arquivos a criar/alterar
+
+- `web/compartilhado/src/api/cliente.ts` — token em memória, renovação silenciosa e fila
+- `web/compartilhado/src/api/erros.ts`
+- `web/compartilhado/src/sessao/ProvedorSessao.tsx`
+- `web/compartilhado/src/sessao/RotaPrivada.tsx`
+
+## Descrição técnica
+
+Requisições feitas durante a renovação esperam e repetem com o token novo.
+
+## Restrições
+
+Token nunca em `localStorage`.
+
+## Critérios de aceite
+
+- [ ] Vitest do cliente e da sessão verdes
+
+## Armadilhas
+
+Duas renovações paralelas reutilizam o cookie e derrubam a sessão.
+`````
+
+`.sdd/tasks/acesso-web-v1.0/WEB-002-telas-aluno.md`:
+
+`````markdown
+# WEB-002 — Telas de conta do aluno
+
+- **Spec:** .sdd/specs/acesso-web.spec.md (v1.0) · atende RF-01
+- **Nível:** Pleno
+- **Agente:** dev-pleno
+- **Status:** Pronta
+- **Depende de:** WEB-001
+
+## Arquivos a criar/alterar
+
+- `web/aluno/src/paginas/EntrarPagina.tsx`
+- `web/aluno/src/paginas/CadastroPagina.tsx`
+- `web/aluno/src/paginas/ConfirmarEmailPagina.tsx`
+- `web/aluno/src/paginas/RecuperarSenhaPagina.tsx`
+- `web/aluno/src/paginas/RedefinirSenhaPagina.tsx`
+- `web/compartilhado/src/ui/validacao.ts`
+
+## Descrição técnica
+
+Telas com a `TelaLogin` da `@celke/kole-react`, validação na tela e mensagens em português.
+
+## Critérios de aceite
+
+- [ ] `web/e2e/aluno/entrar.spec.ts`, `cadastro.spec.ts`, `senha.spec.ts`, `sessao.spec.ts` verdes
+`````
+
+`.sdd/tasks/acesso-web-v1.0/WEB-003-painel-base.md`:
+
+`````markdown
+# WEB-003 — Entrada e moldura do painel
+
+- **Spec:** .sdd/specs/acesso-web.spec.md (v1.0) · atende RF-02
+- **Nível:** Pleno
+- **Agente:** dev-pleno
+- **Status:** Pronta
+- **Depende de:** WEB-001
+
+## Arquivos a criar/alterar
+
+- `web/adm/src/paginas/EntrarPagina.tsx`
+- `web/adm/src/paginas/PainelPagina.tsx`
+
+## Descrição técnica
+
+Moldura `Estrutura` da `@celke/kole-react`.
+
+## Restrições
+
+Aluno barrado no painel.
+
+## Critérios de aceite
+
+- [ ] `web/e2e/adm/acesso.spec.ts` verde
+`````
+
+`.sdd/tasks/acesso-web-v1.0/WEB-004-fiacao.md`:
+
+`````markdown
+# WEB-004 — Fiação dos fronts
+
+- **Spec:** .sdd/specs/acesso-web.spec.md (v1.0) · atende RF-06, RF-07
+- **Nível:** Pleno
+- **Agente:** dev-pleno
+- **Status:** Pronta
+- **Depende de:** WEB-002, WEB-003
+
+## Arquivos a criar/alterar
+
+- `web/package.json` — `@celke/kole-react` instalada do npm
+- `web/aluno/src/rotas.tsx`
+- `web/adm/src/rotas.tsx`
+- `web/Dockerfile`
+- `web/Caddyfile` — CSP com `MIDIA_ORIGEM`, cache
+- `infra/compose.prod.yml` — serviço `web`
+- `.github/workflows/pipeline.yml` — Playwright
+
+## Descrição técnica
+
+Caddy interno serve aluno (:8081) e ADM (:8082); CSP libera só a mídia de `<sub-media>.<dominio>`.
+
+## Critérios de aceite
+
+- [ ] `npm test` e Playwright verdes
+- [ ] Task só de fiação: não tem teste próprio; a verificação é a suíte inteira passando.
+
+## Armadilhas
+
+Cache longo no `index.html` prende versão velha.
+`````
+
+Acrescente ao fim da tabela do índice `.sdd/README.md` a linha:
+
+```text
+| [acesso-web](specs/acesso-web.spec.md) | 1.0 | [v1.0](tasks/acesso-web-v1.0/README.md) | `f11-01-base-dos-fronts.md` |
+```
 
 Vamos criar os fronts da plataforma em `web/`: a área do aluno e o ADM, em React com Vite e
 TypeScript, usando a biblioteca `@celke/kole-react`. Siga o `backend/CLAUDE.md` para o que tocar no
@@ -12,7 +270,7 @@ backend. Não faça commit.
 O que esta etapa entrega:
 
 - **Pacote `web/`** com `aluno` e `adm` (Vite + React + TypeScript, Node 24), um pacote só, sem
-  workspaces; `@celke/kole-react` do GitHub com commit fixo.
+  workspaces; `@celke/kole-react` instalada do npm.
 - **Cliente HTTP** (`compartilhado`): access token só em memória, refresh silencioso pelo cookie
   `HttpOnly`, uma renovação só para vários 401 ao mesmo tempo, erros da API (ProblemDetail) prontos para
   a tela.
@@ -116,10 +374,8 @@ jobs:
           cache: npm
           cache-dependency-path: web/package-lock.json
 
-      # O lock guarda o kole-react como git+ssh; o repositório é público e vem por HTTPS
       - name: Dependências
         run: |
-          git config --global url."https://github.com/".insteadOf "ssh://git@github.com/"
           npm ci --no-audit --no-fund
 
       - run: npm run format:check
@@ -224,7 +480,6 @@ jobs:
       - name: Jornadas e2e dos fronts (Playwright)
         working-directory: web
         run: |
-          git config --global url."https://github.com/".insteadOf "ssh://git@github.com/"
           npm ci --no-audit --no-fund
           npx playwright install --with-deps chromium
           npm run e2e
@@ -419,10 +674,10 @@ container `web` (área do aluno na porta 8081, ADM na 8082).
 
 | Host | Ambiente | Acesso |
 |---|---|---|
-| `aluno.celke.uno` | produção | público |
-| `adm.celke.uno` | produção | só `ADM_IPS` |
-| `media.celke.uno` | produção | público (URLs assinadas) |
-| `homolog-aluno.celke.uno`, `homolog-adm.celke.uno`, `homolog-media.celke.uno` | homologação | só `HOMOLOG_IPS`, `noindex`, com Swagger |
+| `<sub-aluno>.<dominio>` | produção | público |
+| `<sub-adm>.<dominio>` | produção | só `ADM_IPS` |
+| `<sub-media>.<dominio>` | produção | público (URLs assinadas) |
+| `homolog-<sub-aluno>.<dominio>`, `homolog-<sub-adm>.<dominio>`, `homolog-<sub-media>.<dominio>` | homologação | só `HOMOLOG_IPS`, `noindex`, com Swagger |
 
 ## 1. Contratar a VPS na Hostinger
 
@@ -435,7 +690,7 @@ container `web` (área do aluno na porta 8081, ADM na 8082).
    painel é a segunda camada.
 4. Ative o backup/snapshot semanal do painel (não substitui o backup fora da VPS da fase de operação).
 
-## 2. DNS de celke.uno
+## 2. DNS de <dominio>
 
 Crie registros **A** apontando para o IP da VPS (só subdomínios; o domínio principal continua com as
 outras aplicações):
@@ -449,7 +704,7 @@ homolog-adm     A   <ip-da-vps>
 homolog-media   A   <ip-da-vps>
 ```
 
-Confira antes de seguir: `dig +short aluno.celke.uno` responde o IP da VPS.
+Confira antes de seguir: `dig +short <sub-aluno>.<dominio>` responde o IP da VPS.
 
 ## 3. Chaves SSH
 
@@ -587,7 +842,8 @@ cp caddy/.env.example caddy/.env && chmod 600 caddy/.env
 
 Preencha:
 
-- `producao/.env` e `homolog/.env`: `SMTP_HOST`, `SMTP_USERNAME`, `SMTP_PASSWORD` (painel da Iagente).
+- `producao/.env` e `homolog/.env`: `SMTP_HOST`, `SMTP_USERNAME`, `SMTP_PASSWORD` (painel da Iagente; crie a conta pelo link https://celke.com.br/page/iagente, que dá
+  alguns e-mails gratuitos para enviar).
   Na homologação, use um remetente identificado ou restrinja os envios a e-mails de teste.
 - `caddy/.env`: `ACME_EMAIL`, `ADM_IPS` e `HOMOLOG_IPS` (seus IPs, separados por espaço).
 
@@ -601,6 +857,9 @@ Crie no GitHub um token clássico só com `read:packages` e, na VPS, como `deplo
 ```bash
 echo "<token>" | docker login ghcr.io -u <usuario-github> --password-stdin
 ```
+
+No `.env` de cada ambiente, preencha `REGISTRO=ghcr.io/<dono-do-repositorio>` (em minúsculas): é
+onde o pipeline publica as imagens e de onde o deploy baixa a API, o worker e os fronts.
 
 ## 8. Deploy automático no GitHub
 
@@ -646,9 +905,9 @@ aprovação.
 
    ```bash
    docker compose -p plataforma-cursos-producao -f producao/compose.prod.yml --env-file producao/.env \
-     --project-directory producao run --rm api criar-admin admin@celke.uno "Administrador"
+     --project-directory producao run --rm api criar-admin admin@<dominio> "Administrador"
    docker compose -p plataforma-cursos-homolog -f homolog/compose.prod.yml -f homolog/compose.homolog.yml \
-     --env-file homolog/.env --project-directory homolog run --rm api criar-admin admin@celke.uno "Administrador"
+     --env-file homolog/.env --project-directory homolog run --rm api criar-admin admin@<dominio> "Administrador"
    ```
 
 ## 10. Verificação
@@ -656,11 +915,11 @@ aprovação.
 Do seu computador:
 
 ```bash
-curl -s https://aluno.celke.uno/actuator/health            # {"groups":[...],"status":"UP"}
-curl -sI https://aluno.celke.uno/actuator/health | grep -i strict-transport
-curl -s https://aluno.celke.uno/ | grep -o '<title>.*</title>'   # a área do aluno
-curl -s https://aluno.celke.uno/v3/api-docs | head -c 15        # <!doctype html> (o front, não a API)
-curl -s -o /dev/null -w "%{http_code}\n" https://adm.celke.uno/actuator/health # 403 fora de ADM_IPS
+curl -s https://<sub-aluno>.<dominio>/actuator/health            # {"groups":[...],"status":"UP"}
+curl -sI https://<sub-aluno>.<dominio>/actuator/health | grep -i strict-transport
+curl -s https://<sub-aluno>.<dominio>/ | grep -o '<title>.*</title>'   # a área do aluno
+curl -s https://<sub-aluno>.<dominio>/v3/api-docs | head -c 15        # <!doctype html> (o front, não a API)
+curl -s -o /dev/null -w "%{http_code}\n" https://<sub-adm>.<dominio>/actuator/health # 403 fora de ADM_IPS
 nc -zv -w 3 <ip-da-vps> 5432 ; nc -zv -w 3 <ip-da-vps> 3900 ; nc -zv -w 3 <ip-da-vps> 8080   # recusadas
 ssh root@<ip-da-vps>                                        # recusado
 ```
@@ -696,7 +955,7 @@ ssh -t $VPS 'C=/opt/plataforma-cursos/caddy \
   && sudo cp -p $C/Caddyfile $C/Caddyfile.bak-$(date +%F-%H%M) \
   && sudo cp -r /tmp/caddy/. $C/ && sudo chown -R deploy:deploy $C && rm -rf /tmp/caddy \
   && sudo -u deploy docker compose -f $C/compose.yml --env-file $C/.env --project-directory $C up -d --force-recreate'
-curl -s https://aluno.celke.uno/actuator/health   # {"groups":[...],"status":"UP"}
+curl -s https://<sub-aluno>.<dominio>/actuator/health   # {"groups":[...],"status":"UP"}
 ```
 
 O `Caddyfile` anterior fica em `caddy/Caddyfile.bak-<data>`; para voltar, copie-o por cima do
@@ -723,7 +982,7 @@ administrador, `sudo install -o root -g root -m 755 deploy.sh /usr/local/bin/pla
 # sozinho; com "http://..." atende sem TLS (e2e).
 {
 	admin off
-	email {$ACME_EMAIL:nao-configurado@celke.uno}
+	email {$ACME_EMAIL:nao-configurado@<dominio>}
 	# Sem isso, o handle dos sites roda antes do respond e a restrição por IP (somente_ips_adm,
 	# homolog) só valeria na mídia
 	order respond before handle
@@ -970,7 +1229,7 @@ x-logging: &logging
 services:
   api:
     logging: *logging
-    image: ${IMAGEM_API:-ghcr.io/celkecursos/plataforma-cursos-api}:${TAG:?defina TAG}
+    image: ${REGISTRO:?defina REGISTRO}/plataforma-cursos-api:${TAG:?defina TAG}
     restart: unless-stopped
     environment:
       <<: *app
@@ -997,7 +1256,7 @@ services:
 
   worker:
     logging: *logging
-    image: ${IMAGEM_WORKER:-ghcr.io/celkecursos/plataforma-cursos-worker}:${TAG:?defina TAG}
+    image: ${REGISTRO:?defina REGISTRO}/plataforma-cursos-worker:${TAG:?defina TAG}
     restart: unless-stopped
     # No deploy, o job em andamento tem 30 s para terminar; uma conversão interrompida volta para a fila
     # quando o lease vence (o worker o renova a cada minuto enquanto converte)
@@ -1027,7 +1286,7 @@ services:
   # Área do aluno (porta 8081) e ADM (8082), estáticos; a API é chamada no mesmo domínio (/api)
   web:
     logging: *logging
-    image: ${IMAGEM_WEB:-ghcr.io/celkecursos/plataforma-cursos-web}:${TAG:?defina TAG}
+    image: ${REGISTRO:?defina REGISTRO}/plataforma-cursos-web:${TAG:?defina TAG}
     restart: unless-stopped
     environment:
       # Origem dos vídeos e arquivos na Content-Security-Policy dos fronts
@@ -1203,10 +1462,6 @@ package-lock.json
 # API e o resto para este container: aluno na porta 8081, ADM na 8082.
 
 FROM node:24.11-bookworm-slim AS build
-RUN apt-get update -q && apt-get install -y -q --no-install-recommends git ca-certificates \
-    && rm -rf /var/lib/apt/lists/*
-# O lock guarda o kole-react como git+ssh; o repositório é público e é baixado por HTTPS
-RUN git config --global url."https://github.com/".insteadOf "ssh://git@github.com/"
 WORKDIR /web
 COPY package.json package-lock.json ./
 RUN npm ci --no-audit --no-fund
@@ -1214,6 +1469,8 @@ COPY . .
 RUN npm run build
 
 FROM caddy:2.11.7-alpine
+# Correções do sistema publicadas depois da imagem base
+RUN apk upgrade --no-cache
 COPY Caddyfile /etc/caddy/Caddyfile
 COPY --from=build /web/dist/aluno /srv/aluno
 COPY --from=build /web/dist/adm /srv/adm
@@ -2253,7 +2510,7 @@ function sessao(token: string): Sessao {
     accessToken: token,
     tipo: 'Bearer',
     expiraEm: '2026-01-01T00:10:00Z',
-    usuario: { id: 1, nome: 'Ana', email: 'ana@celke.uno', papeis: ['ALUNO'] },
+    usuario: { id: 1, nome: 'Ana', email: 'ana@<dominio>', papeis: ['ALUNO'] },
   };
 }
 
@@ -2916,7 +3173,7 @@ describe('validação de formulários', () => {
     ['', 'Informe o e-mail.'],
     ['ana', 'Informe um e-mail válido.'],
     ['ana@celke', 'Informe um e-mail válido.'],
-    [' ana@celke.uno ', undefined],
+    [' ana@<dominio> ', undefined],
   ])('e-mail "%s" → %s', (valor, esperado) => {
     expect(erroEmail(valor)).toBe(esperado);
   });
@@ -3393,8 +3650,8 @@ export const ADM_URL = process.env['E2E_ADM_URL'] ?? 'http://adm.localhost:8088'
 export const MAILPIT_URL = process.env['E2E_MAILPIT_URL'] ?? 'http://localhost:8026';
 
 export const SENHA_SEED = process.env['E2E_SENHA_SEED'] ?? '123456A#b123';
-export const ADMIN_SEED = 'admin@celke.com.br';
-export const ALUNO_SEED = 'aluno@celke.com.br';
+export const ADMIN_SEED = 'admin@<dominio>';
+export const ALUNO_SEED = 'aluno@<dominio>';
 
 // Trava: os testes criam contas e trocam senhas; só rodam contra a stack local (*.localhost)
 for (const url of [ALUNO_URL, ADM_URL]) {
@@ -3443,7 +3700,7 @@ export function stamp(): string {
 }
 
 export function emailNovo(): string {
-  return `${stamp()}@teste.celke.uno`;
+  return `${stamp()}@teste.<dominio>`;
 }
 
 export const SENHA_NOVA = 'senha-forte-do-teste-e2e';
@@ -3594,7 +3851,7 @@ export default tseslint.config(
     "e2e:report": "playwright show-report"
   },
   "dependencies": {
-    "@celke/kole-react": "github:celkecursos/kole-react#fc87d5c4409e1e65e8c571321c08d56871d2a4d3",
+    "@celke/kole-react": "^0.1.0",
     "lucide-react": "^1.61.0",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
@@ -3804,9 +4061,9 @@ para o container web, que só existe a partir desta versão):
        && sudo cp -p $C/Caddyfile $C/Caddyfile.bak-$(date +%F-%H%M) \
        && sudo cp -r /tmp/caddy/. $C/ && sudo chown -R deploy:deploy $C && rm -rf /tmp/caddy \
        && sudo -u deploy docker compose -f $C/compose.yml --env-file $C/.env --project-directory $C up -d --force-recreate'
-     curl -s https://aluno.celke.uno/actuator/health   # {"groups":[...],"status":"UP"}
+     curl -s https://<sub-aluno>.<dominio>/actuator/health   # {"groups":[...],"status":"UP"}
 
-2. Confira: curl -s https://aluno.celke.uno/ | grep -o '<title>.*</title>' mostra a área do aluno.
+2. Confira: curl -s https://<sub-aluno>.<dominio>/ | grep -o '<title>.*</title>' mostra a área do aluno.
 ```
 
 ## Verificação
@@ -3831,11 +4088,13 @@ docker compose -f infra/compose.prod.yml -f infra/compose.e2e.yml --env-file inf
 ```
 
 - Tudo passa; confira as telas da fase em `http://aluno.localhost:8088` e `http://adm.localhost:8088` (contas do seed em `infra/e2e.env`).
+- Com tudo verde, as tasks de `.sdd/tasks/acesso-web-v1.0/` passam para `Status: Concluída` e os critérios de aceite
+  são marcados (`- [x]`).
 
 ## Depois de executar
 
 ```bash
-git add backend/ web/ infra/ docs/ .github/ README.md
+git add backend/ web/ infra/ docs/ .github/ README.md .sdd/
 git commit -m "feat(web): criar a base dos fronts do aluno e do ADM"
 git push -u origin feature/web-base
 ```

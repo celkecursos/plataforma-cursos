@@ -3,7 +3,349 @@
 **Fase:** 2
 **Branch:** `feature/cursos`
 
+> **Configuração do projeto:** troque os marcadores `<dominio>`, `<sub-site>`, `<sub-aluno>`,
+> `<sub-adm>`, `<sub-media>` e `<dono-github>` pelos valores de `docs/configuracao.md` (criado no
+> primeiro prompt) em todo o conteúdo deste prompt, inclusive nos testes. Se o arquivo não existir,
+> pergunte esses valores ao usuário antes de começar.
+
 ## Prompt
+
+### Especificação e tasks (SDD)
+
+Antes do código, registre a funcionalidade no SDD: crie a spec e as tasks abaixo com **exatamente** este conteúdo (troque os marcadores pelos valores de `docs/configuracao.md`). As tasks nascem com `Status: Pronta`; ao fim da **Verificação**, passam para `Concluída`.
+
+`.sdd/specs/catalogo-de-cursos.spec.md`:
+
+`````markdown
+---
+feature: catalogo-de-cursos
+versao: 1.0
+status: aprovada
+autor: pm-spec-architect
+---
+
+# Catálogo de cursos
+
+## 1. Resumo Executivo
+
+O administrador monta a estrutura de cada curso — curso, turmas, módulos e aulas — e decide o que é
+publicado. O visitante vê no catálogo público apenas os cursos publicados, com o conteúdo da turma
+ativa mais recente e a capa.
+
+Entra: gestão de cursos, turmas, módulos e aulas, ordem do conteúdo, capa e catálogo público. Fica de
+fora: matrícula (spec `matricula-e-acesso`) e vídeo (spec `envio-de-video`).
+
+## 2. Atores e Papéis
+
+| Ator | Pode |
+|---|---|
+| Administrador | Criar, alterar, reordenar, mudar o status e excluir itens vazios |
+| Visitante | Ver o catálogo e a página dos cursos publicados |
+| Aluno | O mesmo que o visitante; recebe 403 na gestão |
+
+## 3. Requisitos Funcionais
+
+- **RF-01** — O sistema DEVE manter cursos com título, endereço amigável único (gerado do título quando
+  não informado) e status `RASCUNHO`, `PUBLICADO` ou `ARQUIVADO`.
+- **RF-02** — O sistema DEVE manter turmas de um curso com status `PREPARACAO`, `ATIVA` ou `ENCERRADA`.
+- **RF-03** — O sistema DEVE manter módulos de uma turma e aulas de um módulo, com status `ATIVO` ou
+  `INATIVO` e a marcação de aula gratuita.
+- **RF-04** — O sistema DEVE manter a ordem de módulos e aulas sem lacunas nem repetições: item novo
+  entra no fim, exclusão refaz a sequência e a reordenação recebe a lista completa.
+- **RF-05** — O sistema DEVE excluir apenas itens vazios (curso sem turmas, turma sem módulos, módulo sem
+  aulas); os demais são arquivados, encerrados ou inativados.
+- **RF-06** — O sistema DEVE receber a capa do curso direto no armazenamento (JPEG ou PNG até 5 MB) e
+  guardá-la reduzida para até 1280 × 720, sem metadados, apagando o original e a capa anterior.
+- **RF-07** — O sistema DEVE listar no catálogo público só os cursos publicados, em ordem alfabética,
+  paginados.
+- **RF-08** — O sistema DEVE mostrar na página do curso os módulos e as aulas ativos da turma ativa mais
+  recente, sem dados internos; rascunho e arquivado respondem "não encontrado".
+- **RF-09** — O sistema DEVE oferecer um endereço estável para a capa que leva a uma cópia de acesso
+  temporário.
+
+## 4. Modelo de Domínio
+
+- **Curso:** título, endereço amigável, descrição, status, capa.
+- **Turma:** curso, nome, status.
+- **Módulo:** turma, título, posição, status.
+- **Aula:** módulo, título, descrição, posição, status, gratuita.
+
+## 5. Estados e Fluxos
+
+- Curso: `RASCUNHO` ⇄ `PUBLICADO` → `ARQUIVADO`.
+- Turma: `PREPARACAO` → `ATIVA` → `ENCERRADA`.
+- **Montagem:** curso → turma → módulos → aulas → capa → publicar.
+
+## 6. Contratos de Interface
+
+| Operação | Entrada | Saída |
+|---|---|---|
+| Criar curso | `titulo`, `slug` opcional, `descricao` | curso |
+| Mudar status | `status` | item atualizado |
+| Reordenar | lista completa de ids | ordem nova |
+| Pedir envio da capa | `contentType`, `tamanho` | endereço temporário de envio e chave |
+| Confirmar capa | `chave` | curso com capa |
+| Catálogo | página | cursos publicados |
+| Página do curso | endereço amigável | curso, módulos e aulas ativos |
+
+A capa e os arquivos ficam em `<sub-media>.<dominio>`.
+
+## 7. Casos de Borda
+
+- Endereço amigável repetido: 409.
+- Reordenação com id faltando, sobrando ou repetido: 400.
+- Duas criações simultâneas no mesmo módulo: posições distintas, sem conflito.
+- Capa com chave de outro curso, tamanho diferente do informado ou lado acima de 8000 px: recusada.
+- Imagem com orientação nos metadados ou transparência: regravada corretamente.
+
+## 8. Premissas Validadas
+
+- Um curso pode ter várias turmas; o catálogo mostra a ativa mais recente.
+- Nada é apagado se tiver histórico: arquivar e encerrar preservam matrículas.
+
+## 9. Riscos
+
+- **Imagem maliciosa ou gigante:** limites de tamanho e de lado antes de decodificar.
+- **Aluno alcançar a gestão:** papel conferido na entrada e em cada operação.
+`````
+
+`.sdd/tasks/catalogo-de-cursos-v1.0/README.md`:
+
+`````markdown
+# Tasks — Catálogo de cursos (v1.0)
+
+Spec: [`.sdd/specs/catalogo-de-cursos.spec.md`](../../specs/catalogo-de-cursos.spec.md) · versão 1.0 · prompt do tutorial `docs/prompts-iniciais/f02-01-cursos-e-catalogo.md`.
+
+| Ordem | ID | Título | Nível | Depende de |
+|---|---|---|---|---|
+| 1 | [CURSO-001](CURSO-001-dominio.md) | Domínio de cursos, turmas, módulos e aulas | Sênior | — |
+| 2 | [CURSO-002](CURSO-002-gestao-adm.md) | Gestão pelo administrador | Pleno | CURSO-001 |
+| 3 | [CURSO-003](CURSO-003-capa.md) | Capa do curso | Sênior | CURSO-001 |
+| 4 | [CURSO-004](CURSO-004-catalogo-publico.md) | Catálogo público | Pleno | CURSO-001 |
+| 5 | [CURSO-005](CURSO-005-fiacao.md) | Fiação do catálogo | Pleno | CURSO-002, CURSO-003, CURSO-004 |
+
+## Grafo
+
+```
+CURSO-001 (início)
+CURSO-001 → CURSO-002
+CURSO-001 → CURSO-003
+CURSO-001 → CURSO-004
+CURSO-002 + CURSO-003 + CURSO-004 → CURSO-005
+```
+
+## RF → tasks
+
+| RF | Tasks |
+|---|---|
+| RF-01 | CURSO-001, CURSO-002 |
+| RF-02 | CURSO-001, CURSO-002 |
+| RF-03 | CURSO-001, CURSO-002 |
+| RF-04 | CURSO-001, CURSO-002 |
+| RF-05 | CURSO-002 |
+| RF-06 | CURSO-003 |
+| RF-07 | CURSO-004, CURSO-005 |
+| RF-08 | CURSO-004 |
+| RF-09 | CURSO-003, CURSO-004 |
+
+## Resumo por nível
+
+- Pleno: 3
+- Sênior: 2
+`````
+
+`.sdd/tasks/catalogo-de-cursos-v1.0/CURSO-001-dominio.md`:
+
+`````markdown
+# CURSO-001 — Domínio de cursos, turmas, módulos e aulas
+
+- **Spec:** .sdd/specs/catalogo-de-cursos.spec.md (v1.0) · atende RF-01, RF-02, RF-03, RF-04
+- **Nível:** Sênior
+- **Agente:** dev-senior
+- **Status:** Pronta
+- **Depende de:** —
+
+## Arquivos a criar/alterar
+
+- `backend/src/main/java/br/com/celke/cursos/curso/domain/Curso.java`
+- `backend/src/main/java/br/com/celke/cursos/curso/domain/Turma.java`
+- `backend/src/main/java/br/com/celke/cursos/curso/domain/Modulo.java`
+- `backend/src/main/java/br/com/celke/cursos/curso/domain/Aula.java`
+- `backend/src/main/java/br/com/celke/cursos/curso/domain/Slug.java`
+- `backend/src/main/java/br/com/celke/cursos/curso/domain/Ordenacao.java`
+- `backend/src/main/java/br/com/celke/cursos/curso/domain/StatusCurso.java`
+- `backend/src/main/java/br/com/celke/cursos/curso/domain/StatusTurma.java`
+- `backend/src/main/java/br/com/celke/cursos/curso/domain/StatusConteudo.java`
+- `backend/src/main/java/br/com/celke/cursos/curso/infra/CursoRepository.java`
+- `backend/src/main/java/br/com/celke/cursos/curso/infra/TurmaRepository.java`
+- `backend/src/main/java/br/com/celke/cursos/curso/infra/ModuloRepository.java`
+- `backend/src/main/java/br/com/celke/cursos/curso/infra/AulaRepository.java`
+
+## Descrição técnica
+
+Ordem única por pai com restrição adiável; item novo no fim; o pai fica travado (`PESSIMISTIC_WRITE`) enquanto a ordem muda.
+
+## Restrições
+
+`ON DELETE RESTRICT` em toda a hierarquia.
+
+## Critérios de aceite
+
+- [ ] `SlugTest`, `OrdenacaoTest` verdes
+- [ ] `ConteudoOrdemIT`: criação simultânea sem conflito
+
+## Armadilhas
+
+Reordenar posição por posição viola a restrição única no meio da troca.
+`````
+
+`.sdd/tasks/catalogo-de-cursos-v1.0/CURSO-002-gestao-adm.md`:
+
+`````markdown
+# CURSO-002 — Gestão pelo administrador
+
+- **Spec:** .sdd/specs/catalogo-de-cursos.spec.md (v1.0) · atende RF-01, RF-02, RF-03, RF-04, RF-05
+- **Nível:** Pleno
+- **Agente:** dev-pleno
+- **Status:** Pronta
+- **Depende de:** CURSO-001
+
+## Arquivos a criar/alterar
+
+- `backend/src/main/java/br/com/celke/cursos/curso/api/CursoAdmController.java`
+- `backend/src/main/java/br/com/celke/cursos/curso/api/TurmaAdmController.java`
+- `backend/src/main/java/br/com/celke/cursos/curso/api/ModuloAdmController.java`
+- `backend/src/main/java/br/com/celke/cursos/curso/api/AulaAdmController.java`
+- `backend/src/main/java/br/com/celke/cursos/curso/api/CursoRequests.java`
+- `backend/src/main/java/br/com/celke/cursos/curso/api/CursoResponses.java`
+- `backend/src/main/java/br/com/celke/cursos/curso/application/CursoAdmService.java`
+- `backend/src/main/java/br/com/celke/cursos/curso/application/TurmaAdmService.java`
+- `backend/src/main/java/br/com/celke/cursos/curso/application/ModuloAdmService.java`
+- `backend/src/main/java/br/com/celke/cursos/curso/application/AulaAdmService.java`
+
+## Descrição técnica
+
+CRUD em `/api/adm/**`, `PATCH .../status` e `PUT .../ordem` com a lista completa de ids.
+
+## Restrições
+
+ADMIN conferido no `SecurityConfig` e com `@PreAuthorize`.
+
+## Critérios de aceite
+
+- [ ] serviços `*AdmServiceTest` verdes
+- [ ] `CursoCrudIT` e `CursoAcessoIT` (matriz de papéis) verdes
+
+## Armadilhas
+
+Excluir item com filhos em vez de responder 409.
+`````
+
+`.sdd/tasks/catalogo-de-cursos-v1.0/CURSO-003-capa.md`:
+
+`````markdown
+# CURSO-003 — Capa do curso
+
+- **Spec:** .sdd/specs/catalogo-de-cursos.spec.md (v1.0) · atende RF-06, RF-09
+- **Nível:** Sênior
+- **Agente:** dev-senior
+- **Status:** Pronta
+- **Depende de:** CURSO-001
+
+## Arquivos a criar/alterar
+
+- `backend/src/main/java/br/com/celke/cursos/curso/application/CapaCursoService.java`
+- `backend/src/main/java/br/com/celke/cursos/shared/imagem/ProcessadorImagem.java`
+
+## Descrição técnica
+
+URL pré-assinada em `uploads/capas/<curso>/<uuid>`; a confirmação confere chave, tamanho e lado e regrava em JPEG até 1280 × 720 em `capas/<curso>/<uuid>.jpg`.
+
+## Restrições
+
+Imagens servidas por `<sub-media>.<dominio>`.
+
+## Critérios de aceite
+
+- [ ] `CapaCursoServiceTest`, `ProcessadorImagemTest` verdes
+- [ ] `CapaCursoIT` com o Garage real
+
+## Armadilhas
+
+Decodificar antes de conferir o lado deixa uma imagem gigante derrubar a API.
+`````
+
+`.sdd/tasks/catalogo-de-cursos-v1.0/CURSO-004-catalogo-publico.md`:
+
+`````markdown
+# CURSO-004 — Catálogo público
+
+- **Spec:** .sdd/specs/catalogo-de-cursos.spec.md (v1.0) · atende RF-07, RF-08, RF-09
+- **Nível:** Pleno
+- **Agente:** dev-pleno
+- **Status:** Pronta
+- **Depende de:** CURSO-001
+
+## Arquivos a criar/alterar
+
+- `backend/src/main/java/br/com/celke/cursos/curso/api/CatalogoController.java` — `GET /api/cursos`, `/api/cursos/{slug}`, `/api/cursos/{slug}/capa`
+- `backend/src/main/java/br/com/celke/cursos/curso/application/CatalogoService.java`
+- `backend/src/main/java/br/com/celke/cursos/curso/application/ConteudoTurmaService.java`
+
+## Descrição técnica
+
+Só publicados; conteúdo ativo da turma ativa mais recente; capa por redirecionamento com cache de 5 minutos.
+
+## Restrições
+
+Rascunho e arquivado respondem 404.
+
+## Critérios de aceite
+
+- [ ] `CatalogoServiceTest`, `ConteudoTurmaServiceTest` verdes
+- [ ] `CatalogoIT` verde
+- [ ] `CatalogoE2E` verde
+
+## Armadilhas
+
+Expor ids internos e status no catálogo público.
+`````
+
+`.sdd/tasks/catalogo-de-cursos-v1.0/CURSO-005-fiacao.md`:
+
+`````markdown
+# CURSO-005 — Fiação do catálogo
+
+- **Spec:** .sdd/specs/catalogo-de-cursos.spec.md (v1.0) · atende RF-07
+- **Nível:** Pleno
+- **Agente:** dev-pleno
+- **Status:** Pronta
+- **Depende de:** CURSO-002, CURSO-003, CURSO-004
+
+## Arquivos a criar/alterar
+
+- `backend/src/main/resources/db/migration/V6__criar_cursos.sql`
+- `backend/src/main/java/br/com/celke/cursos/shared/security/SecurityConfig.java`
+
+## Descrição técnica
+
+Migration V6 com os `CHECK` de status e do formato do slug; catálogo público só em GET.
+
+## Critérios de aceite
+
+- [ ] `./mvnw verify` verde
+- [ ] Task só de fiação: não tem teste próprio; a verificação é a suíte inteira passando.
+
+## Armadilhas
+
+Restrição de ordem não adiável.
+`````
+
+Acrescente ao fim da tabela do índice `.sdd/README.md` a linha:
+
+```text
+| [catalogo-de-cursos](specs/catalogo-de-cursos.spec.md) | 1.0 | [v1.0](tasks/catalogo-de-cursos-v1.0/README.md) | `f02-01-cursos-e-catalogo.md` |
+```
 
 Vamos criar o módulo `curso` do backend: a gestão de cursos, turmas, módulos e aulas pelo ADM, a capa
 do curso e o catálogo público que o site vai consumir. Siga o `backend/CLAUDE.md` e o padrão das
@@ -5085,11 +5427,13 @@ No ambiente local (`docker compose -f infra/compose.yml up -d --build --wait`), 
   --data-binary @capa.png "<url>"` e confirme; publique o curso.
 - Sem token, `GET /api/cursos/<slug>` mostra o conteúdo e `GET /api/cursos/<slug>/capa` redireciona
   para a imagem.
+- Com tudo verde, as tasks de `.sdd/tasks/catalogo-de-cursos-v1.0/` passam para `Status: Concluída` e os critérios de aceite
+  são marcados (`- [x]`).
 
 ## Depois de executar
 
 ```bash
-git add backend/
+git add backend/ .sdd/
 git commit -m "feat(curso): adicionar cursos, turmas, módulos, aulas e catálogo"
 git push -u origin feature/cursos
 ```
