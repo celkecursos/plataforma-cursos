@@ -1,0 +1,210 @@
+spring:
+  application:
+    name: plataforma-cursos
+  threads:
+    virtual:
+      enabled: true
+  # Sem usuário embutido: a autenticação é feita pelos usuários do banco
+  autoconfigure:
+    exclude: org.springframework.boot.security.autoconfigure.UserDetailsServiceAutoConfiguration
+  # Sem valor padrão: sem as credenciais a aplicação não sobe (o compose exige as variáveis)
+  datasource:
+    url: ${DB_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+  flyway:
+    enabled: true
+    # Usuário da API e do worker (só dados): criado e liberado pelo afterMigrate.sql quando informado.
+    # Em branco (desenvolvimento), a aplicação usa o próprio dono do schema
+    placeholders:
+      usuario_app: ${DB_APP_USERNAME:}
+      senha_app: ${DB_APP_PASSWORD:}
+  data:
+    web:
+      pageable:
+        default-page-size: 20
+        max-page-size: 100
+  web:
+    # Mensagens de validação em português
+    locale: pt_BR
+    locale-resolver: fixed
+  mail:
+    host: ${SMTP_HOST:}
+    port: ${SMTP_PORT:587}
+    username: ${SMTP_USERNAME:}
+    password: ${SMTP_PASSWORD:}
+    properties:
+      mail.smtp.auth: ${SMTP_AUTH:true}
+      mail.smtp.starttls.enable: ${SMTP_STARTTLS:true}
+      mail.smtp.starttls.required: ${SMTP_STARTTLS:true}
+      mail.smtp.connectiontimeout: 10000
+      mail.smtp.timeout: 10000
+      mail.smtp.writetimeout: 10000
+
+logging:
+  # Horário de Brasília nos logs: o @timestamp do JSON (ECS) e o texto do console do desenvolvimento
+  structured:
+    json:
+      customizer: br.com.celke.cursos.shared.config.FusoHorarioLogs
+  pattern:
+    dateformat: "yyyy-MM-dd'T'HH:mm:ss.SSSXXX, America/Sao_Paulo"
+  # Arquivo de log (ligado nos servidores por LOGGING_FILE_NAME, num volume): um arquivo por dia de
+  # Brasília, comprimido, guardado por 180 dias ou até 2 GB por serviço, o que vier primeiro
+  logback:
+    rollingpolicy:
+      file-name-pattern: "${LOG_FILE}.%d{yyyy-MM-dd,America/Sao_Paulo}.%i.gz"
+      max-file-size: 50MB
+      max-history: 180
+      total-size-cap: 2GB
+
+server:
+  shutdown: graceful
+  # A API roda atrás do Caddy. Com "native", o Tomcat só aceita X-Forwarded-* vindo de proxy interno
+  # (rede privada) e lê o X-Forwarded-For da direita para a esquerda: IP forjado pelo cliente é ignorado
+  forward-headers-strategy: native
+  error:
+    include-stacktrace: never
+    include-message: never
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      show-details: never
+  health:
+    # O SMTP fora do ar não deve tirar a API do ar: o envio é pela fila, com novas tentativas
+    mail:
+      enabled: false
+
+# Swagger: ligado só no desenvolvimento e na homologação (DOCS_ENABLED=true)
+springdoc:
+  api-docs:
+    enabled: ${DOCS_ENABLED:false}
+  swagger-ui:
+    enabled: ${DOCS_ENABLED:false}
+
+app:
+  auth:
+    # Segredo do JWT em Base64, com pelo menos 32 bytes (openssl rand -base64 48)
+    jwt-segredo: ${JWT_SEGREDO:}
+    emissor: plataforma-cursos
+    validade-acesso: PT10M
+    validade-refresh: P14D
+    cookie-seguro: true
+    # Origens do front que podem renovar e encerrar a sessão (separadas por vírgula)
+    origens-permitidas: ${AUTH_ORIGENS:}
+    segundo-fator:
+      # Chave AES-256 dos segredos do aplicativo autenticador dos administradores: 32 bytes em Base64
+      # (openssl rand -base64 32). Trocar a chave exige cadastrar o aplicativo de novo (redefinir-2fa)
+      chave: ${TOTP_CHAVE:}
+      emissor: Plataforma de Cursos
+      rejeitar-reuso: true
+    auditoria-login:
+      # Tentativas de login (e-mail, IP e navegador): 6 meses, prazo do Marco Civil para os registros de
+      # acesso a aplicações; a limpeza é diária, no worker
+      retencao: P180D
+  conta:
+    # Área do aluno: base dos links enviados por e-mail
+    url-aluno: ${FRONT_ALUNO_URL:}
+    validade-confirmacao: PT48H
+    validade-recuperacao: PT1H
+    emails-por-hora: 3
+  limites:
+    # Rotas de autenticação e conta: requisições por IP a cada minuto
+    requisicoes-por-ip-por-minuto: 30
+    # Falhas de login seguidas que bloqueiam o par e-mail + IP, e o e-mail vindo de qualquer IP
+    falhas-por-email-e-ip: 5
+    falhas-por-email: 20
+    # Contadores de falha zeram depois de uma hora sem novas falhas
+    janela-falhas: PT1H
+    bloqueio: PT15M
+  limites-usuario:
+    # Gravações (POST, PUT, PATCH, DELETE) de um usuário logado a cada minuto, em todas as rotas
+    escritas-por-minuto: 120
+    # Pedidos abertos no meio de pagamento por um usuário a cada hora
+    checkouts-por-hora: 10
+  armazenamento:
+    # Endereço usado pela aplicação (rede interna)
+    endpoint: ${S3_ENDPOINT:}
+    # Endereço que vai nas URLs pré-assinadas (o que o navegador acessa)
+    endpoint-publico: ${S3_ENDPOINT_PUBLICO:}
+    regiao: ${S3_REGIAO:garage}
+    bucket: ${S3_BUCKET:}
+    access-key: ${S3_ACCESS_KEY:}
+    secret-key: ${S3_SECRET_KEY:}
+    cors-origens: ${S3_CORS_ORIGENS:}
+    dias-uploads-abandonados: 2
+  email:
+    remetente: ${EMAIL_REMETENTE:}
+    nome-remetente: Plataforma de Cursos
+  fila:
+    max-tentativas: 5
+    lease: PT10M
+    backoff-base: PT30S
+    backoff-maximo: PT1H
+    intervalo: PT2S
+    consumidor-ativo: false
+  video:
+    tamanho-maximo: 5GB
+    # Validade das URLs de envio das partes (um vídeo grande numa conexão lenta)
+    validade-envio: PT6H
+    ffmpeg: ffmpeg
+    ffprobe: ffprobe
+    # veryfast: na VPS (1,5 vCPU para o worker) o ganho de compressão dos presets lentos não compensa o tempo
+    preset: veryfast
+    crf: 24
+    diretorio-trabalho: ${java.io.tmpdir}/plataforma-cursos-videos
+    # Validade das URLs dos segmentos = duração do vídeo + margem (pausas e idas e voltas no player)
+    margem-playlist: PT2H
+    # Log de acesso aos vídeos: 6 meses (prazo do Marco Civil para registros de acesso a aplicações)
+    retencao-log-acesso: P180D
+  forum:
+    # Perguntas e respostas por aluno dentro da janela (o instrutor não tem limite)
+    mensagens-por-janela: 20
+    janela: PT1H
+    anexos-por-mensagem: 3
+  pagamentos:
+    # Chave AES-256 dos segredos dos meios de pagamento: 32 bytes em Base64 (openssl rand -base64 32).
+    # Em branco, a API sobe, mas o painel não grava credenciais
+    chave: ${PAGAMENTOS_CHAVE:}
+    webhook-tamanho-maximo: 256KB
+    webhook-requisicoes-por-ip-por-minuto: 600
+    # Corpo dos eventos processados ou ignorados é apagado depois disso (o resto fica para auditoria)
+    retencao-payload: P180D
+    # Disputa aberta mantém o acesso; true tira o acesso até a disputa terminar
+    disputa-suspende: false
+    # Cobrança atrasada mantém o acesso; com app.pagamentos.atraso-suspende-apos (ex.: P7D), o acesso
+    # é tirado depois desse prazo
+    reconciliacao:
+      # Consulta diária na API do meio de pagamento (precisa das credenciais da API)
+      ativa: false
+      pendente-apos: PT24H
+      sem-evento-apos: P3D
+      janela: P60D
+    hotmart:
+      url-token: https://api-sec-vlc.hotmart.com/security/oauth/token
+      url-api: https://developers.hotmart.com/payments/api/v1
+      url-api-sandbox: https://sandbox.hotmart.com/payments/api/v1
+      timeout: PT10S
+  auditoria:
+    # Trilha de auditoria guardada por 5 anos (prazo de prescrição das ações do consumidor); a limpeza é
+    # semanal, no worker
+    retencao: P1826D
+  alertas:
+    # Destinatário dos alertas do worker (jobs com erro, disco); em branco, desligados
+    email: ${ALERTA_EMAIL:}
+    disco-minimo-percentual: 15
+    diretorio-disco: /
+    repeticao-disco: PT6H
+  exemplos:
+    # Cursos de exemplo publicados ao subir a API (CursosExemplo): ligado só na homologação
+    cursos: ${CURSOS_EXEMPLO:false}

@@ -1,0 +1,8 @@
+# Perfil do comando migrar (serviço migracao do compose): aplica as migrations com o dono do schema,
+# libera o usuário da aplicação (afterMigrate.sql) e termina. Nada de fila nem agendamentos.
+spring:
+  flyway:
+    enabled: true
+app:
+  fila:
+    consumidor-ativo: false

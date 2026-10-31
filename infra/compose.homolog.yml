@@ -1,0 +1,41 @@
+# Homologação: a mesma stack da produção com limites menores (divide a VPS com a produção) e o
+# Swagger ligado (o Caddy só deixa chegar quem está em HOMOLOG_IPS).
+services:
+  api:
+    environment:
+      JAVA_TOOL_OPTIONS: -Xmx384m
+      DOCS_ENABLED: "true"
+      # Seis cursos publicados para ver o site e a área do aluno com conteúdo (CursosExemplo)
+      CURSOS_EXEMPLO: "true"
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 768M
+
+  worker:
+    environment:
+      JAVA_TOOL_OPTIONS: -Xmx256m
+    deploy:
+      resources:
+        limits:
+          # Envia os e-mails da homologação; transcodificação lenta de propósito
+          cpus: "0.5"
+          memory: 768M
+
+  # Homologação fica fora dos buscadores
+  site:
+    environment:
+      SITE_INDEXAVEL: "false"
+
+  postgres:
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
+  garage:
+    deploy:
+      resources:
+        limits:
+          memory: 512M

@@ -1,0 +1,23 @@
+# Segredos
+.env
+.env.*
+!.env.example
+
+# Java / Maven
+target/
+*.class
+*.log
+
+# Node
+node_modules/
+dist/
+.react-router/
+coverage/
+playwright-report/
+test-results/
+
+# IDE / sistema
+.idea/
+.vscode/
+*.iml
+.DS_Store
