@@ -52,7 +52,7 @@ services:
       retries: 20
 
   garage:
-    image: dxflrs/garage:v2.4.1
+    image: dxflrs/garage:v2.5.0
     # Na primeira subida cria o layout de nó único, o bucket e a chave da aplicação
     command: ["/garage", "server", "--single-node", "--default-bucket"]
     environment:
