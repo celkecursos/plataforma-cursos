@@ -1380,6 +1380,8 @@ playwright-report
 test-results
 Dockerfile
 .dockerignore
+.env
+.env.*
 `````
 
 `web/.gitignore`:
