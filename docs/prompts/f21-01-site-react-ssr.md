@@ -294,8 +294,8 @@ Entregas:
 
 Topo translúcido, abertura com degradê e uma ilustração de player em CSS, vantagens em cartões, cursos
 em destaque, "Como funciona" em passos, chamada final, página do curso com coluna de compra fixa (capa,
-ofertas ou "Quero fazer este curso") e conteúdo por módulo com o selo "Aula gratuita", tema escuro por
-`prefers-color-scheme` e `prefers-reduced-motion`. Ícones em SVG próprio (`componentes/Icone.tsx`).
+ofertas ou "Quero fazer este curso") e conteúdo por módulo com o selo "Aula gratuita", tema escuro pelo
+`data-theme="system"` da `@celke/kole-react` (segue o `prefers-color-scheme`) e `prefers-reduced-motion`. Ícones em SVG próprio (`componentes/Icone.tsx`).
 
 ### 4. Favicon
 
@@ -3707,6 +3707,7 @@ HEALTHCHECK --interval=5s --timeout=3s --retries=20 \
     <link rel="icon" href="/favicon.ico" sizes="32x32" />
     <meta name="robots" content="noindex" />
     <title>Administração — Plataforma de Cursos</title>
+    <script src="/tema.js"></script>
   </head>
   <body>
     <div id="raiz"></div>
@@ -3726,6 +3727,7 @@ HEALTHCHECK --interval=5s --timeout=3s --retries=20 \
     <link rel="icon" href="/favicon.ico" sizes="32x32" />
     <meta name="robots" content="noindex" />
     <title>Área do aluno — Plataforma de Cursos</title>
+    <script src="/tema.js"></script>
   </head>
   <body>
     <div id="raiz"></div>
@@ -4203,7 +4205,7 @@ export default tseslint.config(
     "start:site": "cd site && react-router-serve ../dist/site/server/index.js"
   },
   "dependencies": {
-    "@celke/kole-react": "^0.1.0",
+    "@celke/kole-react": "^0.2.0",
     "@react-router/node": "^8.5.0",
     "@react-router/serve": "^8.5.0",
     "hls.js": "^1.7.3",
@@ -5027,34 +5029,8 @@ export const streamTimeout = LIMITE_MS;
 `web/site/app/estilos/site.css`:
 
 `````css
-/* Site público: tokens da @celke/kole-react (tokens.css) com o tema escuro seguindo o sistema do
-   visitante. Sem fontes nem imagens externas: tudo do próprio site. */
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #070d1a;
-    --surface: #0f1729;
-    --surf-2: #141e33;
-    --surf-3: #19243c;
-    --border: #223152;
-    --border-2: #2e3f63;
-    --ink: #e8eef8;
-    --t2: #b4c0d4;
-    --t3: #8a98b0;
-    --pri: #4d8dff;
-    --pri-bg: #13254a;
-    --pri-bd: #24427a;
-    --pri-ink: #77a8ff;
-    --on-pri: #06101f;
-    --navy: #0a1428;
-    --ok-fg: #59d98c;
-    --ok-bg: #14301f;
-    --ok-bd: #235639;
-    --err-fg: #f47369;
-    --err-bg: #331513;
-    --err-bd: #5a2620;
-  }
-}
+/* Site público: tokens da @celke/kole-react (tokens.css). O tema escuro segue o sistema do visitante
+   pelo <html data-theme="system"> (root.tsx). Sem fontes nem imagens externas: tudo do próprio site. */
 
 :root {
   --s-sombra: 0 1px 2px rgba(11, 26, 54, 0.06), 0 8px 24px rgba(11, 26, 54, 0.08);
@@ -6232,7 +6208,7 @@ export function Layout({ children }: { children: ReactNode }) {
   const nonce = useNonce();
   const ctx = useContexto();
   return (
-    <html lang="pt-BR">
+    <html lang="pt-BR" data-theme="system">
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />

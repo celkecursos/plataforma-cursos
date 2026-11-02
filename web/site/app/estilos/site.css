@@ -1,31 +1,5 @@
-/* Site público: tokens da @celke/kole-react (tokens.css) com o tema escuro seguindo o sistema do
-   visitante. Sem fontes nem imagens externas: tudo do próprio site. */
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #070d1a;
-    --surface: #0f1729;
-    --surf-2: #141e33;
-    --surf-3: #19243c;
-    --border: #223152;
-    --border-2: #2e3f63;
-    --ink: #e8eef8;
-    --t2: #b4c0d4;
-    --t3: #8a98b0;
-    --pri: #4d8dff;
-    --pri-bg: #13254a;
-    --pri-bd: #24427a;
-    --pri-ink: #77a8ff;
-    --on-pri: #06101f;
-    --navy: #0a1428;
-    --ok-fg: #59d98c;
-    --ok-bg: #14301f;
-    --ok-bd: #235639;
-    --err-fg: #f47369;
-    --err-bg: #331513;
-    --err-bd: #5a2620;
-  }
-}
+/* Site público: tokens da @celke/kole-react (tokens.css). O tema escuro segue o sistema do visitante
+   pelo <html data-theme="system"> (root.tsx). Sem fontes nem imagens externas: tudo do próprio site. */
 
 :root {
   --s-sombra: 0 1px 2px rgba(11, 26, 54, 0.06), 0 8px 24px rgba(11, 26, 54, 0.08);

@@ -1402,6 +1402,8 @@ node_modules
 playwright-report
 test-results
 package-lock.json
+# saída de scriptTemaInicial() da @celke/kole-react, mantida igual à da biblioteca
+*/public/tema.js
 `````
 
 `web/.prettierrc.json`:
@@ -1491,12 +1493,20 @@ HEALTHCHECK --interval=5s --timeout=3s --retries=20 \
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="robots" content="noindex" />
     <title>Administração — Plataforma de Cursos</title>
+    <script src="/tema.js"></script>
   </head>
   <body>
     <div id="raiz"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
+`````
+
+`web/adm/public/tema.js`:
+
+`````js
+// Tema e densidade antes da primeira pintura (scriptTemaInicial() da @celke/kole-react). Fica em arquivo, e não inline no index.html, porque a Content-Security-Policy só aceita script-src 'self'.
+(function(){var p={};try{p=JSON.parse(localStorage.getItem("lp-preferencias")||"{}")||{}}catch(e){}var t=p.tema||"sistema";var h=document.documentElement;h.setAttribute("data-theme",{"claro":"light","escuro":"dark","sistema":"system"}[t]||"light");var d={"compacta":"density-compact","confortavel":"density-comfortable","espacosa":"density-cozy"}[p.densidade||"confortavel"];if(d)h.classList.add(d)})();
 `````
 
 `web/adm/src/caminhos.ts`:
@@ -1717,12 +1727,20 @@ export default configurar('adm', 5174);
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="robots" content="noindex" />
     <title>Área do aluno — Plataforma de Cursos</title>
+    <script src="/tema.js"></script>
   </head>
   <body>
     <div id="raiz"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
+`````
+
+`web/aluno/public/tema.js`:
+
+`````js
+// Tema e densidade antes da primeira pintura (scriptTemaInicial() da @celke/kole-react). Fica em arquivo, e não inline no index.html, porque a Content-Security-Policy só aceita script-src 'self'.
+(function(){var p={};try{p=JSON.parse(localStorage.getItem("lp-preferencias")||"{}")||{}}catch(e){}var t=p.tema||"sistema";var h=document.documentElement;h.setAttribute("data-theme",{"claro":"light","escuro":"dark","sistema":"system"}[t]||"light");var d={"compacta":"density-compact","confortavel":"density-comfortable","espacosa":"density-cozy"}[p.densidade||"confortavel"];if(d)h.classList.add(d)})();
 `````
 
 `web/aluno/src/caminhos.ts`:
@@ -3853,7 +3871,7 @@ export default tseslint.config(
     "e2e:report": "playwright show-report"
   },
   "dependencies": {
-    "@celke/kole-react": "^0.1.0",
+    "@celke/kole-react": "^0.2.0",
     "lucide-react": "^1.61.0",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",

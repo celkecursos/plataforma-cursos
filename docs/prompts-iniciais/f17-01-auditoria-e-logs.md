@@ -3033,7 +3033,7 @@ export function opcoes<V extends string>(mapa: Record<V, Rotulo | string>) {
     "lighthouse": "node e2e/lighthouse.ts"
   },
   "dependencies": {
-    "@celke/kole-react": "^0.1.0",
+    "@celke/kole-react": "^0.2.0",
     "hls.js": "^1.7.3",
     "lucide-react": "^1.61.0",
     "react": "^19.3.1",
