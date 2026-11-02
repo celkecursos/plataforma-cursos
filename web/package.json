@@ -25,7 +25,7 @@
     "start:site": "cd site && react-router-serve ../dist/site/server/index.js"
   },
   "dependencies": {
-    "@celke/kole-react": "^0.1.0",
+    "@celke/kole-react": "^0.2.0",
     "@react-router/node": "^8.5.1",
     "@react-router/serve": "^8.5.1",
     "hls.js": "^1.7.4",

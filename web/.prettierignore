@@ -3,3 +3,5 @@ node_modules
 playwright-report
 test-results
 package-lock.json
+# saída de scriptTemaInicial() da @celke/kole-react, mantida igual à da biblioteca
+*/public/tema.js
