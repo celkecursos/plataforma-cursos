@@ -3256,7 +3256,7 @@ services:
         condition: service_healthy
 
   mailpit:
-    image: axllent/mailpit:v1.31.6
+    image: axllent/mailpit:v1.32.0
     ports:
       - "127.0.0.1:${E2E_MAILPIT_PORTA:?defina E2E_MAILPIT_PORTA}:8025"
     healthcheck:
@@ -3545,7 +3545,7 @@ services:
       retries: 20
 
   mailpit:
-    image: axllent/mailpit:v1.31.6
+    image: axllent/mailpit:v1.32.0
     ports:
       - "127.0.0.1:${MAILPIT_PORTA:-8025}:8025"   # painel web
     healthcheck:

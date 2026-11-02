@@ -780,7 +780,7 @@ jornada, o passo, o esperado e o obtido.
 	<parent>
 		<groupId>org.springframework.boot</groupId>
 		<artifactId>spring-boot-starter-parent</artifactId>
-		<version>4.1.1</version>
+		<version>4.1.2</version>
 		<relativePath/>
 	</parent>
 	<groupId>br.com.celke</groupId>
@@ -791,10 +791,10 @@ jornada, o passo, o esperado e o obtido.
 
 	<properties>
 		<java.version>25</java.version>
-		<springdoc.version>3.1.1</springdoc.version>
+		<springdoc.version>3.2.0</springdoc.version>
 		<spotless.version>3.10.4</spotless.version>
 		<palantir-java-format.version>2.102.0</palantir-java-format.version>
-		<jacoco.version>0.8.15</jacoco.version>
+		<jacoco.version>0.8.16</jacoco.version>
 		<!-- Cobertura mínima de linhas (unitários + integração) -->
 		<jacoco.cobertura.minima>0.80</jacoco.cobertura.minima>
 		<!-- -Dskip.unit=true roda só os testes de integração -->

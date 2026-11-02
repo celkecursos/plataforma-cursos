@@ -368,7 +368,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@v7
         with:
           node-version: "24"
           cache: npm
@@ -470,7 +470,7 @@ jobs:
         working-directory: backend
         run: ./mvnw -B verify -Pe2e
 
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@v7
         with:
           node-version: "24"
           cache: npm
@@ -1172,7 +1172,7 @@ services:
         condition: service_healthy
 
   mailpit:
-    image: axllent/mailpit:v1.31.6
+    image: axllent/mailpit:v1.32.0
     ports:
       - "127.0.0.1:${E2E_MAILPIT_PORTA:?defina E2E_MAILPIT_PORTA}:8025"
     healthcheck:
@@ -3872,10 +3872,10 @@ export default tseslint.config(
   },
   "dependencies": {
     "@celke/kole-react": "^0.2.0",
-    "lucide-react": "^1.61.0",
+    "lucide-react": "^1.65.0",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
-    "react-router": "^8.5.0"
+    "react-router": "^8.5.1"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
@@ -3893,7 +3893,7 @@ export default tseslint.config(
     "jsdom": "^30.1.3",
     "prettier": "^3.9.10",
     "typescript": "~6.0.3",
-    "typescript-eslint": "^8.72.0",
+    "typescript-eslint": "^8.72.1",
     "vite": "^8.3.5",
     "vitest": "^5.0.5"
   },
