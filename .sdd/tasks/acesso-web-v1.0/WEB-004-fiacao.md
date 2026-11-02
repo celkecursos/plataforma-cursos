@@ -8,7 +8,7 @@
 
 ## Arquivos a criar/alterar
 
-- `web/package.json` — `@celke/kole-react` do GitHub com commit fixo
+- `web/package.json` — `@celke/kole-react` instalada do npm
 - `web/aluno/src/rotas.tsx`
 - `web/adm/src/rotas.tsx`
 - `web/Dockerfile`

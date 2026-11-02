@@ -270,7 +270,7 @@ Crie ou substitua os arquivos abaixo com **exatamente** o conteúdo indicado.
 	<parent>
 		<groupId>org.springframework.boot</groupId>
 		<artifactId>spring-boot-starter-parent</artifactId>
-		<version>4.1.1</version>
+		<version>4.1.2</version>
 		<relativePath/>
 	</parent>
 	<groupId>br.com.celke</groupId>
@@ -281,17 +281,17 @@ Crie ou substitua os arquivos abaixo com **exatamente** o conteúdo indicado.
 
 	<properties>
 		<java.version>25</java.version>
-		<springdoc.version>3.1.1</springdoc.version>
-		<aws-sdk.version>2.57.1</aws-sdk.version>
+		<springdoc.version>3.2.0</springdoc.version>
+		<aws-sdk.version>2.57.7</aws-sdk.version>
 		<bouncycastle.version>1.86</bouncycastle.version>
 		<bucket4j.version>8.21.0</bucket4j.version>
-		<commonmark.version>0.30.0</commonmark.version>
-		<owasp-html-sanitizer.version>20260924.2</owasp-html-sanitizer.version>
-		<openhtmltopdf.version>1.1.87</openhtmltopdf.version>
-		<rest-assured.version>6.2.0</rest-assured.version>
+		<commonmark.version>0.31.0</commonmark.version>
+		<owasp-html-sanitizer.version>20261011.1</owasp-html-sanitizer.version>
+		<openhtmltopdf.version>1.1.105</openhtmltopdf.version>
+		<rest-assured.version>6.3.0</rest-assured.version>
 		<spotless.version>3.10.4</spotless.version>
 		<palantir-java-format.version>2.102.0</palantir-java-format.version>
-		<jacoco.version>0.8.15</jacoco.version>
+		<jacoco.version>0.8.16</jacoco.version>
 		<!-- Cobertura mínima de linhas (unitários + integração) -->
 		<jacoco.cobertura.minima>0.80</jacoco.cobertura.minima>
 		<!-- -Dskip.unit=true roda só os testes de integração -->

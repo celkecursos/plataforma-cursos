@@ -296,6 +296,8 @@ Topo translúcido, abertura com degradê e uma ilustração de player em CSS, va
 em destaque, "Como funciona" em passos, chamada final, página do curso com coluna de compra fixa (capa,
 ofertas ou "Quero fazer este curso") e conteúdo por módulo com o selo "Aula gratuita", tema escuro pelo
 `data-theme="system"` da `@celke/kole-react` (segue o `prefers-color-scheme`) e `prefers-reduced-motion`. Ícones em SVG próprio (`componentes/Icone.tsx`).
+O logo (`componentes/Marca.tsx`) é o mesmo do ADM: o escudo (ícone `shield` da `@celke/kole-react`) em SVG
+na cor de acento (`--acento` no topo, `--acento-claro` no rodapé), sem arquivo de imagem.
 
 ### 4. Favicon
 
@@ -520,6 +522,11 @@ cp site/public/favicon.ico adm/public/favicon.ico
 regra do certificado, módulos, aulas (a primeira gratuita) e capa PNG em degradê gerada no próprio
 script (sem dependências). Curso que já existe (slug repetido, 409) é pulado.
 
+Os mesmos seis cursos também nascem pela própria API na homologação: `CursosExemplo` (backend,
+`ApplicationRunner` ligado por `app.exemplos.cursos`, que vem de `CURSOS_EXEMPLO`, padrão `false`) cria
+os cursos publicados ao subir a API, pulando o slug que já existe. O `compose.homolog.yml` liga
+`CURSOS_EXEMPLO: "true"`; produção e e2e continuam sem cursos de exemplo. Teste: `CursosExemploIT`.
+
 ### 6. Documentação
 
 `README.md`, `docs/vps.md` (o `site` na 3000 e a atualização do Caddy depois do deploy),
@@ -691,7 +698,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@v7
         with:
           node-version: "24"
           cache: npm
@@ -815,7 +822,7 @@ jobs:
         working-directory: backend
         run: ./mvnw -B verify -Pe2e
 
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@v7
         with:
           node-version: "24"
           cache: npm
@@ -1150,6 +1157,221 @@ docs/      Plano, roteiro dos capítulos, VPS, operação, pagamentos e prompts
 - [Roteiro do tutorial (capítulos)](docs/capitulos.md)
 - [Prompts para recriar o projeto do zero](docs/prompts-iniciais/README.md)
 - [Prompts por fase](docs/prompts/README.md)
+`````
+
+`backend/src/main/resources/application.yaml`:
+
+`````yaml
+spring:
+  application:
+    name: plataforma-cursos
+  threads:
+    virtual:
+      enabled: true
+  # Sem usuário embutido: a autenticação é feita pelos usuários do banco
+  autoconfigure:
+    exclude: org.springframework.boot.security.autoconfigure.UserDetailsServiceAutoConfiguration
+  # Sem valor padrão: sem as credenciais a aplicação não sobe (o compose exige as variáveis)
+  datasource:
+    url: ${DB_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+  flyway:
+    enabled: true
+    # Usuário da API e do worker (só dados): criado e liberado pelo afterMigrate.sql quando informado.
+    # Em branco (desenvolvimento), a aplicação usa o próprio dono do schema
+    placeholders:
+      usuario_app: ${DB_APP_USERNAME:}
+      senha_app: ${DB_APP_PASSWORD:}
+  data:
+    web:
+      pageable:
+        default-page-size: 20
+        max-page-size: 100
+  web:
+    # Mensagens de validação em português
+    locale: pt_BR
+    locale-resolver: fixed
+  mail:
+    host: ${SMTP_HOST:}
+    port: ${SMTP_PORT:587}
+    username: ${SMTP_USERNAME:}
+    password: ${SMTP_PASSWORD:}
+    properties:
+      mail.smtp.auth: ${SMTP_AUTH:true}
+      mail.smtp.starttls.enable: ${SMTP_STARTTLS:true}
+      mail.smtp.starttls.required: ${SMTP_STARTTLS:true}
+      mail.smtp.connectiontimeout: 10000
+      mail.smtp.timeout: 10000
+      mail.smtp.writetimeout: 10000
+
+logging:
+  # Horário de Brasília nos logs: o @timestamp do JSON (ECS) e o texto do console do desenvolvimento
+  structured:
+    json:
+      customizer: br.com.celke.cursos.shared.config.FusoHorarioLogs
+  pattern:
+    dateformat: "yyyy-MM-dd'T'HH:mm:ss.SSSXXX, America/Sao_Paulo"
+  # Arquivo de log (ligado nos servidores por LOGGING_FILE_NAME, num volume): um arquivo por dia de
+  # Brasília, comprimido, guardado por 180 dias ou até 2 GB por serviço, o que vier primeiro
+  logback:
+    rollingpolicy:
+      file-name-pattern: "${LOG_FILE}.%d{yyyy-MM-dd,America/Sao_Paulo}.%i.gz"
+      max-file-size: 50MB
+      max-history: 180
+      total-size-cap: 2GB
+
+server:
+  shutdown: graceful
+  # A API roda atrás do Caddy. Com "native", o Tomcat só aceita X-Forwarded-* vindo de proxy interno
+  # (rede privada) e lê o X-Forwarded-For da direita para a esquerda: IP forjado pelo cliente é ignorado
+  forward-headers-strategy: native
+  error:
+    include-stacktrace: never
+    include-message: never
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      show-details: never
+  health:
+    # O SMTP fora do ar não deve tirar a API do ar: o envio é pela fila, com novas tentativas
+    mail:
+      enabled: false
+
+# Swagger: ligado só no desenvolvimento e na homologação (DOCS_ENABLED=true)
+springdoc:
+  api-docs:
+    enabled: ${DOCS_ENABLED:false}
+  swagger-ui:
+    enabled: ${DOCS_ENABLED:false}
+
+app:
+  auth:
+    # Segredo do JWT em Base64, com pelo menos 32 bytes (openssl rand -base64 48)
+    jwt-segredo: ${JWT_SEGREDO:}
+    emissor: plataforma-cursos
+    validade-acesso: PT10M
+    validade-refresh: P14D
+    cookie-seguro: true
+    # Origens do front que podem renovar e encerrar a sessão (separadas por vírgula)
+    origens-permitidas: ${AUTH_ORIGENS:}
+    segundo-fator:
+      # Chave AES-256 dos segredos do aplicativo autenticador dos administradores: 32 bytes em Base64
+      # (openssl rand -base64 32). Trocar a chave exige cadastrar o aplicativo de novo (redefinir-2fa)
+      chave: ${TOTP_CHAVE:}
+      emissor: Plataforma de Cursos
+      rejeitar-reuso: true
+    auditoria-login:
+      # Tentativas de login (e-mail, IP e navegador): 6 meses, prazo do Marco Civil para os registros de
+      # acesso a aplicações; a limpeza é diária, no worker
+      retencao: P180D
+  conta:
+    # Área do aluno: base dos links enviados por e-mail
+    url-aluno: ${FRONT_ALUNO_URL:}
+    validade-confirmacao: PT48H
+    validade-recuperacao: PT1H
+    emails-por-hora: 3
+  limites:
+    # Rotas de autenticação e conta: requisições por IP a cada minuto
+    requisicoes-por-ip-por-minuto: 30
+    # Falhas de login seguidas que bloqueiam o par e-mail + IP, e o e-mail vindo de qualquer IP
+    falhas-por-email-e-ip: 5
+    falhas-por-email: 20
+    # Contadores de falha zeram depois de uma hora sem novas falhas
+    janela-falhas: PT1H
+    bloqueio: PT15M
+  limites-usuario:
+    # Gravações (POST, PUT, PATCH, DELETE) de um usuário logado a cada minuto, em todas as rotas
+    escritas-por-minuto: 120
+    # Pedidos abertos no meio de pagamento por um usuário a cada hora
+    checkouts-por-hora: 10
+  armazenamento:
+    # Endereço usado pela aplicação (rede interna)
+    endpoint: ${S3_ENDPOINT:}
+    # Endereço que vai nas URLs pré-assinadas (o que o navegador acessa)
+    endpoint-publico: ${S3_ENDPOINT_PUBLICO:}
+    regiao: ${S3_REGIAO:garage}
+    bucket: ${S3_BUCKET:}
+    access-key: ${S3_ACCESS_KEY:}
+    secret-key: ${S3_SECRET_KEY:}
+    cors-origens: ${S3_CORS_ORIGENS:}
+    dias-uploads-abandonados: 2
+  email:
+    remetente: ${EMAIL_REMETENTE:}
+    nome-remetente: Plataforma de Cursos
+  fila:
+    max-tentativas: 5
+    lease: PT10M
+    backoff-base: PT30S
+    backoff-maximo: PT1H
+    intervalo: PT2S
+    consumidor-ativo: false
+  video:
+    tamanho-maximo: 5GB
+    # Validade das URLs de envio das partes (um vídeo grande numa conexão lenta)
+    validade-envio: PT6H
+    ffmpeg: ffmpeg
+    ffprobe: ffprobe
+    # veryfast: na VPS (1,5 vCPU para o worker) o ganho de compressão dos presets lentos não compensa o tempo
+    preset: veryfast
+    crf: 24
+    diretorio-trabalho: ${java.io.tmpdir}/plataforma-cursos-videos
+    # Validade das URLs dos segmentos = duração do vídeo + margem (pausas e idas e voltas no player)
+    margem-playlist: PT2H
+    # Log de acesso aos vídeos: 6 meses (prazo do Marco Civil para registros de acesso a aplicações)
+    retencao-log-acesso: P180D
+  forum:
+    # Perguntas e respostas por aluno dentro da janela (o instrutor não tem limite)
+    mensagens-por-janela: 20
+    janela: PT1H
+    anexos-por-mensagem: 3
+  pagamentos:
+    # Chave AES-256 dos segredos dos meios de pagamento: 32 bytes em Base64 (openssl rand -base64 32).
+    # Em branco, a API sobe, mas o painel não grava credenciais
+    chave: ${PAGAMENTOS_CHAVE:}
+    webhook-tamanho-maximo: 256KB
+    webhook-requisicoes-por-ip-por-minuto: 600
+    # Corpo dos eventos processados ou ignorados é apagado depois disso (o resto fica para auditoria)
+    retencao-payload: P180D
+    # Disputa aberta mantém o acesso; true tira o acesso até a disputa terminar
+    disputa-suspende: false
+    # Cobrança atrasada mantém o acesso; com app.pagamentos.atraso-suspende-apos (ex.: P7D), o acesso
+    # é tirado depois desse prazo
+    reconciliacao:
+      # Consulta diária na API do meio de pagamento (precisa das credenciais da API)
+      ativa: false
+      pendente-apos: PT24H
+      sem-evento-apos: P3D
+      janela: P60D
+    hotmart:
+      url-token: https://api-sec-vlc.hotmart.com/security/oauth/token
+      url-api: https://developers.hotmart.com/payments/api/v1
+      url-api-sandbox: https://sandbox.hotmart.com/payments/api/v1
+      timeout: PT10S
+  auditoria:
+    # Trilha de auditoria guardada por 5 anos (prazo de prescrição das ações do consumidor); a limpeza é
+    # semanal, no worker
+    retencao: P1826D
+  alertas:
+    # Destinatário dos alertas do worker (jobs com erro, disco); em branco, desligados
+    email: ${ALERTA_EMAIL:}
+    disco-minimo-percentual: 15
+    diretorio-disco: /
+    repeticao-disco: PT6H
+  exemplos:
+    # Cursos de exemplo publicados ao subir a API (CursosExemplo): ligado só na homologação
+    cursos: ${CURSOS_EXEMPLO:false}
 `````
 
 `docs/capitulos.md`:
@@ -3354,7 +3576,7 @@ services:
         condition: service_healthy
 
   mailpit:
-    image: axllent/mailpit:v1.31.6
+    image: axllent/mailpit:v1.32.0
     ports:
       - "127.0.0.1:${E2E_MAILPIT_PORTA:?defina E2E_MAILPIT_PORTA}:8025"
     healthcheck:
@@ -3362,6 +3584,52 @@ services:
       interval: 5s
       timeout: 3s
       retries: 20
+`````
+
+`infra/compose.homolog.yml`:
+
+`````yaml
+# Homologação: a mesma stack da produção com limites menores (divide a VPS com a produção) e o
+# Swagger ligado (o Caddy só deixa chegar quem está em HOMOLOG_IPS).
+services:
+  api:
+    environment:
+      JAVA_TOOL_OPTIONS: -Xmx384m
+      DOCS_ENABLED: "true"
+      # Seis cursos publicados para ver o site e a área do aluno com conteúdo (CursosExemplo)
+      CURSOS_EXEMPLO: "true"
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 768M
+
+  worker:
+    environment:
+      JAVA_TOOL_OPTIONS: -Xmx256m
+    deploy:
+      resources:
+        limits:
+          # Envia os e-mails da homologação; transcodificação lenta de propósito
+          cpus: "0.5"
+          memory: 768M
+
+  # Homologação fica fora dos buscadores
+  site:
+    environment:
+      SITE_INDEXAVEL: "false"
+
+  postgres:
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
+  garage:
+    deploy:
+      resources:
+        limits:
+          memory: 512M
 `````
 
 `infra/compose.prod.yml`:
@@ -4206,20 +4474,20 @@ export default tseslint.config(
   },
   "dependencies": {
     "@celke/kole-react": "^0.2.0",
-    "@react-router/node": "^8.5.0",
-    "@react-router/serve": "^8.5.0",
-    "hls.js": "^1.7.3",
+    "@react-router/node": "^8.5.1",
+    "@react-router/serve": "^8.5.1",
+    "hls.js": "^1.7.4",
     "isbot": "^5.2.2",
-    "lucide-react": "^1.61.0",
+    "lucide-react": "^1.65.0",
     "qrcode": "^1.5.4",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
-    "react-router": "^8.5.0"
+    "react-router": "^8.5.1"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@playwright/test": "^1.64.1",
-    "@react-router/dev": "^8.5.0",
+    "@react-router/dev": "^8.5.1",
     "@testing-library/jest-dom": "^7.0.1",
     "@testing-library/react": "^16.3.3",
     "@testing-library/user-event": "^14.6.8",
@@ -4232,10 +4500,10 @@ export default tseslint.config(
     "eslint-plugin-react-hooks": "^7.1.1",
     "globals": "^17.13.0",
     "jsdom": "^30.1.3",
-    "lighthouse": "^13.5.0",
+    "lighthouse": "^13.6.0",
     "prettier": "^3.9.10",
     "typescript": "~6.0.3",
-    "typescript-eslint": "^8.72.0",
+    "typescript-eslint": "^8.72.1",
     "vite": "^8.3.5",
     "vitest": "^5.0.5"
   },
@@ -4337,6 +4605,354 @@ test-results/
 .vscode/
 *.iml
 .DS_Store
+`````
+
+`backend/src/main/java/br/com/celke/cursos/curso/application/CursosExemplo.java`:
+
+`````java
+package br.com.celke.cursos.curso.application;
+
+import br.com.celke.cursos.curso.domain.Curso;
+import br.com.celke.cursos.curso.domain.Modulo;
+import br.com.celke.cursos.curso.domain.StatusCurso;
+import br.com.celke.cursos.curso.domain.StatusTurma;
+import br.com.celke.cursos.curso.domain.Turma;
+import br.com.celke.cursos.curso.infra.CursoRepository;
+import br.com.celke.cursos.shared.armazenamento.StorageService;
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.util.List;
+import java.util.UUID;
+import javax.imageio.ImageIO;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.boot.ApplicationArguments;
+import org.springframework.boot.ApplicationRunner;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.core.annotation.Order;
+import org.springframework.stereotype.Component;
+
+/**
+ * Cursos de exemplo publicados (turma ativa, regra do certificado, módulos, aulas com a primeira
+ * gratuita e capa em degradê), criados ao subir a API com {@code CURSOS_EXEMPLO=true}: só na
+ * homologação, para ver o site e a área do aluno com conteúdo. Curso que já existe (mesmo slug) é
+ * pulado. Os mesmos cursos do {@code web/scripts/cursos-exemplo.ts}, que os cria por um ambiente
+ * qualquer pela API do ADM.
+ */
+@Component
+@ConditionalOnProperty(name = "app.exemplos.cursos", havingValue = "true")
+@Order(10)
+public class CursosExemplo implements ApplicationRunner {
+
+    private static final Logger LOG = LoggerFactory.getLogger(CursosExemplo.class);
+
+    public record ModuloExemplo(String titulo, List<String> aulas) {}
+
+    public record Exemplo(
+            String slug,
+            String titulo,
+            String resumo,
+            String descricao,
+            int corInicial,
+            int corFinal,
+            int cargaHoras,
+            List<ModuloExemplo> modulos) {}
+
+    static final List<Exemplo> EXEMPLOS = List.of(
+            new Exemplo(
+                    "java-do-zero-ao-avancado",
+                    "Java do zero ao avançado",
+                    "Aprenda a programar em Java, da lógica à orientação a objetos, com projetos práticos.",
+                    "Um curso completo para quem quer começar a programar com uma das linguagens mais usadas no"
+                            + " mercado.\n\nVocê sai do primeiro programa até coleções, tratamento de erros e testes,"
+                            + " sempre com exercícios para fixar.",
+                    0x1f5fe0,
+                    0x6a3df0,
+                    40,
+                    List.of(
+                            new ModuloExemplo(
+                                    "Primeiros passos",
+                                    List.of("Instalando o JDK e a IDE", "Seu primeiro programa", "Variáveis e tipos")),
+                            new ModuloExemplo(
+                                    "Lógica de programação",
+                                    List.of("Condicionais", "Laços de repetição", "Métodos", "Exercícios comentados")),
+                            new ModuloExemplo(
+                                    "Orientação a objetos",
+                                    List.of(
+                                            "Classes e objetos",
+                                            "Herança e interfaces",
+                                            "Coleções",
+                                            "Projeto final")))),
+            new Exemplo(
+                    "react-com-typescript-na-pratica",
+                    "React com TypeScript na prática",
+                    "Construa interfaces modernas com componentes, hooks e tipagem do começo ao fim.",
+                    "Do componente ao projeto publicado: estado, efeitos, formulários, rotas e chamadas à API, com"
+                            + " TypeScript em tudo.\n\nIdeal para quem já conhece JavaScript e quer dar o próximo"
+                            + " passo.",
+                    0x0ea5b7,
+                    0x1f5fe0,
+                    30,
+                    List.of(
+                            new ModuloExemplo(
+                                    "Fundamentos",
+                                    List.of(
+                                            "Criando o projeto com Vite",
+                                            "Componentes e props",
+                                            "Estado com useState")),
+                            new ModuloExemplo(
+                                    "Aplicação real",
+                                    List.of("Rotas", "Formulários", "Consumindo uma API", "Testes com Vitest")),
+                            new ModuloExemplo("Publicação", List.of("Build de produção", "Deploy")))),
+            new Exemplo(
+                    "excel-para-o-dia-a-dia",
+                    "Excel para o dia a dia",
+                    "Planilhas, fórmulas, gráficos e tabelas dinâmicas para ganhar tempo no trabalho.",
+                    "Aprenda a organizar dados e automatizar tarefas repetitivas com as funções que mais aparecem no"
+                            + " dia a dia.\n\nCada aula traz uma planilha de apoio para você praticar.",
+                    0x16a34a,
+                    0x0f766e,
+                    16,
+                    List.of(
+                            new ModuloExemplo(
+                                    "Básico", List.of("Conhecendo a planilha", "Formatação", "Fórmulas simples")),
+                            new ModuloExemplo("Funções", List.of("SE e SOMASE", "PROCX", "Datas e textos")),
+                            new ModuloExemplo(
+                                    "Análise", List.of("Gráficos", "Tabelas dinâmicas", "Painel de indicadores")))),
+            new Exemplo(
+                    "marketing-digital-para-iniciantes",
+                    "Marketing digital para iniciantes",
+                    "Redes sociais, conteúdo e anúncios para atrair clientes pela internet.",
+                    "Entenda como planejar a presença on-line de um negócio, produzir conteúdo que engaja e medir os"
+                            + " resultados.\n\nSem jargão: exemplos reais e um plano de ação ao final.",
+                    0xf7931e,
+                    0xe11d48,
+                    20,
+                    List.of(
+                            new ModuloExemplo("Planejamento", List.of("Público e persona", "Posicionamento", "Metas")),
+                            new ModuloExemplo(
+                                    "Conteúdo", List.of("Calendário editorial", "Instagram", "Vídeos curtos")),
+                            new ModuloExemplo("Resultados", List.of("Anúncios", "Métricas", "Plano de ação")))),
+            new Exemplo(
+                    "fotografia-com-o-celular",
+                    "Fotografia com o celular",
+                    "Composição, luz e edição para fotos profissionais usando só o smartphone.",
+                    "Descubra como tirar fotos melhores com o equipamento que você já tem no bolso.\n\nVocê pratica"
+                            + " composição, aproveita a luz natural e aprende a editar no próprio celular.",
+                    0x7c3aed,
+                    0xdb2777,
+                    12,
+                    List.of(
+                            new ModuloExemplo(
+                                    "O olhar", List.of("Regra dos terços", "Linhas e enquadramento", "Perspectiva")),
+                            new ModuloExemplo("Luz", List.of("Luz natural", "Contraluz", "Fotos à noite")),
+                            new ModuloExemplo("Edição", List.of("Ajustes básicos", "Cor e estilo")))),
+            new Exemplo(
+                    "ingles-para-viagens",
+                    "Inglês para viagens",
+                    "Frases e situações para se virar no aeroporto, no hotel e no restaurante.",
+                    "Um curso direto ao ponto para quem vai viajar e quer se comunicar com confiança.\n\nCada módulo"
+                            + " simula uma situação real, com vocabulário, pronúncia e diálogos.",
+                    0x0b1a36,
+                    0x1f5fe0,
+                    10,
+                    List.of(
+                            new ModuloExemplo(
+                                    "No aeroporto", List.of("Check-in", "Imigração", "Perguntando o caminho")),
+                            new ModuloExemplo("No hotel", List.of("Reserva", "Pedidos e problemas")),
+                            new ModuloExemplo("Passeios", List.of("No restaurante", "Compras", "Emergências")))));
+
+    private final CursoRepository cursos;
+    private final CursoAdmService cursoAdmService;
+    private final TurmaAdmService turmaAdmService;
+    private final ModuloAdmService moduloAdmService;
+    private final AulaAdmService aulaAdmService;
+    private final StorageService storage;
+
+    public CursosExemplo(
+            CursoRepository cursos,
+            CursoAdmService cursoAdmService,
+            TurmaAdmService turmaAdmService,
+            ModuloAdmService moduloAdmService,
+            AulaAdmService aulaAdmService,
+            StorageService storage) {
+        this.cursos = cursos;
+        this.cursoAdmService = cursoAdmService;
+        this.turmaAdmService = turmaAdmService;
+        this.moduloAdmService = moduloAdmService;
+        this.aulaAdmService = aulaAdmService;
+        this.storage = storage;
+    }
+
+    /** Uma falha aqui fica no log: a homologação sobe mesmo sem os exemplos. */
+    @Override
+    public void run(ApplicationArguments args) {
+        for (Exemplo exemplo : EXEMPLOS) {
+            try {
+                if (criar(exemplo)) {
+                    LOG.info("Curso de exemplo criado: {}", exemplo.slug());
+                }
+            } catch (RuntimeException e) {
+                LOG.warn("Curso de exemplo {} não criado", exemplo.slug(), e);
+            }
+        }
+    }
+
+    /** Cria e publica o curso; devolve false se o slug já existe. */
+    public boolean criar(Exemplo exemplo) {
+        if (cursos.existsBySlug(exemplo.slug())) {
+            return false;
+        }
+        Curso curso = cursoAdmService.criar(
+                new DadosCurso(exemplo.titulo(), exemplo.slug(), exemplo.resumo(), exemplo.descricao()));
+        Turma turma = turmaAdmService.criar(curso.getId(), "Turma de exemplo");
+        turmaAdmService.definirCertificado(turma.getId(), 100, exemplo.cargaHoras());
+        turmaAdmService.alterarStatus(turma.getId(), StatusTurma.ATIVA);
+        boolean primeira = true;
+        for (ModuloExemplo m : exemplo.modulos()) {
+            Modulo modulo = moduloAdmService.criar(turma.getId(), m.titulo());
+            for (String titulo : m.aulas()) {
+                aulaAdmService.criar(
+                        modulo.getId(),
+                        new DadosAula(titulo, "Aula de exemplo do curso " + exemplo.titulo() + ".", primeira));
+                primeira = false;
+            }
+        }
+        String capa = "capas/%d/%s.jpg".formatted(curso.getId(), UUID.randomUUID());
+        storage.gravar(capa, capa(exemplo.corInicial(), exemplo.corFinal()), "image/jpeg");
+        cursoAdmService.trocarCapa(curso.getId(), capa);
+        cursoAdmService.alterarStatus(curso.getId(), StatusCurso.PUBLICADO);
+        return true;
+    }
+
+    /** JPEG de 1280 × 720 (o tamanho das capas): degradê diagonal com dois círculos claros e suaves. */
+    static byte[] capa(int de, int ate) {
+        int largura = CapaCursoService.LARGURA;
+        int altura = CapaCursoService.ALTURA;
+        double[][] circulos = {
+            {largura * 0.82, altura * 0.18, altura * 0.55, 0.22},
+            {largura * 0.12, altura * 0.95, altura * 0.45, 0.12}
+        };
+        BufferedImage imagem = new BufferedImage(largura, altura, BufferedImage.TYPE_INT_RGB);
+        for (int y = 0; y < altura; y++) {
+            for (int x = 0; x < largura; x++) {
+                double t = (double) x / largura * 0.6 + (double) y / altura * 0.4;
+                double luz = 0;
+                for (double[] c : circulos) {
+                    double d = Math.hypot(x - c[0], y - c[1]) / c[2];
+                    if (d < 1) {
+                        luz += (1 - d) * (1 - d) * c[3];
+                    }
+                }
+                int rgb = 0;
+                for (int deslocamento = 16; deslocamento >= 0; deslocamento -= 8) {
+                    double base = ((de >> deslocamento) & 255)
+                            + (((ate >> deslocamento) & 255) - ((de >> deslocamento) & 255)) * t;
+                    rgb = (rgb << 8) | (int) Math.min(255, Math.round(base + (255 - base) * luz));
+                }
+                imagem.setRGB(x, y, rgb);
+            }
+        }
+        var saida = new ByteArrayOutputStream();
+        try {
+            ImageIO.write(imagem, "jpg", saida);
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+        return saida.toByteArray();
+    }
+}
+`````
+
+`backend/src/test/java/br/com/celke/cursos/curso/CursosExemploIT.java`:
+
+`````java
+package br.com.celke.cursos.curso;
+
+import static org.assertj.core.api.Assertions.assertThat;
+
+import br.com.celke.cursos.curso.application.AulaAdmService;
+import br.com.celke.cursos.curso.application.CursoAdmService;
+import br.com.celke.cursos.curso.application.CursosExemplo;
+import br.com.celke.cursos.curso.application.CursosExemplo.Exemplo;
+import br.com.celke.cursos.curso.application.CursosExemplo.ModuloExemplo;
+import br.com.celke.cursos.curso.application.ModuloAdmService;
+import br.com.celke.cursos.curso.application.TurmaAdmService;
+import br.com.celke.cursos.curso.domain.StatusCurso;
+import br.com.celke.cursos.curso.infra.CursoRepository;
+import br.com.celke.cursos.shared.armazenamento.StorageService;
+import br.com.celke.cursos.support.IntegrationTest;
+import java.util.List;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+
+/**
+ * Cobre: o curso de exemplo da homologação sai publicado no catálogo, com capa no Garage, turma
+ * ativa e só a primeira aula gratuita; rodar de novo pula o slug que já existe.
+ * Não cobre: a lista fixa dos seis cursos (ligada só com CURSOS_EXEMPLO=true, fora dos testes).
+ * Dado criado: curso it-<stamp> e a capa dele em capas/.
+ */
+class CursosExemploIT extends IntegrationTest {
+
+    @Autowired
+    private CursoRepository cursos;
+
+    @Autowired
+    private CursoAdmService cursoAdmService;
+
+    @Autowired
+    private TurmaAdmService turmaAdmService;
+
+    @Autowired
+    private ModuloAdmService moduloAdmService;
+
+    @Autowired
+    private AulaAdmService aulaAdmService;
+
+    @Autowired
+    private StorageService storage;
+
+    @Test
+    @DisplayName("cria o curso publicado com capa e pula o que já existe")
+    void criaEPula() {
+        var exemplos =
+                new CursosExemplo(cursos, cursoAdmService, turmaAdmService, moduloAdmService, aulaAdmService, storage);
+        String slug = stamp();
+        var exemplo = new Exemplo(
+                slug,
+                "IT Exemplo " + slug,
+                "Resumo do exemplo",
+                "Descrição do exemplo",
+                0x1f5fe0,
+                0x6a3df0,
+                8,
+                List.of(new ModuloExemplo("Módulo", List.of("Primeira", "Segunda"))));
+
+        assertThat(exemplos.criar(exemplo)).isTrue();
+
+        assertThat(mvc.get().uri("/api/cursos/" + slug))
+                .hasStatusOk()
+                .bodyJson()
+                .isLenientlyEqualTo("""
+                        {"slug":"%s","titulo":"IT Exemplo %s",
+                         "modulos":[{"titulo":"Módulo","aulas":[
+                           {"titulo":"Primeira","gratuita":true},
+                           {"titulo":"Segunda","gratuita":false}]}]}
+                        """.formatted(slug, slug));
+        String capa = cursos.findBySlugAndStatus(slug, StatusCurso.PUBLICADO)
+                .orElseThrow()
+                .getCapaChave();
+        assertThat(capa).startsWith("capas/").endsWith(".jpg");
+        assertThat(storage.info(capa)).isPresent();
+
+        assertThat(exemplos.criar(exemplo)).isFalse();
+        assertThat(mvc.get().uri("/api/cursos/" + slug)).hasStatus(HttpStatus.OK);
+    }
+}
 `````
 
 `web/scripts/cursos-exemplo.test.ts`:
@@ -4911,10 +5527,24 @@ export function Icone({ nome, className = 's-icone' }: { nome: NomeIcone; classN
 import { Link } from 'react-router';
 import { NOME } from '../seo.ts';
 
+/** Logo igual ao do ADM: o escudo (ícone `shield` da @celke/kole-react) na cor de acento. */
 export function Marca() {
   return (
     <Link className="s-marca" to="/">
-      <img src="/icone.svg" alt="" width={32} height={32} />
+      <svg
+        className="s-marca-logo"
+        viewBox="0 0 24 24"
+        width={28}
+        height={28}
+        fill="none"
+        stroke="currentColor"
+        strokeWidth={2}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        aria-hidden="true"
+      >
+        <path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z" />
+      </svg>
       <span>{NOME}</span>
     </Link>
   );
@@ -5183,6 +5813,15 @@ h3 {
   font-size: 1.1rem;
   letter-spacing: -0.01em;
   text-decoration: none;
+}
+
+.s-marca-logo {
+  flex: none;
+  color: var(--acento);
+}
+
+.s-rodape .s-marca-logo {
+  color: var(--acento-claro);
 }
 
 .s-menu {
@@ -6189,7 +6828,6 @@ import { NOME, type Contexto } from './seo.ts';
 
 export const links: LinksFunction = () => [
   { rel: 'icon', href: '/favicon.ico', sizes: '32x32' },
-  { rel: 'icon', href: '/icone.svg', type: 'image/svg+xml' },
   { rel: 'stylesheet', href: tokens },
   { rel: 'stylesheet', href: estilos },
 ];
@@ -7342,12 +7980,6 @@ export function robots(ctx: Contexto): string {
     ? `User-agent: *\nAllow: /\n\nSitemap: ${ctx.siteUrl}/sitemap.xml\n`
     : 'User-agent: *\nDisallow: /\n';
 }
-`````
-
-`web/site/public/icone.svg`:
-
-`````xml
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><rect width="32" height="32" rx="7" fill="#0b1f4b"/><path d="M12 9.5v13l10-6.5z" fill="#f7931e"/></svg>
 `````
 
 `web/site/react-router.config.ts`:
