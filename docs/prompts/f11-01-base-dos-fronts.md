@@ -368,7 +368,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@v7
         with:
           node-version: "24"
           cache: npm
@@ -470,7 +470,7 @@ jobs:
         working-directory: backend
         run: ./mvnw -B verify -Pe2e
 
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@v7
         with:
           node-version: "24"
           cache: npm
@@ -1172,7 +1172,7 @@ services:
         condition: service_healthy
 
   mailpit:
-    image: axllent/mailpit:v1.31.6
+    image: axllent/mailpit:v1.32.0
     ports:
       - "127.0.0.1:${E2E_MAILPIT_PORTA:?defina E2E_MAILPIT_PORTA}:8025"
     healthcheck:
@@ -1402,6 +1402,8 @@ node_modules
 playwright-report
 test-results
 package-lock.json
+# saída de scriptTemaInicial() da @celke/kole-react, mantida igual à da biblioteca
+*/public/tema.js
 `````
 
 `web/.prettierrc.json`:
@@ -1491,12 +1493,20 @@ HEALTHCHECK --interval=5s --timeout=3s --retries=20 \
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="robots" content="noindex" />
     <title>Administração — Plataforma de Cursos</title>
+    <script src="/tema.js"></script>
   </head>
   <body>
     <div id="raiz"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
+`````
+
+`web/adm/public/tema.js`:
+
+`````js
+// Tema e densidade antes da primeira pintura (scriptTemaInicial() da @celke/kole-react). Fica em arquivo, e não inline no index.html, porque a Content-Security-Policy só aceita script-src 'self'.
+(function(){var p={};try{p=JSON.parse(localStorage.getItem("lp-preferencias")||"{}")||{}}catch(e){}var t=p.tema||"sistema";var h=document.documentElement;h.setAttribute("data-theme",{"claro":"light","escuro":"dark","sistema":"system"}[t]||"light");var d={"compacta":"density-compact","confortavel":"density-comfortable","espacosa":"density-cozy"}[p.densidade||"confortavel"];if(d)h.classList.add(d)})();
 `````
 
 `web/adm/src/caminhos.ts`:
@@ -1717,12 +1727,20 @@ export default configurar('adm', 5174);
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="robots" content="noindex" />
     <title>Área do aluno — Plataforma de Cursos</title>
+    <script src="/tema.js"></script>
   </head>
   <body>
     <div id="raiz"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
+`````
+
+`web/aluno/public/tema.js`:
+
+`````js
+// Tema e densidade antes da primeira pintura (scriptTemaInicial() da @celke/kole-react). Fica em arquivo, e não inline no index.html, porque a Content-Security-Policy só aceita script-src 'self'.
+(function(){var p={};try{p=JSON.parse(localStorage.getItem("lp-preferencias")||"{}")||{}}catch(e){}var t=p.tema||"sistema";var h=document.documentElement;h.setAttribute("data-theme",{"claro":"light","escuro":"dark","sistema":"system"}[t]||"light");var d={"compacta":"density-compact","confortavel":"density-comfortable","espacosa":"density-cozy"}[p.densidade||"confortavel"];if(d)h.classList.add(d)})();
 `````
 
 `web/aluno/src/caminhos.ts`:
@@ -3853,11 +3871,11 @@ export default tseslint.config(
     "e2e:report": "playwright show-report"
   },
   "dependencies": {
-    "@celke/kole-react": "^0.1.0",
-    "lucide-react": "^1.61.0",
+    "@celke/kole-react": "^0.2.0",
+    "lucide-react": "^1.65.0",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
-    "react-router": "^8.5.0"
+    "react-router": "^8.5.1"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
@@ -3875,7 +3893,7 @@ export default tseslint.config(
     "jsdom": "^30.1.3",
     "prettier": "^3.9.10",
     "typescript": "~6.0.3",
-    "typescript-eslint": "^8.72.0",
+    "typescript-eslint": "^8.72.1",
     "vite": "^8.3.5",
     "vitest": "^5.0.5"
   },

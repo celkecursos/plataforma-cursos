@@ -342,7 +342,7 @@ Crie ou substitua os arquivos abaixo com **exatamente** o conteúdo indicado.
 	<parent>
 		<groupId>org.springframework.boot</groupId>
 		<artifactId>spring-boot-starter-parent</artifactId>
-		<version>4.1.1</version>
+		<version>4.1.2</version>
 		<relativePath/>
 	</parent>
 	<groupId>br.com.celke</groupId>
@@ -353,13 +353,13 @@ Crie ou substitua os arquivos abaixo com **exatamente** o conteúdo indicado.
 
 	<properties>
 		<java.version>25</java.version>
-		<springdoc.version>3.1.1</springdoc.version>
-		<aws-sdk.version>2.57.1</aws-sdk.version>
+		<springdoc.version>3.2.0</springdoc.version>
+		<aws-sdk.version>2.57.7</aws-sdk.version>
 		<bouncycastle.version>1.86</bouncycastle.version>
 		<bucket4j.version>8.21.0</bucket4j.version>
 		<spotless.version>3.10.4</spotless.version>
 		<palantir-java-format.version>2.102.0</palantir-java-format.version>
-		<jacoco.version>0.8.15</jacoco.version>
+		<jacoco.version>0.8.16</jacoco.version>
 		<!-- Cobertura mínima de linhas (unitários + integração) -->
 		<jacoco.cobertura.minima>0.80</jacoco.cobertura.minima>
 		<!-- -Dskip.unit=true roda só os testes de integração -->
@@ -1795,7 +1795,7 @@ services:
       retries: 20
 
   mailpit:
-    image: axllent/mailpit:v1.31.6
+    image: axllent/mailpit:v1.32.0
     ports:
       - "127.0.0.1:${MAILPIT_PORTA:-8025}:8025"   # painel web
     healthcheck:

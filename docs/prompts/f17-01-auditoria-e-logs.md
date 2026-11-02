@@ -3033,12 +3033,12 @@ export function opcoes<V extends string>(mapa: Record<V, Rotulo | string>) {
     "lighthouse": "node e2e/lighthouse.ts"
   },
   "dependencies": {
-    "@celke/kole-react": "^0.1.0",
-    "hls.js": "^1.7.3",
-    "lucide-react": "^1.61.0",
+    "@celke/kole-react": "^0.2.0",
+    "hls.js": "^1.7.4",
+    "lucide-react": "^1.65.0",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
-    "react-router": "^8.5.0"
+    "react-router": "^8.5.1"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
@@ -3054,10 +3054,10 @@ export function opcoes<V extends string>(mapa: Record<V, Rotulo | string>) {
     "eslint-plugin-react-hooks": "^7.1.1",
     "globals": "^17.13.0",
     "jsdom": "^30.1.3",
-    "lighthouse": "^13.5.0",
+    "lighthouse": "^13.6.0",
     "prettier": "^3.9.10",
     "typescript": "~6.0.3",
-    "typescript-eslint": "^8.72.0",
+    "typescript-eslint": "^8.72.1",
     "vite": "^8.3.5",
     "vitest": "^5.0.5"
   },
