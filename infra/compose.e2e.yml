@@ -8,7 +8,7 @@ name: plataforma-cursos-e2e
 
 services:
   caddy:
-    image: caddy:2.11.7-alpine
+    image: caddy:2.11.9-alpine
     ports:
       - "127.0.0.1:${E2E_PORTA:?defina E2E_PORTA}:80"
     volumes:
