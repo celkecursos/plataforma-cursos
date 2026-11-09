@@ -33,7 +33,7 @@ HEALTHCHECK --interval=5s --timeout=3s --start-period=20s --retries=20 \
     CMD wget -q -O /dev/null http://127.0.0.1:3000/saude || exit 1
 CMD ["node", "../node_modules/@react-router/serve/bin.cjs", "../dist/site/server/index.js"]
 
-FROM caddy:2.11.7-alpine AS web
+FROM caddy:2.11.9-alpine AS web
 # Correções do sistema publicadas depois da imagem base
 RUN apk upgrade --no-cache
 COPY Caddyfile /etc/caddy/Caddyfile
