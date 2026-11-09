@@ -5,7 +5,7 @@ name: plataforma-cursos-caddy
 
 services:
   caddy:
-    image: caddy:2.11.7-alpine
+    image: caddy:2.11.9-alpine
     restart: unless-stopped
     environment:
       ACME_EMAIL: ${ACME_EMAIL:?defina ACME_EMAIL}
